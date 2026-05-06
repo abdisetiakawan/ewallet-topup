@@ -1,4 +1,4 @@
-package com.berijalan.entity;
+package com.berijalan.ewallet.entity;
 
 import java.time.LocalDateTime;
 
@@ -7,8 +7,8 @@ import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
-import com.berijalan.entity.constant.TransactionStatus;
-import com.berijalan.entity.constant.TransactionType;
+import com.berijalan.ewallet.entity.constant.TransactionStatus;
+import com.berijalan.ewallet.entity.constant.TransactionType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -1,4 +1,4 @@
-package com.berijalan.entity.constant;
+package com.berijalan.ewallet.entity.constant;
 
 public enum TransactionStatus {
     PENDING,

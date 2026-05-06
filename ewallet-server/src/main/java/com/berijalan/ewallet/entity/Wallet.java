@@ -1,4 +1,4 @@
-package com.berijalan.entity;
+package com.berijalan.ewallet.entity;
 
 import java.time.LocalDateTime;
 
