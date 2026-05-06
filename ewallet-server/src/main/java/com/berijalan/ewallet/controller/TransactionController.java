@@ -32,7 +32,7 @@ public class TransactionController {
             BaseResponse<Object> response = new BaseResponse<>(
                     "req-" + UUID.randomUUID().toString().substring(0, 8),
                     true,
-                    "Pembayaran berhasil",
+                    "Payment successful",
                     null
             );
             return ResponseEntity.ok(response);
@@ -50,7 +50,7 @@ public class TransactionController {
             BaseResponse<Object> serverErrorResponse = new BaseResponse<>(
                     "req-" + UUID.randomUUID().toString().substring(0, 8),
                     false,
-                    "Terjadi kesalahan sistem",
+                    "An internal server error occurred",
                     null
             );
             return ResponseEntity.internalServerError().body(serverErrorResponse);
@@ -71,7 +71,7 @@ public class TransactionController {
             BaseResponse<ResTransactionHistoryDto> response = new BaseResponse<>(
                     "req-" + UUID.randomUUID().toString().substring(0, 8),
                     true,
-                    "Riwayat transaksi berhasil diambil",
+                    "Transaction history retrieved successfully",
                     data
             );
             return ResponseEntity.ok(response);
