@@ -122,29 +122,6 @@ docs(readme): add setup instructions for backend and frontend
 8. Setelah review disetujui dan semua check (CI/build) hijau, **merge dengan opsi "Squash and Merge"**.
 9. Hapus branch fitur setelah di-merge.
 
-**Template PR (`.github/pull_request_template.md`):**
-
-```markdown
-## Deskripsi
-Jelaskan perubahan yang dilakukan.
-
-## Tipe Perubahan
-- [ ] Fitur baru
-- [ ] Perbaikan bug
-- [ ] Peningkatan teknis
-- [ ] Dokumentasi
-
-## Daftar Pengujian
-- [ ] Unit test ditambahkan/diperbarui
-- [ ] Manual test dilakukan (sebutkan langkah)
-- [ ] API response sesuai BaseResponse
-
-## Checklist
-- [ ] Branch saya up-to-date dengan develop
-- [ ] Saya sudah mengikuti konvensi commit
-- [ ] Tidak ada warning atau error baru
-```
-
 ---
 
 ## 6. Code Review
