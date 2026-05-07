@@ -57,13 +57,13 @@ public class TransactionService {
                 .orElseThrow(() -> {
                     log.warn("Payment rejected because merchant was not found. merchantName={}, user={}",
                             request.merchantName(), email);
-                    return new BadRequestException("Merchant tidak ditemukan");
+                    return new BadRequestException("Merchant not found");
                 });
 
         if (wallet.getBalance() < request.amount()) {
             log.warn("Payment rejected because balance is insufficient. user={}, merchant={}, amount={}, balance={}",
                     email, merchant.getName(), request.amount(), wallet.getBalance());
-            throw new BadRequestException("Saldo tidak mencukupi");
+            throw new BadRequestException("Insufficient balance");
         }
 
         long newBalance = wallet.getBalance() - request.amount();
