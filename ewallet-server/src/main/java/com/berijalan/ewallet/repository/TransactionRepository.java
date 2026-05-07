@@ -9,8 +9,6 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
 
@@ -20,5 +18,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
     @EntityGraph(attributePaths = "merchant")
     Page<Transaction> findByUser(User user, Pageable pageable);
 
-    Optional<Transaction> findByReferenceId(String referenceId);
+    boolean existsByReferenceId(String referenceId);
 }

@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<BaseResponse<Object>> handleConstraintViolationException(ConstraintViolationException e) {
         String message = e.getConstraintViolations().stream()
-                .map(violation -> violation.getMessage())
+                .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .collect(Collectors.joining(", "));
         return buildResponse(HttpStatus.BAD_REQUEST, message);
     }

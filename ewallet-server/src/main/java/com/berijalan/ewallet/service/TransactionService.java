@@ -39,12 +39,11 @@ public class TransactionService {
     @Transactional
     public ResPaymentDto pay(ReqPayDto request, String email) {
         String normalizedReferenceId = request.referenceId().trim();
-        transactionRepository.findByReferenceId(normalizedReferenceId)
-                .ifPresent(existingTransaction -> {
-                    log.warn("Payment rejected because referenceId already exists. referenceId={}, user={}",
-                            normalizedReferenceId, email);
-                    throw new BusinessException("Reference ID already used");
-                });
+        if (transactionRepository.existsByReferenceId(normalizedReferenceId)) {
+            log.warn("Payment rejected because referenceId already exists. referenceId={}, user={}",
+                    normalizedReferenceId, email);
+            throw new BusinessException("Reference ID already used");
+        }
 
         Wallet wallet = walletRepository.findByUserEmailForUpdate(email)
                 .orElseThrow(() -> {
