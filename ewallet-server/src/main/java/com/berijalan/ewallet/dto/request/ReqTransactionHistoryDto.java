@@ -14,6 +14,8 @@ public class ReqTransactionHistoryDto {
 
     private String status;
 
+    private String type;
+
     public Integer getPage() {
         return page;
     }
@@ -36,5 +38,13 @@ public class ReqTransactionHistoryDto {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

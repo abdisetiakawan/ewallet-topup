@@ -15,6 +15,10 @@ public record ReqPayDto(
         @Min(value = 1, message = "Minimum payment amount is 1")
         Long amount,
 
+        @NotBlank(message = "Payment description must not be empty")
+        @Size(max = 255, message = "Payment description maximum length is 255 characters")
+        String description,
+
         @NotBlank(message = "Reference ID is required")
         @Size(max = 255, message = "Reference ID maximum length is 255 characters")
         @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "Reference ID may only contain letters, numbers, dot, underscore, and dash")

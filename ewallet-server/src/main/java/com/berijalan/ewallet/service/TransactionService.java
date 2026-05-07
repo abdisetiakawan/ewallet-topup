@@ -67,12 +67,16 @@ public class TransactionService {
             throw new BadRequestException("Insufficient balance");
         }
 
-        long newBalance = wallet.getBalance() - request.amount();
-        wallet.setBalance(newBalance);
+        long balanceBefore = wallet.getBalance();
+        long balanceAfter = balanceBefore - request.amount();
+        wallet.setBalance(balanceAfter);
 
         Transaction transaction = new Transaction();
         transaction.setReferenceId(normalizedReferenceId);
         transaction.setAmount(request.amount());
+        transaction.setBalanceBefore(balanceBefore);
+        transaction.setBalanceAfter(balanceAfter);
+        transaction.setDescription(request.description());
         transaction.setType(TransactionType.PAYMENT);
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setMerchant(merchant);
@@ -88,13 +92,16 @@ public class TransactionService {
         }
 
         log.info("Payment success. user={}, merchant={}, amount={}, referenceId={}, newBalance={}",
-                email, merchant.getName(), request.amount(), savedTransaction.getReferenceId(), newBalance);
+                email, merchant.getName(), request.amount(), savedTransaction.getReferenceId(), balanceAfter);
 
         return new ResPaymentDto(
                 savedTransaction.getId().longValue(),
                 savedTransaction.getReferenceId(),
                 savedTransaction.getAmount(),
-                newBalance,
+                savedTransaction.getBalanceBefore(),
+                savedTransaction.getBalanceAfter(),
+                balanceAfter,
+                savedTransaction.getDescription(),
                 merchant.getName(),
                 savedTransaction.getType().name(),
                 savedTransaction.getStatus().name()
@@ -108,10 +115,15 @@ public class TransactionService {
 
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Transaction> transactionPage;
+        TransactionStatus transactionStatus = parseStatusIfPresent(request.getStatus());
+        TransactionType transactionType = parseTypeIfPresent(request.getType());
 
-        if (request.getStatus() != null && !request.getStatus().isBlank()) {
-            TransactionStatus transactionStatus = parseStatus(request.getStatus());
+        if (transactionStatus != null && transactionType != null) {
+            transactionPage = transactionRepository.findByUserAndStatusAndType(user, transactionStatus, transactionType, pageable);
+        } else if (transactionStatus != null) {
             transactionPage = transactionRepository.findByUserAndStatus(user, transactionStatus, pageable);
+        } else if (transactionType != null) {
+            transactionPage = transactionRepository.findByUserAndType(user, transactionType, pageable);
         } else {
             transactionPage = transactionRepository.findByUser(user, pageable);
         }
@@ -119,10 +131,16 @@ public class TransactionService {
         List<ResTransactionItemDto> items = transactionPage.getContent().stream()
                 .map(tx -> new ResTransactionItemDto(
                         tx.getId().longValue(),
+                        tx.getUser().getId().longValue(),
+                        tx.getUser().getName(),
+                        tx.getUser().getEmail(),
                         tx.getReferenceId(),
                         tx.getAmount(),
+                        tx.getBalanceBefore(),
+                        tx.getBalanceAfter(),
                         tx.getType().name(),
                         tx.getStatus().name(),
+                        tx.getDescription(),
                         tx.getMerchant() != null ? tx.getMerchant().getName() : null,
                         tx.getCreatedAt()
                 ))
@@ -137,12 +155,29 @@ public class TransactionService {
         );
     }
 
-    private TransactionStatus parseStatus(String status) {
+    private TransactionStatus parseStatusIfPresent(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+
         try {
             return TransactionStatus.valueOf(status.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
             log.warn("Transaction history rejected because status filter is invalid. status={}", status);
             throw new BadRequestException("Invalid transaction status");
+        }
+    }
+
+    private TransactionType parseTypeIfPresent(String type) {
+        if (type == null || type.isBlank()) {
+            return null;
+        }
+
+        try {
+            return TransactionType.valueOf(type.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Transaction history rejected because type filter is invalid. type={}", type);
+            throw new BadRequestException("Invalid transaction type");
         }
     }
 }

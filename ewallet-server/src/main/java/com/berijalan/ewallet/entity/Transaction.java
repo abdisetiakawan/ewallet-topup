@@ -51,6 +51,15 @@ public class Transaction {
     @Column(nullable = false)
     private Long amount;
 
+    @Column(name = "balance_before", nullable = false)
+    private Long balanceBefore = 0L;
+
+    @Column(name = "balance_after", nullable = false)
+    private Long balanceAfter = 0L;
+
+    @Column(length = 255)
+    private String description;
+
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(columnDefinition = "transaction_type", nullable = false)
