@@ -1,6 +1,7 @@
 package com.berijalan.ewallet.service;
 
 import com.berijalan.ewallet.dto.request.ReqPayDto;
+import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.ResTransactionItemDto;
@@ -101,15 +102,15 @@ public class TransactionService {
     }
 
     @Transactional(readOnly = true)
-    public ResTransactionHistoryDto getTransactions(String email, int page, int size, String status) {
+    public ResTransactionHistoryDto getTransactions(String email, ReqTransactionHistoryDto request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException("User not found"));
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Transaction> transactionPage;
 
-        if (status != null && !status.isBlank()) {
-            TransactionStatus transactionStatus = parseStatus(status);
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            TransactionStatus transactionStatus = parseStatus(request.getStatus());
             transactionPage = transactionRepository.findByUserAndStatus(user, transactionStatus, pageable);
         } else {
             transactionPage = transactionRepository.findByUser(user, pageable);
