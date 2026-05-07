@@ -6,7 +6,9 @@ import com.berijalan.ewallet.dto.response.ResLoginDto;
 import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
+import com.berijalan.ewallet.entity.constant.UserStatus;
 import com.berijalan.ewallet.exception.BadRequestException;
+import com.berijalan.ewallet.exception.UnauthorizedException;
 import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import com.berijalan.ewallet.security.JwtUtils;
@@ -41,6 +43,7 @@ public class AuthService {
         user.setName(request.name());
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
+        user.setStatus(UserStatus.ACTIVE);
 
         userRepository.save(user);
 
@@ -53,11 +56,19 @@ public class AuthService {
         return new ResUserSummaryDto(
                 user.getId().longValue(),
                 user.getName(),
-                user.getEmail()
+                user.getEmail(),
+                user.getStatus().name()
         );
     }
 
     public ResLoginDto login(ReqLoginDto request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new BadRequestException("User not found"));
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new UnauthorizedException("User is inactive");
+        }
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
         );
@@ -65,13 +76,11 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new BadRequestException("User not found"));
-
         ResUserSummaryDto userSummary = new ResUserSummaryDto(
                 user.getId().longValue(),
                 user.getName(),
-                user.getEmail()
+                user.getEmail(),
+                user.getStatus().name()
         );
 
         return new ResLoginDto(

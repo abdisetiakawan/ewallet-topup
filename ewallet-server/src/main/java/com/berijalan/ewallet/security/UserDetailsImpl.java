@@ -1,6 +1,7 @@
 package com.berijalan.ewallet.security;
 
 import com.berijalan.ewallet.entity.User;
+import com.berijalan.ewallet.entity.constant.UserStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,12 +24,15 @@ public class UserDetailsImpl implements UserDetails {
     @JsonIgnore
     private String password;
 
+    private UserStatus status;
+
     public static UserDetailsImpl build(User user) {
         return new UserDetailsImpl(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getPassword()
+                user.getPassword(),
+                user.getStatus()
         );
     }
 
@@ -64,7 +68,7 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return status == UserStatus.ACTIVE;
     }
 
     @Override
