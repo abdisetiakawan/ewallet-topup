@@ -14,4 +14,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
     Page<Transaction> findByUserAndStatus(User user, TransactionStatus status, Pageable pageable);
     
     Page<Transaction> findByUser(User user, Pageable pageable);
+
+    boolean existsByReferenceId(String referenceId);
 }
