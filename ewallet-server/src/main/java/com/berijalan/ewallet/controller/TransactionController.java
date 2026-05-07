@@ -1,27 +1,28 @@
 package com.berijalan.ewallet.controller;
 
+import com.berijalan.ewallet.config.MdcFilter;
 import com.berijalan.ewallet.dto.request.ReqPayDto;
 import com.berijalan.ewallet.dto.response.BaseResponse;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
+import com.berijalan.ewallet.exception.BadRequestException;
+import com.berijalan.ewallet.exception.UnauthorizedException;
 import com.berijalan.ewallet.service.TransactionService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
-import java.util.UUID;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/transactions")
 @RequiredArgsConstructor
-@Validated
 public class TransactionController {
 
     private final TransactionService transactionService;
@@ -29,43 +30,71 @@ public class TransactionController {
     @PostMapping("/pay")
     public ResponseEntity<BaseResponse<ResPaymentDto>> pay(
             @Valid @RequestBody ReqPayDto request,
-            Principal principal) {
-        String userEmail = getAuthenticatedEmail(principal);
+            Authentication authentication) {
+        String userEmail = getAuthenticatedEmail(authentication);
         ResPaymentDto data = transactionService.pay(request, userEmail);
 
-        return ResponseEntity.ok(new BaseResponse<>(
-                generateRequestId(),
+        BaseResponse<ResPaymentDto> response = new BaseResponse<>(
+                MDC.get(MdcFilter.REQUEST_ID),
                 true,
                 "Payment successful",
                 data
-        ));
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
     public ResponseEntity<BaseResponse<ResTransactionHistoryDto>> getTransactions(
-            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
-            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size minimum is 1") @Max(value = 100, message = "Size maximum is 100") int size,
+            @RequestParam(defaultValue = "0") String page,
+            @RequestParam(defaultValue = "10") String size,
             @RequestParam(required = false) String status,
-            Principal principal) {
-        String userEmail = getAuthenticatedEmail(principal);
-        ResTransactionHistoryDto data = transactionService.getTransactions(userEmail, page, size, status);
+            Authentication authentication) {
+        int pageNumber = parsePage(page);
+        int pageSize = parseSize(size);
 
-        return ResponseEntity.ok(new BaseResponse<>(
-                generateRequestId(),
+        String userEmail = getAuthenticatedEmail(authentication);
+        ResTransactionHistoryDto data = transactionService.getTransactions(userEmail, pageNumber, pageSize, status);
+
+        BaseResponse<ResTransactionHistoryDto> response = new BaseResponse<>(
+                MDC.get(MdcFilter.REQUEST_ID),
                 true,
                 "Transaction history retrieved successfully",
                 data
-        ));
+        );
+        return ResponseEntity.ok(response);
     }
 
-    private String getAuthenticatedEmail(Principal principal) {
-        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication is required");
+    private String getAuthenticatedEmail(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new UnauthorizedException("Authentication is required");
         }
-        return principal.getName();
+        return authentication.getName();
     }
 
-    private String generateRequestId() {
-        return "req-" + UUID.randomUUID().toString().substring(0, 8);
+    private int parsePage(String page) {
+        int pageNumber = parseInteger(page, "Page must be a number");
+        if (pageNumber < 0) {
+            throw new BadRequestException("Page must not be negative");
+        }
+        return pageNumber;
+    }
+
+    private int parseSize(String size) {
+        int pageSize = parseInteger(size, "Size must be a number");
+        if (pageSize < 1) {
+            throw new BadRequestException("Size minimum is 1");
+        }
+        if (pageSize > 100) {
+            throw new BadRequestException("Size maximum is 100");
+        }
+        return pageSize;
+    }
+
+    private int parseInteger(String value, String message) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new BadRequestException(message);
+        }
     }
 }

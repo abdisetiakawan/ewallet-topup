@@ -1,5 +1,6 @@
 package com.berijalan.ewallet.repository;
 
+import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +13,7 @@ import java.util.Optional;
 
 @Repository
 public interface WalletRepository extends JpaRepository<Wallet, Integer> {
+    Optional<Wallet> findByUser(User user);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select w from Wallet w join fetch w.user where w.user.email = :email")

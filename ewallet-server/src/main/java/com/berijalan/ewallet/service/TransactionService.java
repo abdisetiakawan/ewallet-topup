@@ -10,12 +10,14 @@ import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
+import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.TransactionRepository;
 import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -42,13 +43,13 @@ public class TransactionService {
         if (transactionRepository.existsByReferenceId(normalizedReferenceId)) {
             log.warn("Payment rejected because referenceId already exists. referenceId={}, user={}",
                     normalizedReferenceId, email);
-            throw new BusinessException("Reference ID already used");
+            throw new BadRequestException("Reference ID already used");
         }
 
         Wallet wallet = walletRepository.findByUserEmailForUpdate(email)
                 .orElseThrow(() -> {
                     log.warn("Payment rejected because wallet was not found. user={}", email);
-                    return new NotFoundException("Wallet not found");
+                    return new BadRequestException("Wallet not found");
                 });
         User user = wallet.getUser();
 
@@ -56,13 +57,13 @@ public class TransactionService {
                 .orElseThrow(() -> {
                     log.warn("Payment rejected because merchant was not found. merchantName={}, user={}",
                             request.merchantName(), email);
-                    return new NotFoundException("Merchant tidak ditemukan");
+                    return new BadRequestException("Merchant tidak ditemukan");
                 });
 
         if (wallet.getBalance() < request.amount()) {
             log.warn("Payment rejected because balance is insufficient. user={}, merchant={}, amount={}, balance={}",
                     email, merchant.getName(), request.amount(), wallet.getBalance());
-            throw new BusinessException("Saldo tidak mencukupi");
+            throw new BadRequestException("Saldo tidak mencukupi");
         }
 
         long newBalance = wallet.getBalance() - request.amount();
@@ -75,8 +76,15 @@ public class TransactionService {
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setMerchant(merchant);
         transaction.setUser(user);
-        
-        Transaction savedTransaction = transactionRepository.save(transaction);
+
+        Transaction savedTransaction;
+        try {
+            savedTransaction = transactionRepository.saveAndFlush(transaction);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Payment rejected because transaction data violates a database constraint. referenceId={}, user={}",
+                    normalizedReferenceId, email);
+            throw new BadRequestException("Reference ID already used");
+        }
 
         log.info("Payment success. user={}, merchant={}, amount={}, referenceId={}, newBalance={}",
                 email, merchant.getName(), request.amount(), savedTransaction.getReferenceId(), newBalance);
@@ -95,12 +103,12 @@ public class TransactionService {
     @Transactional(readOnly = true)
     public ResTransactionHistoryDto getTransactions(String email, int page, int size, String status) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> new BadRequestException("User not found"));
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Transaction> transactionPage;
 
-        if (status != null && !status.isEmpty()) {
+        if (status != null && !status.isBlank()) {
             TransactionStatus transactionStatus = parseStatus(status);
             transactionPage = transactionRepository.findByUserAndStatus(user, transactionStatus, pageable);
         } else {
@@ -117,7 +125,7 @@ public class TransactionService {
                         tx.getMerchant() != null ? tx.getMerchant().getName() : null,
                         tx.getCreatedAt()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         return new ResTransactionHistoryDto(
                 items,
@@ -133,7 +141,7 @@ public class TransactionService {
             return TransactionStatus.valueOf(status.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
             log.warn("Transaction history rejected because status filter is invalid. status={}", status);
-            throw new BusinessException("Invalid transaction status");
+            throw new BadRequestException("Invalid transaction status");
         }
     }
 }
