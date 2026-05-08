@@ -4,9 +4,9 @@ import java.time.LocalDateTime;
 
 public record ResTopupDto(
         Long transactionId,
-        String referenceId,
         Long amount,
-        Long newBalance,
+        Long balanceBefore,
+        Long balanceAfter,
         String type,
         String status,
         LocalDateTime createdAt

@@ -2,16 +2,22 @@ package com.berijalan.ewallet.controller;
 
 import com.berijalan.ewallet.config.MdcFilter;
 import com.berijalan.ewallet.dto.request.ReqPayDto;
+import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.BaseResponse;
+import com.berijalan.ewallet.dto.response.ResPaymentDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
 import com.berijalan.ewallet.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -21,35 +27,32 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @PostMapping("/pay")
-    public ResponseEntity<BaseResponse<Void>> pay(
+    public ResponseEntity<BaseResponse<ResPaymentDto>> pay(
             @Valid @RequestBody ReqPayDto request,
-            Principal principal) {
+            Authentication authentication) {
+        ResPaymentDto data = transactionService.pay(request, authentication.getName());
 
-        transactionService.pay(request, principal.getName());
-
-        return ResponseEntity.ok(new BaseResponse<>(
+        BaseResponse<ResPaymentDto> response = new BaseResponse<>(
                 MDC.get(MdcFilter.REQUEST_ID),
                 true,
                 "Payment successful",
-                null
-        ));
+                data
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
     public ResponseEntity<BaseResponse<ResTransactionHistoryDto>> getTransactions(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String status,
-            Principal principal) {
+            @Valid @ModelAttribute ReqTransactionHistoryDto request,
+            Authentication authentication) {
+        ResTransactionHistoryDto data = transactionService.getTransactions(authentication.getName(), request);
 
-        ResTransactionHistoryDto data = transactionService.getTransactions(
-                principal.getName(), page, size, status);
-
-        return ResponseEntity.ok(new BaseResponse<>(
+        BaseResponse<ResTransactionHistoryDto> response = new BaseResponse<>(
                 MDC.get(MdcFilter.REQUEST_ID),
                 true,
                 "Transaction history retrieved successfully",
                 data
-        ));
+        );
+        return ResponseEntity.ok(response);
     }
 }

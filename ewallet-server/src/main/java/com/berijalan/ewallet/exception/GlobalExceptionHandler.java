@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -31,9 +32,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<BaseResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        return buildValidationResponse(ex.getBindingResult().getFieldErrors());
+    }
+
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<BaseResponse<Map<String, String>>> handleBindExceptions(BindException ex) {
+        return buildValidationResponse(ex.getBindingResult().getFieldErrors());
+    }
+
+    private ResponseEntity<BaseResponse<Map<String, String>>> buildValidationResponse(Iterable<FieldError> fieldErrors) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
+        fieldErrors.forEach((error) -> {
+            String fieldName = error.getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
