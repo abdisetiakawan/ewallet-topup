@@ -1,38 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
-interface BaseResponse<T> {
-  requestId: string;
-  status: boolean;
-  message: string;
-  data: T;
-}
-
-interface UserSummary {
-  id: number;
-  name: string;
-  email: string;
-  createdAt: string;
-}
-
-interface LoginResponse {
-  token: string;
-  tokenType: string;
-  expiresIn: number;
-  user: UserSummary;
-}
-
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-}
+import { BaseResponse, LoginRequest, LoginResponse, RegisterRequest, UserSummary } from '../models/auth.model';
 
 @Injectable({
   providedIn: 'root',
