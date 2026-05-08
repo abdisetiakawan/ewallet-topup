@@ -1,5 +1,8 @@
 package com.berijalan.ewallet.dto.response;
 
+import java.time.LocalDateTime;
+
 public record ResWalletBalanceDto(
-        Long balance
+        Long balance,
+        LocalDateTime updatedAt
 ) {}

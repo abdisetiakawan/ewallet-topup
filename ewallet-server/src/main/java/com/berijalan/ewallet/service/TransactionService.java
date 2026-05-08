@@ -9,9 +9,11 @@ import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
+import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.TransactionRepository;
 import com.berijalan.ewallet.repository.UserRepository;
+import com.berijalan.ewallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
 public class TransactionService {
 
     private final UserRepository userRepository;
+    private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final MerchantRepository merchantRepository;
 
@@ -38,27 +41,28 @@ public class TransactionService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.error("User not found: {}", email);
-                    return new RuntimeException("User not found");
+                    return new BadRequestException("User not found");
                 });
 
-        Wallet wallet = user.getWallet();
-        if (wallet == null) {
-            log.error("Wallet not found for user: {}", email);
-            throw new RuntimeException("Wallet not found");
-        }
+        Wallet wallet = walletRepository.findByUser(user)
+                .orElseThrow(() -> {
+                    log.error("Wallet not found for user: {}", email);
+                    return new BadRequestException("Wallet not found");
+                });
 
         if (wallet.getBalance() < request.amount()) {
             log.warn("Payment failed: Insufficient balance for user {}", email);
-            throw new RuntimeException("Saldo tidak mencukupi");
+            throw new BadRequestException("Insufficient balance");
         }
 
         Merchant merchant = merchantRepository.findByName(request.merchantName())
                 .orElseThrow(() -> {
                     log.error("Merchant not found: {}", request.merchantName());
-                    return new RuntimeException("Merchant tidak ditemukan");
+                    return new BadRequestException("Merchant not found");
                 });
 
         wallet.setBalance(wallet.getBalance() - request.amount());
+        walletRepository.save(wallet);
 
         Transaction transaction = new Transaction();
         transaction.setReferenceId("PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -67,16 +71,16 @@ public class TransactionService {
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setMerchant(merchant);
         transaction.setUser(user);
-        
+
         transactionRepository.save(transaction);
 
-        log.info("Payment success. User: {}, Merchant: {}, Amount: {}", 
-                 email, merchant.getName(), request.amount());
+        log.info("Payment success. User: {}, Merchant: {}, Amount: {}",
+                email, merchant.getName(), request.amount());
     }
 
     public ResTransactionHistoryDto getTransactions(String email, int page, int size, String status) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new BadRequestException("User not found"));
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Transaction> transactionPage;
@@ -90,7 +94,7 @@ public class TransactionService {
 
         List<ResTransactionItemDto> items = transactionPage.getContent().stream()
                 .map(tx -> new ResTransactionItemDto(
-                        tx.getId().longValue(),
+                        tx.getId(),
                         tx.getReferenceId(),
                         tx.getAmount(),
                         tx.getType().name(),

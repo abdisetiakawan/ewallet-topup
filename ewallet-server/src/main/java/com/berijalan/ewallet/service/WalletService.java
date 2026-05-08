@@ -36,7 +36,7 @@ public class WalletService {
         Wallet wallet = walletRepository.findByUser(user)
                 .orElseThrow(() -> new BadRequestException("Wallet not found"));
 
-        return new ResWalletBalanceDto(wallet.getBalance());
+        return new ResWalletBalanceDto(wallet.getBalance(), wallet.getUpdatedAt());
     }
 
     @Transactional
@@ -47,30 +47,36 @@ public class WalletService {
         Wallet wallet = walletRepository.findByUser(user)
                 .orElseThrow(() -> new BadRequestException("Wallet not found"));
 
-        if (transactionRepository.existsByReferenceId(request.referenceId())) {
-            throw new BadRequestException("Duplicate transaction reference ID");
-        }
+        String referenceId = generateUniqueReferenceId();
 
-        // Increase balance
         wallet.setBalance(wallet.getBalance() + request.amount());
         walletRepository.save(wallet);
 
-        // Record transaction
         Transaction transaction = new Transaction();
         transaction.setUser(user);
         transaction.setAmount(request.amount());
         transaction.setType(TransactionType.TOPUP);
         transaction.setStatus(TransactionStatus.SUCCESS);
-        transaction.setReferenceId("PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        transaction.setReferenceId(referenceId);
 
         transactionRepository.save(transaction);
 
         return new ResTopupDto(
-                transaction.getId().longValue(),
+                transaction.getId(),
                 transaction.getReferenceId(),
+                transaction.getAmount(),
                 wallet.getBalance(),
                 transaction.getType().name(),
-                transaction.getStatus().name()
+                transaction.getStatus().name(),
+                transaction.getCreatedAt()
         );
+    }
+
+    private String generateUniqueReferenceId() {
+        String referenceId;
+        do {
+            referenceId = "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        } while (transactionRepository.existsByReferenceId(referenceId));
+        return referenceId;
     }
 }
