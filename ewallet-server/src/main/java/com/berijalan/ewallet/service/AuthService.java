@@ -51,9 +51,10 @@ public class AuthService {
         walletRepository.save(wallet);
 
         return new ResUserSummaryDto(
-                user.getId().longValue(),
+                user.getId(),
                 user.getName(),
-                user.getEmail()
+                user.getEmail(),
+                user.getCreatedAt()
         );
     }
 
@@ -69,15 +70,16 @@ public class AuthService {
                 .orElseThrow(() -> new BadRequestException("User not found"));
 
         ResUserSummaryDto userSummary = new ResUserSummaryDto(
-                user.getId().longValue(),
+                user.getId(),
                 user.getName(),
-                user.getEmail()
+                user.getEmail(),
+                user.getCreatedAt()
         );
 
         return new ResLoginDto(
                 jwt,
                 "Bearer",
-                3600, // 1 hour in seconds
+                3600,
                 userSummary
         );
     }

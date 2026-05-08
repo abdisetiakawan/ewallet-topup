@@ -34,6 +34,7 @@ import java.util.List;
 public class TransactionService {
 
     private final UserRepository userRepository;
+    private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final MerchantRepository merchantRepository;
     private final WalletRepository walletRepository;

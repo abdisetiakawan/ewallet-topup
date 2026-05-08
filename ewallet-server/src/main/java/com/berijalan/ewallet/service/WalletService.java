@@ -14,6 +14,9 @@ import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +36,7 @@ public class WalletService {
         Wallet wallet = walletRepository.findByUser(user)
                 .orElseThrow(() -> new BadRequestException("Wallet not found"));
 
-        return new ResWalletBalanceDto(wallet.getBalance());
+        return new ResWalletBalanceDto(wallet.getBalance(), wallet.getUpdatedAt());
     }
 
     @Transactional
@@ -42,9 +45,7 @@ public class WalletService {
                 .orElseThrow(() -> new BadRequestException("Wallet not found"));
         User user = wallet.getUser();
 
-        if (transactionRepository.existsByReferenceId(request.referenceId())) {
-            throw new BadRequestException("Duplicate transaction reference ID");
-        }
+        String referenceId = generateUniqueReferenceId();
 
         long balanceBefore = wallet.getBalance();
         long balanceAfter = balanceBefore + request.amount();
@@ -59,8 +60,8 @@ public class WalletService {
         transaction.setBalanceAfter(balanceAfter);
         transaction.setType(TransactionType.TOPUP);
         transaction.setStatus(TransactionStatus.SUCCESS);
-        transaction.setReferenceId(request.referenceId());
-        
+        transaction.setReferenceId(referenceId);
+
         transactionRepository.save(transaction);
 
         return new ResTopupDto(
@@ -69,7 +70,16 @@ public class WalletService {
                 transaction.getBalanceBefore(),
                 transaction.getBalanceAfter(),
                 transaction.getType().name(),
-                transaction.getStatus().name()
+                transaction.getStatus().name(),
+                transaction.getCreatedAt()
         );
+    }
+
+    private String generateUniqueReferenceId() {
+        String referenceId;
+        do {
+            referenceId = "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        } while (transactionRepository.existsByReferenceId(referenceId));
+        return referenceId;
     }
 }
