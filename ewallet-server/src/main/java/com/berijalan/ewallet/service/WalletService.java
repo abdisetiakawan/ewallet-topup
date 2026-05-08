@@ -41,7 +41,7 @@ public class WalletService {
 
     @Transactional
     public ResTopupDto topup(ReqTopupDto request, String email) {
-        Wallet wallet = walletRepository.findByUserEmailForUpdate(email)
+        Wallet wallet = walletRepository.findByUser_Email(email)
                 .orElseThrow(() -> new BadRequestException("Wallet not found"));
         User user = wallet.getUser();
 
@@ -62,7 +62,7 @@ public class WalletService {
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setReferenceId(referenceId);
 
-        transactionRepository.save(transaction);
+        transactionRepository.saveAndFlush(transaction);
 
         return new ResTopupDto(
                 transaction.getId().longValue(),

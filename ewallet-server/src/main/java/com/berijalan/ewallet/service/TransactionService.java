@@ -9,8 +9,6 @@ import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.Transaction;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
-import com.berijalan.ewallet.entity.constant.TransactionStatus;
-import com.berijalan.ewallet.entity.constant.TransactionType;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.TransactionRepository;
@@ -75,7 +73,7 @@ public class TransactionService {
         transaction.setMerchant(merchant);
         transaction.setUser(user);
 
-        transactionRepository.save(transaction);
+        transactionRepository.saveAndFlush(transaction);
 
         log.info("Payment success. user={}, merchant={}, amount={}, referenceId={}",
                 email, merchant.getName(), request.amount(), referenceId);
@@ -100,19 +98,8 @@ public class TransactionService {
         .orElseThrow(() -> new BadRequestException("User not found"));
         
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Transaction> transactionPage;
-        TransactionStatus status = request.status();
-        TransactionType type = request.type();
-
-        if (status != null && type != null) {
-            transactionPage = transactionRepository.findByUserAndStatusAndType(user, status, type, pageable);
-        } else if (status != null) {
-            transactionPage = transactionRepository.findByUserAndStatus(user, status, pageable);
-        } else if (type != null) {
-            transactionPage = transactionRepository.findByUserAndType(user, type, pageable);
-        } else {
-            transactionPage = transactionRepository.findByUser(user, pageable);
-        }
+        Page<Transaction> transactionPage = transactionRepository.findByUserWithFilters(
+                user, request.status(), request.type(), pageable);
 
         List<ResTransactionItemDto> items = transactionPage.getContent().stream()
                 .map(tx -> new ResTransactionItemDto(
