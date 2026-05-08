@@ -18,7 +18,6 @@ import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -26,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -39,13 +39,6 @@ public class TransactionService {
 
     @Transactional
     public ResPaymentDto pay(ReqPayDto request, String email) {
-        String normalizedReferenceId = request.referenceId().trim();
-        if (transactionRepository.existsByReferenceId(normalizedReferenceId)) {
-            log.warn("Payment rejected because referenceId already exists. referenceId={}, user={}",
-                    normalizedReferenceId, email);
-            throw new BadRequestException("Reference ID already used");
-        }
-
         Wallet wallet = walletRepository.findByUserEmailForUpdate(email)
                 .orElseThrow(() -> {
                     log.warn("Payment rejected because wallet was not found. user={}", email);
@@ -66,12 +59,13 @@ public class TransactionService {
             throw new BadRequestException("Insufficient balance");
         }
 
+        String referenceId = generateUniqueReferenceId();
         long balanceBefore = wallet.getBalance();
         long balanceAfter = balanceBefore - request.amount();
         wallet.setBalance(balanceAfter);
 
         Transaction transaction = new Transaction();
-        transaction.setReferenceId(normalizedReferenceId);
+        transaction.setReferenceId(referenceId);
         transaction.setAmount(request.amount());
         transaction.setBalanceBefore(balanceBefore);
         transaction.setBalanceAfter(balanceAfter);
@@ -81,36 +75,30 @@ public class TransactionService {
         transaction.setMerchant(merchant);
         transaction.setUser(user);
 
-        Transaction savedTransaction;
-        try {
-            savedTransaction = transactionRepository.saveAndFlush(transaction);
-        } catch (DataIntegrityViolationException e) {
-            log.warn("Payment rejected because transaction data violates a database constraint. referenceId={}, user={}",
-                    normalizedReferenceId, email);
-            throw new BadRequestException("Reference ID already used");
-        }
+        transactionRepository.save(transaction);
 
         log.info("Payment success. user={}, merchant={}, amount={}, referenceId={}",
-                email, merchant.getName(), request.amount(), savedTransaction.getReferenceId(), balanceAfter);
+                email, merchant.getName(), request.amount(), referenceId);
 
         return new ResPaymentDto(
-                savedTransaction.getId().longValue(),
-                savedTransaction.getReferenceId(),
-                savedTransaction.getAmount(),
-                savedTransaction.getBalanceBefore(),
-                savedTransaction.getBalanceAfter(),
-                savedTransaction.getDescription(),
+                transaction.getId().longValue(),
+                transaction.getReferenceId(),
+                transaction.getAmount(),
+                transaction.getBalanceBefore(),
+                transaction.getBalanceAfter(),
+                transaction.getDescription(),
                 merchant.getName(),
-                savedTransaction.getType().name(),
-                savedTransaction.getStatus().name()
+                transaction.getType().name(),
+                transaction.getStatus().name()
         );
     }
 
+    
     @Transactional(readOnly = true)
     public ResTransactionHistoryDto getTransactions(String email, ReqTransactionHistoryDto request) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException("User not found"));
-
+        .orElseThrow(() -> new BadRequestException("User not found"));
+        
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Transaction> transactionPage;
         TransactionStatus status = request.status();
@@ -153,5 +141,12 @@ public class TransactionService {
         );
     }
 
+    private String generateUniqueReferenceId() {
+        String referenceId;
+        do {
+            referenceId = "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        } while (transactionRepository.existsByReferenceId(referenceId));
+        return referenceId;
+    }
 
 }

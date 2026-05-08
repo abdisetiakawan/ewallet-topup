@@ -3,7 +3,6 @@ package com.berijalan.ewallet.dto.request;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record ReqPayDto(
@@ -17,10 +16,5 @@ public record ReqPayDto(
 
         @NotBlank(message = "Payment description must not be empty")
         @Size(max = 255, message = "Payment description maximum length is 255 characters")
-        String description,
-
-        @NotBlank(message = "Reference ID is required")
-        @Size(max = 255, message = "Reference ID maximum length is 255 characters")
-        @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "Reference ID may only contain letters, numbers, dot, underscore, and dash")
-        String referenceId
+        String description
 ) {}
