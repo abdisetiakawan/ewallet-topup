@@ -37,7 +37,6 @@ public class TransactionService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final MerchantRepository merchantRepository;
-    private final WalletRepository walletRepository;
 
     @Transactional
     public ResPaymentDto pay(ReqPayDto request, String email) {
