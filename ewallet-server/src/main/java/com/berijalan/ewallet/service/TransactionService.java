@@ -91,7 +91,7 @@ public class TransactionService {
             throw new BadRequestException("Reference ID already used");
         }
 
-        log.info("Payment success. user={}, merchant={}, amount={}, referenceId={}, newBalance={}",
+        log.info("Payment success. user={}, merchant={}, amount={}, referenceId={}",
                 email, merchant.getName(), request.amount(), savedTransaction.getReferenceId(), balanceAfter);
 
         return new ResPaymentDto(
@@ -100,7 +100,6 @@ public class TransactionService {
                 savedTransaction.getAmount(),
                 savedTransaction.getBalanceBefore(),
                 savedTransaction.getBalanceAfter(),
-                balanceAfter,
                 savedTransaction.getDescription(),
                 merchant.getName(),
                 savedTransaction.getType().name(),

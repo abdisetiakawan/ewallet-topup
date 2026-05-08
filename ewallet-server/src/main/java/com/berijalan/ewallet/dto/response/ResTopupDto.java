@@ -5,7 +5,6 @@ public record ResTopupDto(
         Long amount,
         Long balanceBefore,
         Long balanceAfter,
-        Long newBalance,
         String type,
         String status
 ) {}

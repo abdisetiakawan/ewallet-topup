@@ -6,7 +6,6 @@ public record ResPaymentDto(
         Long amount,
         Long balanceBefore,
         Long balanceAfter,
-        Long newBalance,
         String description,
         String merchantName,
         String type,

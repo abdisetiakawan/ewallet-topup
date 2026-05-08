@@ -68,7 +68,6 @@ public class WalletService {
                 transaction.getAmount(),
                 transaction.getBalanceBefore(),
                 transaction.getBalanceAfter(),
-                wallet.getBalance(),
                 transaction.getType().name(),
                 transaction.getStatus().name()
         );
