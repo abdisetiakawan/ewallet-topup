@@ -14,6 +14,9 @@ import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,12 +61,13 @@ public class WalletService {
         transaction.setAmount(request.amount());
         transaction.setType(TransactionType.TOPUP);
         transaction.setStatus(TransactionStatus.SUCCESS);
-        transaction.setReferenceId(request.referenceId());
-        
+        transaction.setReferenceId("PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+
         transactionRepository.save(transaction);
 
         return new ResTopupDto(
                 transaction.getId().longValue(),
+                transaction.getReferenceId(),
                 wallet.getBalance(),
                 transaction.getType().name(),
                 transaction.getStatus().name()
