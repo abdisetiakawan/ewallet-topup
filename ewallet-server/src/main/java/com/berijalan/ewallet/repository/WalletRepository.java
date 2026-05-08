@@ -16,6 +16,6 @@ public interface WalletRepository extends JpaRepository<Wallet, Integer> {
     Optional<Wallet> findByUser(User user);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select w from Wallet w join fetch w.user where w.user.email = :email")
-    Optional<Wallet> findByUserEmailForUpdate(@Param("email") String email);
+    @EntityGraph(attributePaths = {"user"})
+    Optional<Wallet> findByUser_Email(String email);
 }
