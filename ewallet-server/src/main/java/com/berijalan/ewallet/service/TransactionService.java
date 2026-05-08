@@ -9,6 +9,8 @@ import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.Transaction;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
+import com.berijalan.ewallet.entity.constant.TransactionStatus;
+import com.berijalan.ewallet.entity.constant.TransactionType;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.TransactionRepository;
@@ -36,24 +38,24 @@ public class TransactionService {
     private final MerchantRepository merchantRepository;
 
     @Transactional
-    public ResPaymentDto pay(ReqPayDto request, String email) {
-        Wallet wallet = walletRepository.findByUserEmailForUpdate(email)
+    public ResPaymentDto pay(ReqPayDto request, Long userId) {
+        Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> {
-                    log.warn("Payment rejected because wallet was not found. user={}", email);
+                    log.warn("Payment rejected because wallet was not found. userId={}", userId);
                     return new BadRequestException("Wallet not found");
                 });
         User user = wallet.getUser();
 
         Merchant merchant = merchantRepository.findByName(request.merchantName())
                 .orElseThrow(() -> {
-                    log.warn("Payment rejected because merchant was not found. merchantName={}, user={}",
-                            request.merchantName(), email);
+                    log.warn("Payment rejected because merchant was not found. merchantName={}, userId={}",
+                            request.merchantName(), userId);
                     return new BadRequestException("Merchant not found");
                 });
 
         if (wallet.getBalance() < request.amount()) {
-            log.warn("Payment rejected because balance is insufficient. user={}, merchant={}, amount={}, balance={}",
-                    email, merchant.getName(), request.amount(), wallet.getBalance());
+            log.warn("Payment rejected because balance is insufficient. userId={}, merchant={}, amount={}, balance={}",
+                    userId, merchant.getName(), request.amount(), wallet.getBalance());
             throw new BadRequestException("Insufficient balance");
         }
 
@@ -75,8 +77,8 @@ public class TransactionService {
 
         transactionRepository.saveAndFlush(transaction);
 
-        log.info("Payment success. user={}, merchant={}, amount={}, referenceId={}",
-                email, merchant.getName(), request.amount(), referenceId);
+        log.info("Payment success. userId={}, merchant={}, amount={}, referenceId={}",
+                userId, merchant.getName(), request.amount(), referenceId);
 
         return new ResPaymentDto(
                 transaction.getId().longValue(),
@@ -91,12 +93,11 @@ public class TransactionService {
         );
     }
 
-    
     @Transactional(readOnly = true)
-    public ResTransactionHistoryDto getTransactions(String email, ReqTransactionHistoryDto request) {
-        User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new BadRequestException("User not found"));
-        
+    public ResTransactionHistoryDto getTransactions(Long userId, ReqTransactionHistoryDto request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException("User not found"));
+
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Transaction> transactionPage = transactionRepository.findByUserWithFilters(
                 user, request.status(), request.type(), pageable);
@@ -135,5 +136,4 @@ public class TransactionService {
         } while (transactionRepository.existsByReferenceId(referenceId));
         return referenceId;
     }
-
 }
