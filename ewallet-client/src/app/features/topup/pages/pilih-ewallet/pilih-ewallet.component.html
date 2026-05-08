@@ -1,0 +1,65 @@
+<div class="bg-background text-on-background min-h-screen flex flex-col font-sans antialiased">
+  <!-- Desktop header -->
+  <app-top-app-bar [balance]="balance" activeNav="wallets" class="hidden md:block" />
+
+  <!-- Mobile header (simplified) -->
+  <header class="bg-surface shadow-sm sticky top-0 z-50 md:hidden">
+    <div class="flex justify-between items-center px-margin-mobile py-md">
+      <div class="flex items-center gap-sm cursor-pointer">
+        <span class="material-symbols-outlined text-primary text-[28px]" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+        <span class="font-bold text-h2 text-primary tracking-tight">WalletPay</span>
+      </div>
+      <div class="flex items-center gap-md">
+        <span class="text-label-md text-on-surface-variant hidden">Balance</span>
+        <button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors">
+          <span class="material-symbols-outlined">notifications</span>
+        </button>
+        <div class="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center cursor-pointer">
+          <span class="material-symbols-outlined text-on-surface-variant text-[20px]">person</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Desktop main -->
+  <main class="hidden md:flex flex-grow w-full max-w-[1280px] mx-auto px-margin-desktop py-xl flex-col gap-xl">
+    <app-balance-card [balance]="balance" variant="desktop" />
+
+    <section class="w-full mt-lg">
+      <h2 class="font-semibold text-h3 text-on-background mb-lg">Pilih E-Wallet</h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-md md:gap-lg">
+        @for (wallet of ewallets; track wallet.id) {
+          <app-ewallet-card [wallet]="wallet" variant="desktop" (selected)="onWalletSelected($event)" />
+        }
+      </div>
+    </section>
+  </main>
+
+  <!-- Mobile main -->
+  <main class="md:hidden flex-grow px-margin-mobile pt-md pb-xl max-w-[600px] mx-auto w-full">
+    <!-- Screen Header -->
+    <div class="mb-lg">
+      <h1 class="font-h3 text-h3 text-on-surface mb-xs">Tarik Saldo</h1>
+      <p class="text-body-sm text-on-surface-variant">Pilih e-wallet tujuan untuk memindahkan dana Anda.</p>
+    </div>
+
+    <app-balance-card [balance]="balance" variant="mobile" />
+
+    <section class="mb-md">
+      <h2 class="font-semibold text-h3 text-on-surface mb-md">Pilih E-Wallet</h2>
+      <div class="grid grid-cols-2 gap-md">
+        @for (wallet of ewallets; track wallet.id) {
+          <app-ewallet-card
+            [wallet]="wallet"
+            variant="mobile"
+            [class.col-span-2]="wallet.featured"
+            (selected)="onWalletSelected($event)"
+          />
+        }
+      </div>
+    </section>
+  </main>
+
+  <app-footer class="hidden md:block" />
+  <app-bottom-nav-bar activeNav="wallets" class="md:hidden" />
+</div>

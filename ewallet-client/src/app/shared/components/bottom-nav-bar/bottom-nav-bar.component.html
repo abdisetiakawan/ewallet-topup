@@ -1,0 +1,42 @@
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center bg-surface-container-lowest py-sm px-md border-t border-outline-variant shadow-lg z-50 md:hidden"
+     style="padding-bottom: max(8px, env(safe-area-inset-bottom))">
+  <a class="flex flex-col items-center justify-center px-4 py-1 transition-transform duration-150 active:scale-90"
+     [class.text-on-surface-variant]="activeNav !== 'home'"
+     [class.bg-secondary-container]="activeNav === 'home'"
+     [class.text-on-secondary-container]="activeNav === 'home'"
+     [class.rounded-xl]="activeNav === 'home'"
+     href="#">
+    <span class="material-symbols-outlined mb-1">home</span>
+    <span class="text-[10px] tracking-wide font-medium">Home</span>
+  </a>
+
+  <a class="flex flex-col items-center justify-center px-4 py-1 transition-transform duration-150 active:scale-90"
+     [class.text-on-surface-variant]="activeNav !== 'wallets'"
+     [class.bg-secondary-container]="activeNav === 'wallets'"
+     [class.text-on-secondary-container]="activeNav === 'wallets'"
+     [class.rounded-xl]="activeNav === 'wallets'"
+     href="#">
+    <span class="material-symbols-outlined mb-1" [class.filled]="activeNav === 'wallets'">account_balance_wallet</span>
+    <span class="text-[10px] tracking-wide font-medium">Wallets</span>
+  </a>
+
+  <a class="flex flex-col items-center justify-center px-4 py-1 transition-transform duration-150 active:scale-90"
+     [class.text-on-surface-variant]="activeNav !== 'history'"
+     [class.bg-secondary-container]="activeNav === 'history'"
+     [class.text-on-secondary-container]="activeNav === 'history'"
+     [class.rounded-xl]="activeNav === 'history'"
+     href="#">
+    <span class="material-symbols-outlined mb-1">history</span>
+    <span class="text-[10px] tracking-wide font-medium">History</span>
+  </a>
+
+  <a class="flex flex-col items-center justify-center px-4 py-1 transition-transform duration-150 active:scale-90"
+     [class.text-on-surface-variant]="activeNav !== 'account'"
+     [class.bg-secondary-container]="activeNav === 'account'"
+     [class.text-on-secondary-container]="activeNav === 'account'"
+     [class.rounded-xl]="activeNav === 'account'"
+     href="#">
+    <span class="material-symbols-outlined mb-1">person</span>
+    <span class="text-[10px] tracking-wide font-medium">Account</span>
+  </a>
+</nav>

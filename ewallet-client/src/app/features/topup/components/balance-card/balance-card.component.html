@@ -1,0 +1,30 @@
+<!-- Mobile variant -->
+@if (variant === 'mobile') {
+  <div class="bg-primary text-on-primary rounded-xl p-lg shadow-lg relative overflow-hidden mb-xl">
+    <div class="absolute -right-8 -top-8 w-32 h-32 bg-on-primary opacity-10 rounded-full blur-2xl pointer-events-none"></div>
+    <div class="absolute -left-4 -bottom-4 w-24 h-24 bg-on-primary opacity-5 rounded-full blur-xl pointer-events-none"></div>
+    <div class="relative z-10 flex flex-col gap-sm">
+      <div class="flex justify-between items-center">
+        <span class="text-label-md text-primary-fixed uppercase tracking-wider">Saldo Tersedia</span>
+        <span class="material-symbols-outlined text-primary-fixed opacity-80">account_balance</span>
+      </div>
+      <div class="text-num-display mt-xs">Rp {{ formattedBalance }}</div>
+      <div class="mt-md pt-md border-t border-primary-fixed-dim/30 flex items-center gap-sm">
+        <span class="material-symbols-outlined text-[16px] text-tertiary-fixed">verified_user</span>
+        <span class="text-body-sm text-primary-fixed-dim">Dana aman &amp; siap ditarik</span>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Desktop variant -->
+@if (variant === 'desktop') {
+  <section class="w-full max-w-2xl mx-auto flex flex-col items-center text-center bg-surface border border-outline-variant rounded-xl p-xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] relative overflow-hidden">
+    <div class="absolute top-0 right-0 w-32 h-32 bg-primary-fixed rounded-full blur-3xl opacity-40 -mr-16 -mt-16 pointer-events-none"></div>
+    <p class="text-label-md text-on-surface-variant mb-xs">Saldo Tersedia</p>
+    <h1 class="text-num-display text-on-background mb-lg">Rp {{ formattedBalance }}</h1>
+    <button class="bg-primary text-on-primary text-label-md px-xl py-sm rounded-full hover:shadow-md hover:bg-primary-container transition-all active:scale-95">
+      Top-Up Instan
+    </button>
+  </section>
+}

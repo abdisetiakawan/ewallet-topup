@@ -1,0 +1,49 @@
+<!-- Desktop: sidebar card -->
+@if (variant === 'desktop') {
+  <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm sticky top-[100px]">
+    <h2 class="font-semibold text-h3 text-on-surface mb-lg">Rincian Pembayaran</h2>
+    <div class="space-y-sm mb-lg border-b border-outline-variant pb-md">
+      <div class="flex justify-between items-center">
+        <span class="text-body-md text-on-surface-variant">Nominal Top-up</span>
+        <span class="text-body-md text-on-surface font-semibold">Rp {{ format(amount) }}</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-body-md text-on-surface-variant">Biaya Admin</span>
+        <span class="text-body-md text-on-surface font-semibold">Rp {{ format(adminFee) }}</span>
+      </div>
+    </div>
+    <div class="flex justify-between items-center mb-xl">
+      <span class="font-semibold text-h3 text-on-surface">Total</span>
+      <span class="text-num-display text-primary">Rp {{ format(total) }}</span>
+    </div>
+    <button
+      class="w-full h-[48px] bg-primary text-on-primary text-label-md rounded-lg flex items-center justify-center hover:bg-primary-container transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+      [disabled]="!isValid"
+      (click)="onPay()">
+      Bayar Sekarang
+    </button>
+    <p class="text-center text-body-sm text-on-surface-variant mt-md flex items-center justify-center gap-xs">
+      <span class="material-symbols-outlined text-[16px]">lock</span>
+      Transaksi aman &amp; terenkripsi
+    </p>
+  </div>
+}
+
+<!-- Mobile: sticky bottom bar -->
+@if (variant === 'mobile') {
+  <div class="fixed bottom-0 left-0 w-full bg-surface-container-lowest border-t border-outline-variant shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50"
+       style="padding-bottom: max(16px, env(safe-area-inset-bottom))">
+    <div class="px-margin-mobile py-md">
+      <div class="flex justify-between items-center mb-md">
+        <span class="text-body-md text-on-surface-variant">Total Pembayaran</span>
+        <span class="font-bold text-2xl text-on-background">Rp {{ format(total) }}</span>
+      </div>
+      <button
+        class="w-full bg-primary text-on-primary font-semibold h-12 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+        [disabled]="!isValid"
+        (click)="onPay()">
+        Bayar Sekarang
+      </button>
+    </div>
+  </div>
+}
