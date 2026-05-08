@@ -29,7 +29,7 @@ public class AuthController {
         BaseResponse<ResUserSummaryDto> response = new BaseResponse<>(
                 MDC.get(MdcFilter.REQUEST_ID),
                 true,
-                "Registrasi berhasil",
+                "Registration successful",
                 data
         );
         return ResponseEntity.ok(response);
@@ -41,7 +41,7 @@ public class AuthController {
         BaseResponse<ResLoginDto> response = new BaseResponse<>(
                 MDC.get(MdcFilter.REQUEST_ID),
                 true,
-                "Login berhasil",
+                "Login successful",
                 data
         );
         return ResponseEntity.ok(response);

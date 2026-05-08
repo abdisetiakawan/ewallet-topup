@@ -1,0 +1,5 @@
+ALTER TABLE trx_transactions
+    ADD COLUMN IF NOT EXISTS balance_before BIGINT NOT NULL DEFAULT 0;
+
+ALTER TABLE trx_transactions
+    ADD COLUMN IF NOT EXISTS balance_after BIGINT NOT NULL DEFAULT 0;

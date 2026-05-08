@@ -32,7 +32,7 @@ public class WalletController {
         BaseResponse<ResWalletBalanceDto> response = new BaseResponse<>(
                 MDC.get(MdcFilter.REQUEST_ID),
                 true,
-                "Saldo berhasil diambil",
+                "Balance retrieved successfully",
                 data
         );
         return ResponseEntity.ok(response);
@@ -46,7 +46,7 @@ public class WalletController {
         BaseResponse<ResTopupDto> response = new BaseResponse<>(
                 MDC.get(MdcFilter.REQUEST_ID),
                 true,
-                "Top-up berhasil",
+                "Top-up successful",
                 data
         );
         return ResponseEntity.ok(response);

@@ -1,19 +1,13 @@
 package com.berijalan.ewallet.dto.response;
 
-import java.time.LocalDateTime;
-
-public record ResTransactionItemDto(
+public record ResPaymentDto(
         Long transactionId,
-        Long userId,
-        String userName,
-        String userEmail,
         String referenceId,
         Long amount,
         Long balanceBefore,
         Long balanceAfter,
-        String type,
-        String status,
         String description,
         String merchantName,
-        LocalDateTime createdAt
+        String type,
+        String status
 ) {}

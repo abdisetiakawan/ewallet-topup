@@ -1,16 +1,23 @@
 package com.berijalan.ewallet.controller;
 
+import com.berijalan.ewallet.config.MdcFilter;
 import com.berijalan.ewallet.dto.request.ReqPayDto;
+import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.BaseResponse;
+import com.berijalan.ewallet.dto.response.ResPaymentDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
 import com.berijalan.ewallet.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
-import java.util.UUID;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -20,70 +27,32 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @PostMapping("/pay")
-    public ResponseEntity<BaseResponse<Object>> pay(
+    public ResponseEntity<BaseResponse<ResPaymentDto>> pay(
             @Valid @RequestBody ReqPayDto request,
-            Principal principal) {
-        
-        try {
-            //  email didapat dari JWT token yang login
-            String userEmail = principal.getName(); 
-            transactionService.pay(request, userEmail);
-            
-            BaseResponse<Object> response = new BaseResponse<>(
-                    "req-" + UUID.randomUUID().toString().substring(0, 8),
-                    true,
-                    "Payment successful",
-                    null
-            );
-            return ResponseEntity.ok(response);
-            
-        } catch (RuntimeException e) {
-            BaseResponse<Object> errorResponse = new BaseResponse<>(
-                    "req-" + UUID.randomUUID().toString().substring(0, 8),
-                    false,
-                    e.getMessage(),
-                    null
-            );
-            return ResponseEntity.badRequest().body(errorResponse);
-            
-        } catch (Exception e) {
-            BaseResponse<Object> serverErrorResponse = new BaseResponse<>(
-                    "req-" + UUID.randomUUID().toString().substring(0, 8),
-                    false,
-                    "An internal server error occurred",
-                    null
-            );
-            return ResponseEntity.internalServerError().body(serverErrorResponse);
-        }
+            Authentication authentication) {
+        ResPaymentDto data = transactionService.pay(request, authentication.getName());
+
+        BaseResponse<ResPaymentDto> response = new BaseResponse<>(
+                MDC.get(MdcFilter.REQUEST_ID),
+                true,
+                "Payment successful",
+                data
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
     public ResponseEntity<BaseResponse<ResTransactionHistoryDto>> getTransactions(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String status,
-            Principal principal) {
-        
-        try {
-            String userEmail = principal.getName();
-            ResTransactionHistoryDto data = transactionService.getTransactions(userEmail, page, size, status);
-            
-            BaseResponse<ResTransactionHistoryDto> response = new BaseResponse<>(
-                    "req-" + UUID.randomUUID().toString().substring(0, 8),
-                    true,
-                    "Transaction history retrieved successfully",
-                    data
-            );
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            BaseResponse<ResTransactionHistoryDto> errorResponse = new BaseResponse<>(
-                    "req-" + UUID.randomUUID().toString().substring(0, 8),
-                    false,
-                    e.getMessage(),
-                    null
-            );
-            return ResponseEntity.badRequest().body(errorResponse);
-        }
+            @Valid @ModelAttribute ReqTransactionHistoryDto request,
+            Authentication authentication) {
+        ResTransactionHistoryDto data = transactionService.getTransactions(authentication.getName(), request);
+
+        BaseResponse<ResTransactionHistoryDto> response = new BaseResponse<>(
+                MDC.get(MdcFilter.REQUEST_ID),
+                true,
+                "Transaction history retrieved successfully",
+                data
+        );
+        return ResponseEntity.ok(response);
     }
 }
