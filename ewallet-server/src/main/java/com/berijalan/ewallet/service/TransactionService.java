@@ -20,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -112,10 +111,10 @@ public class TransactionService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException("User not found"));
 
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Transaction> transactionPage;
-        TransactionStatus status = request.getStatus();
-        TransactionType type = request.getType();
+        TransactionStatus status = request.status();
+        TransactionType type = request.type();
 
         if (status != null && type != null) {
             transactionPage = transactionRepository.findByUserAndStatusAndType(user, status, type, pageable);
