@@ -114,15 +114,15 @@ public class TransactionService {
 
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Transaction> transactionPage;
-        TransactionStatus transactionStatus = parseStatusIfPresent(request.getStatus());
-        TransactionType transactionType = parseTypeIfPresent(request.getType());
+        TransactionStatus status = request.getStatus();
+        TransactionType type = request.getType();
 
-        if (transactionStatus != null && transactionType != null) {
-            transactionPage = transactionRepository.findByUserAndStatusAndType(user, transactionStatus, transactionType, pageable);
-        } else if (transactionStatus != null) {
-            transactionPage = transactionRepository.findByUserAndStatus(user, transactionStatus, pageable);
-        } else if (transactionType != null) {
-            transactionPage = transactionRepository.findByUserAndType(user, transactionType, pageable);
+        if (status != null && type != null) {
+            transactionPage = transactionRepository.findByUserAndStatusAndType(user, status, type, pageable);
+        } else if (status != null) {
+            transactionPage = transactionRepository.findByUserAndStatus(user, status, pageable);
+        } else if (type != null) {
+            transactionPage = transactionRepository.findByUserAndType(user, type, pageable);
         } else {
             transactionPage = transactionRepository.findByUser(user, pageable);
         }
@@ -154,29 +154,5 @@ public class TransactionService {
         );
     }
 
-    private TransactionStatus parseStatusIfPresent(String status) {
-        if (status == null || status.isBlank()) {
-            return null;
-        }
 
-        try {
-            return TransactionStatus.valueOf(status.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.warn("Transaction history rejected because status filter is invalid. status={}", status);
-            throw new BadRequestException("Invalid transaction status");
-        }
-    }
-
-    private TransactionType parseTypeIfPresent(String type) {
-        if (type == null || type.isBlank()) {
-            return null;
-        }
-
-        try {
-            return TransactionType.valueOf(type.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.warn("Transaction history rejected because type filter is invalid. type={}", type);
-            throw new BadRequestException("Invalid transaction type");
-        }
-    }
 }

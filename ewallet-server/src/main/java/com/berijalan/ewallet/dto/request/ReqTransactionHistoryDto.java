@@ -1,5 +1,7 @@
 package com.berijalan.ewallet.dto.request;
 
+import com.berijalan.ewallet.entity.constant.TransactionStatus;
+import com.berijalan.ewallet.entity.constant.TransactionType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
@@ -12,9 +14,9 @@ public class ReqTransactionHistoryDto {
     @Max(value = 100, message = "Size maximum is 100")
     private Integer size = 10;
 
-    private String status;
+    private TransactionStatus status;
 
-    private String type;
+    private TransactionType type;
 
     public Integer getPage() {
         return page;
@@ -32,19 +34,19 @@ public class ReqTransactionHistoryDto {
         this.size = size;
     }
 
-    public String getStatus() {
+    public TransactionStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(TransactionStatus status) {
         this.status = status;
     }
 
-    public String getType() {
+    public TransactionType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(TransactionType type) {
         this.type = type;
     }
 }

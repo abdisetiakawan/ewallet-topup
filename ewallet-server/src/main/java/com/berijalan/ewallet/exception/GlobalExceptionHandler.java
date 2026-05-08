@@ -13,7 +13,9 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -47,6 +49,26 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
+
+        BaseResponse<Map<String, String>> response = new BaseResponse<>(
+                getRequestId(),
+                false,
+                "Validation Error",
+                errors
+        );
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<BaseResponse<Map<String, String>>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        Class<?> requiredType = ex.getRequiredType();
+        String message = requiredType != null && requiredType.isEnum()
+                ? "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'. Allowed: " + Arrays.toString(requiredType.getEnumConstants())
+                : "Invalid value for parameter '" + ex.getName() + "'";
+
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ex.getName(), message);
 
         BaseResponse<Map<String, String>> response = new BaseResponse<>(
                 getRequestId(),
