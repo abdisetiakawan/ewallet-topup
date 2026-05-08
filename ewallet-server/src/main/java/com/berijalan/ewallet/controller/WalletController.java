@@ -5,6 +5,7 @@ import com.berijalan.ewallet.dto.request.ReqTopupDto;
 import com.berijalan.ewallet.dto.response.BaseResponse;
 import com.berijalan.ewallet.dto.response.ResTopupDto;
 import com.berijalan.ewallet.dto.response.ResWalletBalanceDto;
+import com.berijalan.ewallet.security.UserDetailsImpl;
 import com.berijalan.ewallet.service.WalletService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +27,8 @@ public class WalletController {
 
     @GetMapping("/balance")
     public ResponseEntity<BaseResponse<ResWalletBalanceDto>> getBalance(Authentication authentication) {
-        String email = authentication.getName();
-        ResWalletBalanceDto data = walletService.getBalance(email);
+        Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+        ResWalletBalanceDto data = walletService.getBalance(userId);
 
         BaseResponse<ResWalletBalanceDto> response = new BaseResponse<>(
                 MDC.get(MdcFilter.REQUEST_ID),
@@ -40,8 +41,8 @@ public class WalletController {
 
     @PostMapping("/topup")
     public ResponseEntity<BaseResponse<ResTopupDto>> topup(@Valid @RequestBody ReqTopupDto request, Authentication authentication) {
-        String email = authentication.getName();
-        ResTopupDto data = walletService.topup(request, email);
+        Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+        ResTopupDto data = walletService.topup(request, userId);
 
         BaseResponse<ResTopupDto> response = new BaseResponse<>(
                 MDC.get(MdcFilter.REQUEST_ID),

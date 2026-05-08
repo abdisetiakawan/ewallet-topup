@@ -10,7 +10,6 @@ import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.repository.TransactionRepository;
-import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,23 +24,19 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class WalletService {
 
-    private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
 
-    public ResWalletBalanceDto getBalance(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException("User not found"));
-
-        Wallet wallet = walletRepository.findByUser(user)
+    public ResWalletBalanceDto getBalance(Long userId) {
+        Wallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new BadRequestException("Wallet not found"));
 
         return new ResWalletBalanceDto(wallet.getBalance(), wallet.getUpdatedAt());
     }
 
     @Transactional
-    public ResTopupDto topup(ReqTopupDto request, String email) {
-        Wallet wallet = walletRepository.findByUser_Email(email)
+    public ResTopupDto topup(ReqTopupDto request, Long userId) {
+        Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new BadRequestException("Wallet not found"));
         User user = wallet.getUser();
 

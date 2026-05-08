@@ -6,6 +6,7 @@ import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.BaseResponse;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
+import com.berijalan.ewallet.security.UserDetailsImpl;
 import com.berijalan.ewallet.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,8 @@ public class TransactionController {
     public ResponseEntity<BaseResponse<ResPaymentDto>> pay(
             @Valid @RequestBody ReqPayDto request,
             Authentication authentication) {
-        ResPaymentDto data = transactionService.pay(request, authentication.getName());
+        Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+        ResPaymentDto data = transactionService.pay(request, userId);
 
         BaseResponse<ResPaymentDto> response = new BaseResponse<>(
                 MDC.get(MdcFilter.REQUEST_ID),
@@ -45,7 +47,8 @@ public class TransactionController {
     public ResponseEntity<BaseResponse<ResTransactionHistoryDto>> getTransactions(
             @Valid @ModelAttribute ReqTransactionHistoryDto request,
             Authentication authentication) {
-        ResTransactionHistoryDto data = transactionService.getTransactions(authentication.getName(), request);
+        Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+        ResTransactionHistoryDto data = transactionService.getTransactions(userId, request);
 
         BaseResponse<ResTransactionHistoryDto> response = new BaseResponse<>(
                 MDC.get(MdcFilter.REQUEST_ID),
