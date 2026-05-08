@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -14,6 +15,13 @@ export class RegisterComponent {
   email = '';
   password = '';
   showPassword = false;
+  isLoading = false;
+  errorMessage = '';
+
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
@@ -22,6 +30,27 @@ export class RegisterComponent {
   onSubmit(form: NgForm): void {
     if (form.invalid) {
       form.control.markAllAsTouched();
+      return;
     }
+
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.authService.register({
+      name: this.name,
+      email: this.email,
+      password: this.password,
+    }).subscribe({
+      next: () => {
+        this.router.navigate(['/login']);
+      },
+      error: (error) => {
+        this.errorMessage = error.error?.message || 'Register gagal. Coba lagi.';
+        this.isLoading = false;
+      },
+      complete: () => {
+        this.isLoading = false;
+      },
+    });
   }
 }

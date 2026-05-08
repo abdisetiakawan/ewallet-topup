@@ -71,11 +71,18 @@
         }
       </div>
 
+      @if (errorMessage) {
+        <div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+          {{ errorMessage }}
+        </div>
+      }
+
       <button
         type="submit"
-        class="w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-white"
+        [disabled]="isLoading"
+        class="w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Login
+        {{ isLoading ? 'Memproses...' : 'Login' }}
       </button>
     </form>
 
