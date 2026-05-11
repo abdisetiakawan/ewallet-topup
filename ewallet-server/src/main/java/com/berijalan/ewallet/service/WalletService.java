@@ -51,6 +51,8 @@ public class WalletService {
         Transaction transaction = new Transaction();
         transaction.setUser(user);
         transaction.setAmount(request.amount());
+        transaction.setBaseAmount(request.amount());
+        transaction.setTaxAmount(0L);
         transaction.setBalanceBefore(balanceBefore);
         transaction.setBalanceAfter(balanceAfter);
         transaction.setType(TransactionType.TOPUP);
@@ -71,10 +73,6 @@ public class WalletService {
     }
 
     private String generateUniqueReferenceId() {
-        String referenceId;
-        do {
-            referenceId = "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        } while (transactionRepository.existsByReferenceId(referenceId));
-        return referenceId;
+        return "TXN-" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
     }
 }
