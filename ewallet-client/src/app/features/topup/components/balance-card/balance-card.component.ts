@@ -10,7 +10,7 @@ import { RouterLink } from '@angular/router';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BalanceCardComponent {
-  @Input() balance: number = 12450000;
+  @Input() balance: number = 0;
   @Input() variant: 'desktop' | 'mobile' = 'desktop';
 
   get formattedBalance(): string {

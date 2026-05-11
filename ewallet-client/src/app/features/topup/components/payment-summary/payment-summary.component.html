@@ -20,7 +20,7 @@
       class="w-full h-[48px] bg-primary text-on-primary text-label-md rounded-lg flex items-center justify-center hover:bg-primary-container transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
       [disabled]="!isValid"
       (click)="onPay()">
-      Bayar Sekarang
+      {{ disabled ? 'Memproses...' : 'Bayar Sekarang' }}
     </button>
     <p class="text-center text-body-sm text-on-surface-variant mt-md flex items-center justify-center gap-xs">
       <span class="material-symbols-outlined text-[16px]">lock</span>
@@ -42,7 +42,7 @@
         class="w-full bg-primary text-on-primary font-semibold h-12 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
         [disabled]="!isValid"
         (click)="onPay()">
-        Bayar Sekarang
+        {{ disabled ? 'Memproses...' : 'Bayar Sekarang' }}
       </button>
     </div>
   </div>

@@ -21,6 +21,36 @@
     </div>
   </header>
 
+  @if (successNotification) {
+    <section
+      role="status"
+      aria-live="polite"
+      class="fixed left-0 right-0 top-[76px] z-[60] px-margin-mobile pointer-events-none"
+    >
+      <div class="success-toast mx-auto max-w-[600px] overflow-hidden rounded-xl border border-tertiary/20 bg-surface-container-lowest shadow-[0_12px_32px_rgba(0,0,0,0.16)] pointer-events-auto">
+        <div class="flex items-center gap-sm px-md py-sm">
+          <div class="w-8 h-8 rounded-full bg-tertiary-fixed text-tertiary flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[20px] leading-none" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+          </div>
+          <p class="text-[15px] font-semibold text-on-surface flex-1">{{ successNotification.title }}</p>
+          <button
+            type="button"
+            aria-label="Tutup notifikasi"
+            class="p-xs rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors shrink-0"
+            (click)="closeSuccessNotification()"
+          >
+            <span class="material-symbols-outlined text-[18px] leading-none">close</span>
+          </button>
+        </div>
+        <div class="h-1 bg-surface-container">
+          <div
+            class="success-toast-progress h-full bg-tertiary"
+            [style.animation-duration.ms]="successToastDurationMs"
+          ></div>
+        </div>
+      </div>
+    </section>
+  }
 
   <main class="flex-grow px-margin-mobile pt-md pb-xl max-w-[600px] mx-auto w-full">
     <!-- Screen Header -->
@@ -29,7 +59,7 @@
       <p class="text-body-sm text-on-surface-variant">Pilih e-wallet tujuan untuk memindahkan dana Anda.</p>
     </div>
 
-    <app-balance-card [balance]="balance" variant="mobile" />
+    <app-balance-card [balance]="(balance$ | async) ?? 0" variant="mobile" />
 
     <section class="mb-md">
       <h2 class="font-semibold text-h3 text-on-surface mb-md">Pilih E-Wallet</h2>
