@@ -7,6 +7,7 @@ import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import com.berijalan.ewallet.entity.constant.TaxType;
+import com.berijalan.ewallet.entity.constant.TaxValueType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,6 +44,11 @@ public class MerchantTax extends BaseEntity {
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "tax_type", columnDefinition = "tax_type_enum", nullable = false)
     private TaxType taxType;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "value_type", columnDefinition = "tax_value_type_enum", nullable = false)
+    private TaxValueType valueType;
 
     @Column(name = "tax_value", nullable = false, precision = 10, scale = 4)
     private BigDecimal taxValue;
