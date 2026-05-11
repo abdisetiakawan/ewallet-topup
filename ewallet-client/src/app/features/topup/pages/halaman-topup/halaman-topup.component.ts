@@ -2,8 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { TOPUP_ACCOUNT_BALANCE } from '../../constants/topup.constants';
 
-interface AmountOption {
+interface TopupAmountOption {
   id: string;
   label: string;
   amount: number;
@@ -18,12 +19,12 @@ interface AmountOption {
   styleUrl: './halaman-topup.component.css',
 })
 export class HalamanTopupComponent {
-  readonly balance = 1240500;
+  readonly balance = TOPUP_ACCOUNT_BALANCE;
   selectedAmount = 100000;
   customAmount = '100.000';
   showConfirmationModal = false;
 
-  readonly amountOptions: AmountOption[] = [
+  readonly amountOptions: TopupAmountOption[] = [
     { id: '50k', label: 'Rp 50rb', amount: 50000, badge: 'Hemat' },
     { id: '100k', label: 'Rp 100rb', amount: 100000, badge: 'Populer' },
     { id: '200k', label: 'Rp 200rb', amount: 200000, badge: 'Standar' },

@@ -89,12 +89,14 @@
           inputmode="numeric"
           class="w-full h-[64px] pl-14 pr-md bg-surface-container-lowest border border-outline-variant rounded-xl text-[22px] font-bold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           [ngModel]="customAmount"
+          [attr.aria-invalid]="!isValidAmount"
+          [attr.aria-describedby]="!isValidAmount ? 'customAmountError' : null"
           (ngModelChange)="onCustomAmountChange($event)"
           (blur)="formatCustomAmount()"
         />
       </div>
       @if (!isValidAmount) {
-        <p class="text-[12px] text-error mt-xs">Minimal top-up Rp 10.000</p>
+        <p id="customAmountError" class="text-[12px] text-error mt-xs">Minimal top-up Rp 10.000</p>
       }
     </section>
 
@@ -125,15 +127,20 @@
   </footer>
   @if (showConfirmationModal) {
     <div class="fixed inset-0 z-50 flex items-end justify-center bg-inverse-surface/50 px-margin-mobile py-lg">
-      <section class="w-full max-w-[420px] bg-surface-container-lowest rounded-xl p-lg shadow-xl border border-outline-variant">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="topupConfirmationTitle"
+        class="w-full max-w-[420px] bg-surface-container-lowest rounded-xl p-lg shadow-xl border border-outline-variant"
+      >
         <div class="flex items-start justify-between gap-md">
           <div class="flex items-start gap-md">
             <div class="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center shrink-0">
               <span class="material-symbols-outlined text-primary">account_balance_wallet</span>
             </div>
             <div>
-            <p class="text-label-md text-on-surface-variant uppercase tracking-wider">Konfirmasi Top-up</p>
-            <h2 class="text-h3 text-on-surface mt-xs">Rp {{ formattedSelectedAmount }}</h2>
+              <p class="text-label-md text-on-surface-variant uppercase tracking-wider">Konfirmasi Top-up</p>
+              <h2 id="topupConfirmationTitle" class="text-h3 text-on-surface mt-xs">Rp {{ formattedSelectedAmount }}</h2>
             </div>
           </div>
           <button
