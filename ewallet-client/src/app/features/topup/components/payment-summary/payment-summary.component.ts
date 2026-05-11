@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 export class PaymentSummaryComponent {
   @Input() amount: number = 0;
   @Input() adminFee: number = 1000;
+  @Input() feeLabel: string = 'Biaya Admin';
   @Input() variant: 'desktop' | 'mobile' = 'desktop';
   @Input() disabled: boolean = false;
   @Output() pay = new EventEmitter<void>();
