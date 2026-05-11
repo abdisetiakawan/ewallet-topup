@@ -1,0 +1,183 @@
+<div class="min-h-screen bg-background text-on-background font-sans antialiased flex flex-col">
+  <header class="bg-surface sticky top-0 z-50 w-full shadow-sm">
+    <div class="flex justify-between items-center px-margin-mobile py-md">
+      <div class="flex items-center gap-sm min-w-0">
+        <button
+          type="button"
+          aria-label="Kembali"
+          class="p-2 -ml-2 rounded-full text-primary active:opacity-80 transition-colors hover:bg-surface-container-low shrink-0"
+          (click)="goBack()"
+        >
+          <span class="material-symbols-outlined text-[24px]">arrow_back</span>
+        </button>
+        <div class="flex items-center gap-sm min-w-0">
+          <span class="w-8 h-8 flex items-center justify-center text-primary shrink-0">
+            <span class="material-symbols-outlined text-[28px] leading-none" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+          </span>
+          <h1 class="text-[18px] leading-none font-bold text-primary truncate">Top-up Saldo</h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-md shrink-0">
+        <button type="button" aria-label="Notifikasi" class="w-10 h-10 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors flex items-center justify-center">
+          <span class="material-symbols-outlined leading-none">notifications</span>
+        </button>
+        <div class="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center cursor-pointer">
+          <span class="material-symbols-outlined text-on-surface-variant text-[20px] leading-none">person</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="w-full max-w-[600px] mx-auto px-margin-mobile pt-md pb-36 flex-grow">
+    <div class="mb-lg">
+      <h2 class="font-h3 text-h3 text-on-surface mb-xs">Isi Saldo</h2>
+      <p class="text-body-sm text-on-surface-variant">Pilih nominal top-up lalu konfirmasi pembayaran Anda.</p>
+    </div>
+
+    <section class="bg-primary text-on-primary rounded-xl p-lg shadow-lg relative overflow-hidden mb-xl">
+      <div class="absolute -right-8 -top-8 w-32 h-32 bg-on-primary opacity-10 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="absolute -left-4 -bottom-4 w-24 h-24 bg-on-primary opacity-5 rounded-full blur-xl pointer-events-none"></div>
+      <div class="relative z-10 flex flex-col gap-sm">
+        <div class="flex justify-between items-center">
+          <span class="text-label-md text-primary-fixed uppercase tracking-wider">Saldo Saat Ini</span>
+          <span class="material-symbols-outlined text-primary-fixed opacity-80">account_balance</span>
+        </div>
+        <div class="text-num-display mt-xs">Rp {{ formattedBalance }}</div>
+        <div class="mt-md pt-md border-t border-primary-fixed-dim/30 flex items-center gap-sm">
+          <span class="material-symbols-outlined text-[16px] text-tertiary-fixed">verified_user</span>
+          <span class="text-body-sm text-primary-fixed-dim">Akun terverifikasi dan siap top-up</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="mb-lg">
+      <h2 class="font-semibold text-h3 text-on-surface mb-md">Pilih Nominal</h2>
+
+      <div class="grid grid-cols-2 gap-md">
+        @for (option of amountOptions; track option.id) {
+          <button
+            type="button"
+            class="bg-surface-container-lowest min-h-[96px] border p-md rounded-xl flex flex-col items-center justify-center transition-all hover:border-primary hover:bg-surface-container-low active:scale-[0.98]"
+            [class.border-primary]="isSelectedAmount(option.amount)"
+            [class.border-2]="isSelectedAmount(option.amount)"
+            [class.border-outline-variant]="!isSelectedAmount(option.amount)"
+            (click)="selectAmount(option.amount)"
+          >
+            <span
+              class="text-[11px] font-medium mb-xs"
+              [class.text-primary]="isSelectedAmount(option.amount)"
+              [class.text-on-surface-variant]="!isSelectedAmount(option.amount)"
+            >
+              {{ option.badge }}
+            </span>
+            <span class="text-[22px] font-bold text-primary">{{ option.label }}</span>
+          </button>
+        }
+      </div>
+    </section>
+
+    <section class="mb-lg">
+      <label for="customAmount" class="block text-[13px] font-medium text-on-surface-variant">
+        Atau Masukkan Nominal Sendiri
+      </label>
+      <div class="relative mt-sm">
+        <div class="absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-body-sm font-semibold">Rp</div>
+        <input
+          id="customAmount"
+          type="text"
+          inputmode="numeric"
+          class="w-full h-[64px] pl-14 pr-md bg-surface-container-lowest border border-outline-variant rounded-xl text-[22px] font-bold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          [ngModel]="customAmount"
+          (ngModelChange)="onCustomAmountChange($event)"
+          (blur)="formatCustomAmount()"
+        />
+      </div>
+      @if (!isValidAmount) {
+        <p class="text-[12px] text-error mt-xs">Minimal top-up Rp 10.000</p>
+      }
+    </section>
+
+    <section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex items-start gap-md shadow-sm">
+      <div class="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-primary">verified_user</span>
+      </div>
+      <div>
+        <h2 class="text-[16px] font-bold text-on-surface">Konfirmasi</h2>
+        <p class="text-[14px] text-on-surface-variant mt-xs">Top-up saldo akan diproses setelah Anda menyetujui nominal pada modal konfirmasi.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="fixed bottom-0 left-0 z-40 w-full bg-background px-margin-mobile pt-md pb-margin-mobile">
+    <div class="flex flex-col items-center gap-md">
+      <div class="font-bold text-[24px] text-primary">WalletPay</div>
+      <button
+        type="button"
+        class="w-full max-w-[600px] h-[56px] bg-primary text-on-primary font-bold text-[16px] rounded-xl shadow-md flex items-center justify-center gap-sm active:scale-[0.98] transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+        [disabled]="!isValidAmount"
+        (click)="continuePayment()"
+      >
+        Lanjutkan Pembayaran
+        <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+      </button>
+    </div>
+  </footer>
+  @if (showConfirmationModal) {
+    <div class="fixed inset-0 z-50 flex items-end justify-center bg-inverse-surface/50 px-margin-mobile py-lg">
+      <section class="w-full max-w-[420px] bg-surface-container-lowest rounded-xl p-lg shadow-xl border border-outline-variant">
+        <div class="flex items-start justify-between gap-md">
+          <div class="flex items-start gap-md">
+            <div class="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+            </div>
+            <div>
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider">Konfirmasi Top-up</p>
+            <h2 class="text-h3 text-on-surface mt-xs">Rp {{ formattedSelectedAmount }}</h2>
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Tutup modal"
+            class="p-xs rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors"
+            (click)="closeConfirmationModal()"
+          >
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="mt-lg space-y-sm">
+          <div class="flex justify-between gap-md text-body-sm">
+            <span class="text-on-surface-variant">Saldo saat ini</span>
+            <span class="font-semibold text-on-surface">Rp {{ formattedBalance }}</span>
+          </div>
+          <div class="flex justify-between gap-md text-body-sm">
+            <span class="text-on-surface-variant">Nominal top-up</span>
+            <span class="font-semibold text-primary">Rp {{ formattedSelectedAmount }}</span>
+          </div>
+          <div class="flex justify-between gap-md text-body-sm pt-sm border-t border-outline-variant">
+            <span class="text-on-surface-variant">Saldo setelah top-up</span>
+            <span class="font-semibold text-on-surface">Rp {{ formattedBalanceAfterTopup }}</span>
+          </div>
+        </div>
+
+        <div class="mt-lg grid grid-cols-2 gap-sm">
+          <button
+            type="button"
+            class="h-12 rounded-xl border border-outline-variant text-on-surface font-semibold hover:bg-surface-container-low transition-colors"
+            (click)="closeConfirmationModal()"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            class="h-12 rounded-xl bg-primary text-on-primary font-semibold hover:bg-primary-container active:scale-[0.98] transition-all"
+            (click)="confirmTopup()"
+          >
+            Konfirmasi
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+</div>
