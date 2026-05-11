@@ -7,6 +7,7 @@ import { FooterComponent } from '../../../../shared/components/footer/footer.com
 import { BalanceCardComponent } from '../../components/balance-card/balance-card.component';
 import { EwalletCardComponent } from '../../components/ewallet-card/ewallet-card.component';
 import { EWallet } from '../../../../core/models/ewallet.model';
+import { TOPUP_ACCOUNT_BALANCE } from '../../constants/topup.constants';
 
 @Component({
   selector: 'app-pilih-ewallet',
@@ -23,7 +24,7 @@ import { EWallet } from '../../../../core/models/ewallet.model';
   styleUrl: './pilih-ewallet.component.css',
 })
 export class PilihEwalletComponent {
-  readonly balance = 12450000;
+  readonly balance = TOPUP_ACCOUNT_BALANCE;
 
   readonly ewallets: EWallet[] = [
     { id: 'gopay', name: 'GoPay', icon: 'payments', iconBgColor: '#e5eeff', iconTextColor: '#0058be', adminFee: 0, feeLabel: 'Bebas biaya admin', featured: true },

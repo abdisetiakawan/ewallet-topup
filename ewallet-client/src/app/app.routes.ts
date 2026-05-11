@@ -30,6 +30,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'topup/saldo',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/topup/pages/halaman-topup/halaman-topup.component').then(
+        (m) => m.HalamanTopupComponent
+      ),
+  },
+  {
     path: 'topup/detail/:walletId',
     canActivate: [authGuard],
     loadComponent: () =>

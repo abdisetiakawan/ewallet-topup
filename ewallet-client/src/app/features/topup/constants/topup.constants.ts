@@ -1,0 +1,1 @@
+export const TOPUP_ACCOUNT_BALANCE = 12450000;
