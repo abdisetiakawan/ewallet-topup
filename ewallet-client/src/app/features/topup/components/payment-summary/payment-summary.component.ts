@@ -13,6 +13,7 @@ export class PaymentSummaryComponent {
   @Input() amount: number = 0;
   @Input() adminFee: number = 1000;
   @Input() variant: 'desktop' | 'mobile' = 'desktop';
+  @Input() disabled: boolean = false;
   @Output() pay = new EventEmitter<void>();
 
   get total(): number {
@@ -20,7 +21,7 @@ export class PaymentSummaryComponent {
   }
 
   get isValid(): boolean {
-    return this.amount >= 10000;
+    return !this.disabled && this.amount >= 10000;
   }
 
   format(value: number): string {

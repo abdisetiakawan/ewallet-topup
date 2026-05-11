@@ -109,6 +109,12 @@
         <p class="text-[14px] text-on-surface-variant mt-xs">Top-up saldo akan diproses setelah Anda menyetujui nominal pada modal konfirmasi.</p>
       </div>
     </section>
+
+    @if (errorMessage) {
+      <div class="mt-md bg-error-container text-on-error-container border border-error/20 rounded-xl p-md text-body-sm">
+        {{ errorMessage }}
+      </div>
+    }
   </main>
 
   <footer class="fixed bottom-0 left-0 z-40 w-full bg-background px-margin-mobile pt-md pb-margin-mobile">
@@ -178,10 +184,11 @@
           </button>
           <button
             type="button"
-            class="h-12 rounded-xl bg-primary text-on-primary font-semibold hover:bg-primary-container active:scale-[0.98] transition-all"
+            class="h-12 rounded-xl bg-primary text-on-primary font-semibold hover:bg-primary-container active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:opacity-50"
+            [disabled]="isSubmitting"
             (click)="confirmTopup()"
           >
-            Konfirmasi
+            {{ isSubmitting ? 'Memproses...' : 'Konfirmasi' }}
           </button>
         </div>
       </section>

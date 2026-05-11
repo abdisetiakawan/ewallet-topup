@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TopAppBarComponent {
-  @Input() balance: number = 1240500;
+  @Input() balance: number = 0;
   @Input() showNavLinks: boolean = true;
   @Input() activeNav: 'home' | 'wallets' | 'history' = 'wallets';
 

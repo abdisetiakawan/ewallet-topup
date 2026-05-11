@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { TOPUP_ACCOUNT_BALANCE } from '../../constants/topup.constants';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { WalletStoreService } from '../../../../core/services/wallet-store.service';
 
 interface TopupAmountOption {
   id: string;
@@ -18,11 +19,15 @@ interface TopupAmountOption {
   templateUrl: './halaman-topup.component.html',
   styleUrl: './halaman-topup.component.css',
 })
-export class HalamanTopupComponent {
-  readonly balance = TOPUP_ACCOUNT_BALANCE;
+export class HalamanTopupComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
+  balance = 0;
   selectedAmount = 100000;
   customAmount = '100.000';
   showConfirmationModal = false;
+  isSubmitting = false;
+  errorMessage: string | null = null;
 
   readonly amountOptions: TopupAmountOption[] = [
     { id: '50k', label: 'Rp 50rb', amount: 50000, badge: 'Hemat' },
@@ -31,7 +36,24 @@ export class HalamanTopupComponent {
     { id: '500k', label: 'Rp 500rb', amount: 500000, badge: 'Maksimal' },
   ];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private walletStore: WalletStoreService
+  ) {}
+
+  ngOnInit(): void {
+    this.walletStore.balance$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((balance) => {
+        this.balance = balance;
+      });
+
+    this.walletStore.loadBalance().subscribe({
+      error: () => {
+        this.errorMessage = 'Gagal memuat saldo terbaru.';
+      },
+    });
+  }
 
   get formattedBalance(): string {
     return new Intl.NumberFormat('id-ID').format(this.balance);
@@ -86,8 +108,36 @@ export class HalamanTopupComponent {
   }
 
   confirmTopup(): void {
-    this.showConfirmationModal = false;
-    alert(`Top-up saldo Rp ${this.formattedSelectedAmount} berhasil diproses.`);
+    if (!this.isValidAmount || this.isSubmitting) {
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.errorMessage = null;
+    const submittedAmount = this.selectedAmount;
+
+    this.walletStore.topup(submittedAmount).subscribe({
+      next: () => {
+        this.showConfirmationModal = false;
+        this.router.navigate(['/topup'], {
+          state: {
+            successNotification: {
+              icon: 'check_circle',
+              title: 'Topup sukses',
+              message: '',
+              amountLabel: `+ Rp ${new Intl.NumberFormat('id-ID').format(submittedAmount)}`,
+            },
+          },
+        });
+      },
+      error: () => {
+        this.isSubmitting = false;
+        this.errorMessage = 'Top-up gagal diproses. Silakan coba lagi.';
+      },
+      complete: () => {
+        this.isSubmitting = false;
+      },
+    });
   }
 
   goBack(): void {

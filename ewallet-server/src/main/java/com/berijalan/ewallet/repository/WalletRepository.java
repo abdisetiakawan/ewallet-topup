@@ -13,9 +13,13 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface WalletRepository extends JpaRepository<Wallet, Integer> {
+public interface WalletRepository extends JpaRepository<Wallet, Long> {
     Optional<Wallet> findByUser(User user);
+
+    Optional<Wallet> findByUserId(Long userId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {"user"})
-    Optional<Wallet> findByUserId(Long userId);
+    @Query("select w from Wallet w where w.user.id = :userId")
+    Optional<Wallet> findByUserIdForUpdate(@Param("userId") Long userId);
 }

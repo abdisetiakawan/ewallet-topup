@@ -6,7 +6,8 @@ export interface BaseResponse<T> {
 }
 
 export interface UserSummary {
-  id: number;
+  id?: number;
+  userId?: number;
   name: string;
   email: string;
   createdAt: string;

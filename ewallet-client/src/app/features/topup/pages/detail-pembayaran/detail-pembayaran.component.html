@@ -7,7 +7,7 @@
     <button aria-label="Kembali" class="text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full p-2 mr-sm" (click)="goBack()">
       <span class="material-symbols-outlined">arrow_back</span>
     </button>
-    <h1 class="font-semibold text-h3 text-primary">Top-up {{ selectedWallet?.name }}</h1>
+    <h1 class="font-semibold text-h3 text-primary">Top-up {{ selectedWallet.name }}</h1>
   </header>
 
 
@@ -22,8 +22,8 @@
           <span class="material-symbols-outlined text-h3">account_balance_wallet</span>
         </div>
         <div>
-          <p class="font-semibold text-h3 text-on-background">{{ selectedWallet?.name }} - {{ selectedWallet?.recipient }}</p>
-          <p class="text-body-sm text-on-surface-variant">{{ selectedWallet?.phone }}</p>
+          <p class="font-semibold text-h3 text-on-background">{{ selectedWallet.name }} - {{ recipientName }}</p>
+          <p class="text-body-sm text-on-surface-variant">{{ recipientContact }}</p>
         </div>
       </div>
     </section>
@@ -50,12 +50,21 @@
         <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
       </div>
     </section>
+
+    @if (errorMessage) {
+      <section class="px-margin-mobile py-md">
+        <div class="bg-error-container text-on-error-container border border-error/20 rounded-xl p-md text-body-sm">
+          {{ errorMessage }}
+        </div>
+      </section>
+    }
   </main>
 
   <!-- Mobile sticky summary -->
   <app-payment-summary
     [amount]="selectedAmount"
     [adminFee]="adminFee"
+    [disabled]="isSubmitting"
     variant="mobile"
     (pay)="onPay()" />
 </div>
