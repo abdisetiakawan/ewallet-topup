@@ -48,6 +48,16 @@ public class Transaction extends BaseEntity {
     @Column(nullable = false)
     private Long amount;
 
+    @Column(name = "base_amount", nullable = false)
+    private Long baseAmount;
+
+    @Column(name = "tax_amount", nullable = false)
+    private Long taxAmount = 0L;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "tax_snapshot", columnDefinition = "jsonb")
+    private String taxSnapshot;
+
     @Column(name = "balance_before", nullable = false)
     private Long balanceBefore = 0L;
 
