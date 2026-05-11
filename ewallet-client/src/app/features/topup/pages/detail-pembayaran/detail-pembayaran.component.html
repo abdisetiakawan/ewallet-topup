@@ -1,76 +1,19 @@
 <div class="bg-background text-on-background min-h-screen flex flex-col font-sans antialiased">
 
-  <!-- Desktop header -->
-  <app-top-app-bar [balance]="accountBalance" activeNav="wallets" class="hidden md:block" />
+
 
   <!-- Mobile header (transactional — back button only) -->
-  <header class="bg-surface sticky top-0 z-50 flex items-center px-margin-mobile py-md shadow-sm md:hidden">
+  <header class="bg-surface sticky top-0 z-50 flex items-center px-margin-mobile py-md shadow-sm">
     <button aria-label="Kembali" class="text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full p-2 mr-sm" (click)="goBack()">
       <span class="material-symbols-outlined">arrow_back</span>
     </button>
     <h1 class="font-semibold text-h3 text-primary">Top-up {{ selectedWallet?.name }}</h1>
   </header>
 
-  <!-- Desktop layout -->
-  <main class="hidden md:block flex-grow w-full max-w-[1280px] mx-auto px-margin-desktop py-xl">
-    <div class="flex items-center gap-sm mb-lg">
-      <button aria-label="Kembali" class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors" (click)="goBack()">
-        <span class="material-symbols-outlined">arrow_back</span>
-      </button>
-      <h1 class="font-semibold text-h2 text-on-surface">Top-up {{ selectedWallet?.name }}</h1>
-    </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-lg">
-      <!-- Left: Input -->
-      <div class="md:col-span-8 flex flex-col gap-lg">
-        <!-- Destination -->
-        <section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
-          <h2 class="font-semibold text-h3 text-on-surface mb-md">Destination E-Wallet</h2>
-          <div class="flex items-center gap-md p-md bg-surface-container-low rounded-lg border border-outline-variant/50">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center text-primary"
-                 [style.background-color]="selectedWallet?.iconBgColor">
-              <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">{{ selectedWallet?.icon }}</span>
-            </div>
-            <div>
-              <div class="text-label-md text-on-surface-variant mb-xs">{{ selectedWallet?.name }}</div>
-              <div class="font-semibold text-body-lg text-on-surface">{{ selectedWallet?.phone }}</div>
-            </div>
-          </div>
-        </section>
-
-        <app-amount-selector [selectedAmount]="selectedAmount" (amountChange)="onAmountChange($event)" />
-
-        <!-- Payment method -->
-        <section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm mb-xl md:mb-0">
-          <h2 class="font-semibold text-h3 text-on-surface mb-md">Metode Pembayaran</h2>
-          <div class="flex items-center justify-between p-md bg-surface border-2 border-primary rounded-lg shadow-[0_0_15px_rgba(0,88,190,0.1)] cursor-pointer">
-            <div class="flex items-center gap-md">
-              <div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_balance</span>
-              </div>
-              <div>
-                <div class="font-semibold text-body-lg text-on-surface">Saldo Akun</div>
-                <div class="text-body-sm text-on-surface-variant">Balance: Rp {{ format(accountBalance) }}</div>
-              </div>
-            </div>
-            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-          </div>
-        </section>
-      </div>
-
-      <!-- Right: Summary -->
-      <div class="md:col-span-4">
-        <app-payment-summary
-          [amount]="selectedAmount"
-          [adminFee]="adminFee"
-          variant="desktop"
-          (pay)="onPay()" />
-      </div>
-    </div>
-  </main>
 
   <!-- Mobile layout -->
-  <main class="md:hidden flex-grow pb-32">
+  <main class="flex-grow pb-32">
     <!-- Destination -->
     <section class="px-margin-mobile pt-lg pb-md">
       <h2 class="text-label-md text-on-surface-variant mb-sm uppercase tracking-wider">Tujuan Top-up</h2>
@@ -114,8 +57,5 @@
     [amount]="selectedAmount"
     [adminFee]="adminFee"
     variant="mobile"
-    (pay)="onPay()"
-    class="md:hidden" />
-
-  <app-footer class="hidden md:block" />
+    (pay)="onPay()" />
 </div>
