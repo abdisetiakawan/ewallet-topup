@@ -31,6 +31,32 @@ export class AuthService {
     localStorage.setItem('token', token);
   }
 
+  saveUser(user: UserSummary): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
+    localStorage.setItem('user', JSON.stringify(user));
+  }
+
+  getCurrentUser(): UserSummary | null {
+    if (!this.isBrowser()) {
+      return null;
+    }
+
+    const rawUser = localStorage.getItem('user');
+    if (!rawUser) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(rawUser) as UserSummary;
+    } catch {
+      localStorage.removeItem('user');
+      return null;
+    }
+  }
+
   getToken(): string | null {
     if (!this.isBrowser()) {
       return null;
@@ -45,6 +71,7 @@ export class AuthService {
     }
 
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
   }
 
   isLoggedIn(): boolean {

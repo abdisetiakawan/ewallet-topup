@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
+public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
     @EntityGraph(attributePaths = {"merchant", "user"})
     @Query("SELECT t FROM Transaction t WHERE t.user = :user " +
