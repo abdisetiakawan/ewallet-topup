@@ -7,7 +7,7 @@
     <button aria-label="Kembali" class="text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full p-2 mr-sm" (click)="goBack()">
       <span class="material-symbols-outlined">arrow_back</span>
     </button>
-    <h1 class="font-semibold text-h3 text-primary">Top-up {{ selectedWallet.name }}</h1>
+    <h1 class="font-semibold text-h3 text-primary">Top-up {{ selectedWallet?.name }}</h1>
   </header>
 
 
@@ -22,7 +22,7 @@
           <span class="material-symbols-outlined text-h3">account_balance_wallet</span>
         </div>
         <div>
-          <p class="font-semibold text-h3 text-on-background">{{ selectedWallet.name }} - {{ recipientName }}</p>
+          <p class="font-semibold text-h3 text-on-background">{{ selectedWallet?.name }} - {{ recipientName }}</p>
           <p class="text-body-sm text-on-surface-variant">{{ recipientContact }}</p>
         </div>
       </div>
@@ -51,6 +51,25 @@
       </div>
     </section>
 
+    <!-- Payment breakdown -->
+    <section class="px-margin-mobile py-md">
+      <h2 class="text-label-md text-on-surface-variant mb-sm uppercase tracking-wider">Rincian Pembayaran</h2>
+      <div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm space-y-sm">
+        <div class="flex justify-between items-center text-body-sm text-on-surface-variant">
+          <span>Nominal Top-up</span>
+          <span class="font-medium text-on-background">Rp {{ format(selectedAmount) }}</span>
+        </div>
+        <div class="flex justify-between items-center text-body-sm text-on-surface-variant">
+          <span>{{ selectedWallet?.feeLabel || 'Biaya Admin' }}</span>
+          <span class="font-medium text-on-background">Rp {{ format(adminFee) }}</span>
+        </div>
+        <div class="border-t border-outline-variant mt-sm pt-sm flex justify-between items-center text-body-md font-semibold text-on-background">
+          <span>Total</span>
+          <span class="text-primary">Rp {{ format(selectedAmount + adminFee) }}</span>
+        </div>
+      </div>
+    </section>
+
     @if (errorMessage) {
       <section class="px-margin-mobile py-md">
         <div class="bg-error-container text-on-error-container border border-error/20 rounded-xl p-md text-body-sm">
@@ -64,6 +83,7 @@
   <app-payment-summary
     [amount]="selectedAmount"
     [adminFee]="adminFee"
+    [feeLabel]="selectedWallet?.feeLabel || 'Biaya Admin'"
     [disabled]="isSubmitting"
     variant="mobile"
     (pay)="onPay()" />
