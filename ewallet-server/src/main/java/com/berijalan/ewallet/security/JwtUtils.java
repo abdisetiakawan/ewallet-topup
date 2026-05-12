@@ -18,18 +18,26 @@ public class JwtUtils {
     @Value("${ewallet.app.jwtSecret:======================EwalletTopupSecretKeyForJwt2026======================}")
     private String jwtSecret;
 
-    @Value("${ewallet.app.jwtExpirationMs:3600000}")
-    private int jwtExpirationMs;
+    @Value("${app.jwt.access-token.ttl-minutes:15}")
+    private long accessTokenTtlMinutes;
 
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+        return generateTokenForUserId(userPrincipal.getId());
+    }
 
+    public String generateTokenForUserId(Long userId) {
+        long expirationMs = accessTokenTtlMinutes * 60 * 1000;
         return Jwts.builder()
-                .setSubject(String.valueOf(userPrincipal.getId()))
+                .setSubject(String.valueOf(userId))
                 .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .setExpiration(new Date((new Date()).getTime() + expirationMs))
                 .signWith(key(), SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public long getAccessTokenTtlSeconds() {
+        return accessTokenTtlMinutes * 60;
     }
 
     private Key key() {
