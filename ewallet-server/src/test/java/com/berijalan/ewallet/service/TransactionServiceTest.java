@@ -14,6 +14,7 @@ import com.berijalan.ewallet.entity.constant.TaxValueType;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
 import com.berijalan.ewallet.exception.BadRequestException;
+import com.berijalan.ewallet.exception.NotFoundException;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.MerchantTaxRepository;
 import com.berijalan.ewallet.repository.TransactionRepository;
@@ -141,7 +142,7 @@ class TransactionServiceTest {
     }
 
     @Test
-    void pay_whenMerchantDoesNotExist_shouldThrowBadRequestException() {
+    void pay_whenMerchantDoesNotExist_shouldThrowNotFoundException() {
         Long userId = 1L;
         Wallet wallet = createWallet(userId, 200_000L);
         ReqPayDto request = new ReqPayDto("Merchant Fiktif", 100_000L, "Top-up merchant fiktif");
@@ -150,7 +151,7 @@ class TransactionServiceTest {
         when(merchantRepository.findByName("Merchant Fiktif")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> transactionService.pay(request, userId))
-                .isInstanceOf(BadRequestException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("Merchant not found");
 
         assertThat(wallet.getBalance()).isEqualTo(200_000L);
@@ -205,7 +206,7 @@ class TransactionServiceTest {
     }
 
     @Test
-    void getTransactions_whenUserDoesNotExist_shouldThrowBadRequestException() {
+    void getTransactions_whenUserDoesNotExist_shouldThrowNotFoundException() {
         Long userId = 404L;
         ReqTransactionHistoryDto request = new ReqTransactionHistoryDto(
                 0,
@@ -217,7 +218,7 @@ class TransactionServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> transactionService.getTransactions(userId, request))
-                .isInstanceOf(BadRequestException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("User not found");
 
         verify(transactionRepository, never()).findByUserWithFilters(

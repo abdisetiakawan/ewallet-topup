@@ -8,7 +8,7 @@ import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
-import com.berijalan.ewallet.exception.BadRequestException;
+import com.berijalan.ewallet.exception.NotFoundException;
 import com.berijalan.ewallet.repository.TransactionRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ public class WalletService {
 
     public ResWalletBalanceDto getBalance(Long userId) {
         Wallet wallet = walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new BadRequestException("Wallet not found"));
+                .orElseThrow(() -> new NotFoundException("Wallet not found"));
 
         return new ResWalletBalanceDto(wallet.getBalance(), wallet.getUpdatedAt());
     }
@@ -37,7 +37,7 @@ public class WalletService {
     @Transactional
     public ResTopupDto topup(ReqTopupDto request, Long userId) {
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
-                .orElseThrow(() -> new BadRequestException("Wallet not found"));
+                .orElseThrow(() -> new NotFoundException("Wallet not found"));
         User user = wallet.getUser();
 
         String referenceId = generateUniqueReferenceId();

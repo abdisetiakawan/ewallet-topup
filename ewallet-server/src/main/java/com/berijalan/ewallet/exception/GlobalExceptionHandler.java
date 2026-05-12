@@ -116,17 +116,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<BaseResponse<Void>> handleGlobalException(Exception ex) {
-        log.error("Internal Server Error", ex);
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<BaseResponse<Void>> handleNotFoundException(NotFoundException ex) {
         BaseResponse<Void> response = new BaseResponse<>(
                 getRequestId(),
                 false,
-                "Internal Server Error: " + ex.getMessage(),
+                ex.getMessage(),
                 null
         );
 
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(ConflictException.class)
@@ -139,5 +138,18 @@ public class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<BaseResponse<Void>> handleGlobalException(Exception ex) {
+        log.error("Internal Server Error", ex);
+        BaseResponse<Void> response = new BaseResponse<>(
+                getRequestId(),
+                false,
+                "Internal Server Error",
+                null
+        );
+
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

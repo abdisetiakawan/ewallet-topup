@@ -15,6 +15,7 @@ import com.berijalan.ewallet.entity.constant.TaxValueType;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
 import com.berijalan.ewallet.exception.BadRequestException;
+import com.berijalan.ewallet.exception.NotFoundException;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.MerchantTaxRepository;
 import com.berijalan.ewallet.repository.TransactionRepository;
@@ -53,7 +54,7 @@ public class TransactionService {
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> {
                     log.warn("Payment rejected because wallet was not found. userId={}", userId);
-                    return new BadRequestException("Wallet not found");
+                    return new NotFoundException("Wallet not found");
                 });
         User user = wallet.getUser();
 
@@ -61,7 +62,7 @@ public class TransactionService {
                 .orElseThrow(() -> {
                     log.warn("Payment rejected because merchant was not found. merchantName={}, userId={}",
                             request.merchantName(), userId);
-                    return new BadRequestException("Merchant not found");
+                    return new NotFoundException("Merchant not found");
                 });
 
         long baseAmount = request.amount();
@@ -149,7 +150,7 @@ public class TransactionService {
     @Transactional(readOnly = true)
     public ResTransactionHistoryDto getTransactions(Long userId, ReqTransactionHistoryDto request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BadRequestException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Transaction> transactionPage = transactionRepository.findByUserWithFilters(
