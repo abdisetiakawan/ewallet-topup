@@ -7,7 +7,7 @@ import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
-import com.berijalan.ewallet.exception.BadRequestException;
+import com.berijalan.ewallet.exception.NotFoundException;
 import com.berijalan.ewallet.repository.TransactionRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import org.junit.jupiter.api.Test;
@@ -80,7 +80,7 @@ class WalletServiceTest {
     }
 
     @Test
-    void topup_whenWalletDoesNotExist_shouldThrowBadRequestException() {
+    void topup_whenWalletDoesNotExist_shouldThrowNotFoundException() {
         Long userId = 99L;
         ReqTopupDto request = new ReqTopupDto(50_000L);
 
@@ -88,7 +88,7 @@ class WalletServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> walletService.topup(request, userId))
-                .isInstanceOf(BadRequestException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("Wallet not found");
 
         verify(walletRepository, never()).save(any(Wallet.class));
