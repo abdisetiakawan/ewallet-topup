@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.berijalan.ewallet.config.IdempotencyGuarded;
 
 @RestController
 @RequestMapping("/api/wallet")
@@ -39,6 +40,7 @@ public class WalletController {
         return ResponseEntity.ok(response);
     }
 
+    @IdempotencyGuarded
     @PostMapping("/topup")
     public ResponseEntity<BaseResponse<ResTopupDto>> topup(@Valid @RequestBody ReqTopupDto request, Authentication authentication) {
         Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();

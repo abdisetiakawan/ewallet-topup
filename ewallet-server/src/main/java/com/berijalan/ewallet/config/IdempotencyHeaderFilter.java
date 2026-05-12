@@ -11,6 +11,9 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -23,6 +26,7 @@ public class IdempotencyHeaderFilter extends OncePerRequestFilter {
     private static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
     private final ObjectMapper objectMapper;
+    private final RequestMappingHandlerMapping requestMappingHandlerMapping;
 
     @Override
     protected void doFilterInternal(
@@ -47,12 +51,19 @@ public class IdempotencyHeaderFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private boolean requiresIdempotencyKey(HttpServletRequest request) {
-        String method = request.getMethod();
-        String path = request.getRequestURI();
+    private boolean requiresIdempotencyKey(HttpServletRequest request) throws ServletException {
+        try {
+            HandlerExecutionChain handlerExecutionChain = requestMappingHandlerMapping.getHandler(request);
 
-        return "POST".equalsIgnoreCase(method)
-                && ("/api/transactions/pay".equals(path) || "/api/wallet/topup".equals(path));
+            if (handlerExecutionChain == null
+                    || !(handlerExecutionChain.getHandler() instanceof HandlerMethod handlerMethod)) {
+                return false;
+            }
+
+            return handlerMethod.hasMethodAnnotation(IdempotencyGuarded.class);
+        } catch (Exception ex) {
+            throw new ServletException("Failed to resolve request handler", ex);
+        }
     }
 
     private boolean isBlank(String value) {
