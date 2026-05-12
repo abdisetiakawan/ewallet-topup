@@ -9,6 +9,7 @@ import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
 import com.berijalan.ewallet.exception.UnauthorizedException;
 import com.berijalan.ewallet.security.UserDetailsImpl;
 import com.berijalan.ewallet.service.AuthService;
+import com.berijalan.ewallet.service.RefreshTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
@@ -28,9 +29,14 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final RefreshTokenService refreshTokenService;
 
     @Value("${app.jwt.refresh-token.ttl-days:7}")
     private long refreshTokenTtlDays;
+
+    /** Controls the Secure flag on the refresh token cookie. Set true in production (HTTPS). */
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
 
     @PostMapping("/register")
     public ResponseEntity<BaseResponse<ResUserSummaryDto>> register(@Valid @RequestBody ReqRegisterDto request) {
@@ -89,9 +95,21 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<BaseResponse<Void>> logout(@AuthenticationPrincipal UserDetailsImpl user) {
+    public ResponseEntity<BaseResponse<Void>> logout(
+            @AuthenticationPrincipal UserDetailsImpl user,
+            @CookieValue(name = "refreshToken", required = false) String refreshToken) {
+
+        Long userId = null;
+
         if (user != null) {
-            authService.logout(user.getId());
+            userId = user.getId();
+        } else if (refreshToken != null && !refreshToken.isBlank()) {
+            // Fallback: access token may be expired, extract userId from the refresh token in Redis
+            userId = refreshTokenService.validateAndGetUserId(refreshToken);
+        }
+
+        if (userId != null) {
+            authService.logout(userId);
         }
 
         ResponseCookie cookie = buildRefreshTokenCookie("", 0);
@@ -111,7 +129,7 @@ public class AuthController {
     private ResponseCookie buildRefreshTokenCookie(String value, long maxAgeDays) {
         return ResponseCookie.from("refreshToken", value)
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .sameSite("Lax")
                 .path("/api/auth")
                 .maxAge(maxAgeDays > 0 ? Duration.ofDays(maxAgeDays) : Duration.ZERO)
