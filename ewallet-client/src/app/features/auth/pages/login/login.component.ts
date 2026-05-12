@@ -39,10 +39,8 @@ export class LoginComponent {
       email: this.email,
       password: this.password,
     }).subscribe({
-      next: (response) => {
-        this.authService.saveToken(response.data.token);
-        this.authService.saveUser(response.data.user);
-        this.router.navigate(['/']);
+      next: () => {
+        this.router.navigate(['/topup']);
       },
       error: (error) => {
         this.errorMessage = error.error?.message || 'Login gagal. Periksa email dan password.';
