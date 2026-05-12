@@ -8,6 +8,7 @@ import { EWallet } from '../../../../core/models/ewallet.model';
 import { WalletStoreService } from '../../../../core/services/wallet-store.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { UserSummary } from '../../../../core/models/auth.model';
+import { createIdempotencyKey } from '../../../../core/utils/idempotency-key.util';
 
 type WalletPaymentTarget = EWallet & {
   merchantName: string;
@@ -93,11 +94,12 @@ export class DetailPembayaranComponent implements OnInit {
     this.errorMessage = null;
 
     const total = this.selectedAmount + this.adminFee;
+    const idempotencyKey = createIdempotencyKey();
     this.walletStore.pay({
       merchantName: this.selectedWallet.merchantName,
       amount: total,
       description: `Top-up ${this.selectedWallet.name} untuk ${this.recipientName}`,
-    }).subscribe({
+    }, idempotencyKey).subscribe({
       next: () => {
         this.router.navigate(['/topup'], {
           state: {

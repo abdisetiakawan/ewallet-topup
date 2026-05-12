@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WalletStoreService } from '../../../../core/services/wallet-store.service';
+import { createIdempotencyKey } from '../../../../core/utils/idempotency-key.util';
 
 interface TopupAmountOption {
   id: string;
@@ -115,8 +116,9 @@ export class HalamanTopupComponent implements OnInit {
     this.isSubmitting = true;
     this.errorMessage = null;
     const submittedAmount = this.selectedAmount;
+    const idempotencyKey = createIdempotencyKey();
 
-    this.walletStore.topup(submittedAmount).subscribe({
+    this.walletStore.topup(submittedAmount, idempotencyKey).subscribe({
       next: () => {
         this.showConfirmationModal = false;
         this.router.navigate(['/topup'], {

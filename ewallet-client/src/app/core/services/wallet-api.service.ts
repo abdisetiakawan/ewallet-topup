@@ -16,7 +16,18 @@ export class WalletApiService {
     return this.http.get<BaseResponse<WalletBalanceResponse>>(`${this.apiUrl}/balance`);
   }
 
-  topup(payload: TopupRequest): Observable<BaseResponse<TopupResponse>> {
-    return this.http.post<BaseResponse<TopupResponse>>(`${this.apiUrl}/topup`, payload);
+  topup(
+    payload: TopupRequest,
+    idempotencyKey: string
+  ): Observable<BaseResponse<TopupResponse>> {
+    return this.http.post<BaseResponse<TopupResponse>>(
+      `${this.apiUrl}/topup`,
+      payload,
+      {
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+        },
+      }
+    );
   }
 }

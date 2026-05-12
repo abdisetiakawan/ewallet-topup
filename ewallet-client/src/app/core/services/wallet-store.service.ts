@@ -43,11 +43,11 @@ export class WalletStoreService {
     );
   }
 
-  topup(amount: number): Observable<BaseResponse<TopupResponse>> {
+  topup(amount: number, idempotencyKey: string): Observable<BaseResponse<TopupResponse>> {
     this.loadingSubject.next(true);
     this.errorSubject.next(null);
 
-    return this.walletApi.topup({ amount }).pipe(
+    return this.walletApi.topup({ amount }, idempotencyKey).pipe(
       tap((response) => this.balanceSubject.next(response.data.balanceAfter)),
       catchError((error) => {
         this.errorSubject.next(this.resolveErrorMessage(error));
@@ -57,11 +57,14 @@ export class WalletStoreService {
     );
   }
 
-  pay(payload: PaymentRequest): Observable<BaseResponse<PaymentResponse>> {
+  pay(
+    payload: PaymentRequest,
+    idempotencyKey: string
+  ): Observable<BaseResponse<PaymentResponse>> {
     this.loadingSubject.next(true);
     this.errorSubject.next(null);
 
-    return this.transactionApi.pay(payload).pipe(
+    return this.transactionApi.pay(payload, idempotencyKey).pipe(
       tap((response) => this.balanceSubject.next(response.data.balanceAfter)),
       catchError((error) => {
         this.errorSubject.next(this.resolveErrorMessage(error));
