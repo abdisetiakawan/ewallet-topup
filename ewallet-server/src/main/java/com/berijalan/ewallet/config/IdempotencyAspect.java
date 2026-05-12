@@ -30,10 +30,7 @@ public class IdempotencyAspect {
     private final IdempotencyService idempotencyService;
     private final ObjectMapper objectMapper;
 
-    @Around(
-            "execution(* com.berijalan.ewallet.controller.TransactionController.pay(..)) || " +
-            "execution(* com.berijalan.ewallet.controller.WalletController.topup(..))"
-    )
+    @Around("@annotation(com.berijalan.ewallet.config.IdempotencyGuarded)")
     public Object guardFinancialRequest(ProceedingJoinPoint joinPoint) throws Throwable {
         HttpServletRequest httpRequest = currentHttpRequest();
         Authentication authentication = findArgument(joinPoint.getArgs(), Authentication.class);

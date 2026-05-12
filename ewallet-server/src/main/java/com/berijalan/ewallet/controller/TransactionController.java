@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.berijalan.ewallet.config.IdempotencyGuarded;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -27,6 +28,7 @@ public class TransactionController {
 
     private final TransactionService transactionService;
 
+    @IdempotencyGuarded
     @PostMapping("/pay")
     public ResponseEntity<BaseResponse<ResPaymentDto>> pay(
             @Valid @RequestBody ReqPayDto request,
