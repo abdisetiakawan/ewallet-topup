@@ -12,8 +12,8 @@ public class RedisConfig {
 
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
-        try {
-            connectionFactory.getConnection().ping();
+        try (var conn = connectionFactory.getConnection()) {
+            conn.ping();
         } catch (Exception e) {
             throw new IllegalStateException("Failed to connect to Redis. Redis connection is mandatory.", e);
         }
