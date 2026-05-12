@@ -3,6 +3,13 @@ import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from
 import { AuthService } from '../services/auth.service';
 import { BehaviorSubject, catchError, filter, switchMap, take, throwError } from 'rxjs';
 
+/**
+ * Sentinel value emitted to `refreshTokenSubject` when token refresh fails.
+ * Allows queued requests to immediately fail with a 401 instead of hanging indefinitely,
+ * since `filter(token => token !== null)` alone would never unblock them on failure.
+ */
+const REFRESH_FAILED = '__REFRESH_FAILED__';
+
 let isRefreshing = false;
 const refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
@@ -42,22 +49,29 @@ function handle401(req: HttpRequest<unknown>, next: HttpHandlerFn, authService: 
           return next(addToken(req, newToken));
         }
 
-        refreshTokenSubject.next(null);
+        // Emit sentinel to unblock all queued requests so they fail with 401 immediately
+        refreshTokenSubject.next(REFRESH_FAILED);
         return throwError(() => new HttpErrorResponse({ status: 401 }));
       }),
       catchError((err) => {
         isRefreshing = false;
-        refreshTokenSubject.next(null);
+        // Emit sentinel so queued requests don't hang indefinitely
+        refreshTokenSubject.next(REFRESH_FAILED);
         return throwError(() => err);
       })
     );
   }
 
-  // Queue other requests while refreshing
+  // Queue other requests while refreshing; sentinel value unblocks them with an error
   return refreshTokenSubject.pipe(
     filter((token) => token !== null),
     take(1),
-    switchMap((token) => next(addToken(req, token!)))
+    switchMap((token) => {
+      if (token === REFRESH_FAILED) {
+        return throwError(() => new HttpErrorResponse({ status: 401 }));
+      }
+      return next(addToken(req, token!));
+    })
   );
 }
 
