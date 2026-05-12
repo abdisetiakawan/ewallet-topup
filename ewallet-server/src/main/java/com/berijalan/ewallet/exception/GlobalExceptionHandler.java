@@ -128,4 +128,16 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<BaseResponse<Void>> handleConflictException(ConflictException ex) {
+        BaseResponse<Void> response = new BaseResponse<>(
+                getRequestId(),
+                false,
+                ex.getMessage(),
+                null
+        );
+
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
 }

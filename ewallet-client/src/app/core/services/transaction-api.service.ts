@@ -12,7 +12,18 @@ export class TransactionApiService {
 
   constructor(private http: HttpClient) {}
 
-  pay(payload: PaymentRequest): Observable<BaseResponse<PaymentResponse>> {
-    return this.http.post<BaseResponse<PaymentResponse>>(`${this.apiUrl}/pay`, payload);
+  pay(
+    payload: PaymentRequest,
+    idempotencyKey: string
+  ): Observable<BaseResponse<PaymentResponse>> {
+    return this.http.post<BaseResponse<PaymentResponse>>(
+      `${this.apiUrl}/pay`,
+      payload,
+      {
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+        },
+      }
+    );
   }
 }

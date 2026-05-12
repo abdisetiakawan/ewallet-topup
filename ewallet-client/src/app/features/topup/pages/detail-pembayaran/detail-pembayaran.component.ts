@@ -9,6 +9,7 @@ import { WalletStoreService } from '../../../../core/services/wallet-store.servi
 import { AuthService } from '../../../../core/services/auth.service';
 import { MerchantApiService } from '../../../../core/services/merchant-api.service';
 import { UserSummary } from '../../../../core/models/auth.model';
+import { createIdempotencyKey } from '../../../../core/utils/idempotency-key.util';
 
 type WalletPaymentTarget = EWallet & {
   merchantName: string;
@@ -93,19 +94,19 @@ export class DetailPembayaranComponent implements OnInit {
            iconBgColor: '#f3f4f6',
            iconTextColor: '#374151'
         };
-        
+
         let totalFixed = 0;
         let totalPercentage = 0;
-        
+
         merchant.taxes.forEach(tax => {
           if (tax.valueType === 'FIXED') totalFixed += tax.taxValue;
           if (tax.valueType === 'PERCENTAGE') totalPercentage += tax.taxValue;
         });
-        
+
         let feeLabel = 'Bebas biaya';
         let feeValue = 0;
         let feeType: 'FIXED' | 'PERCENTAGE' = 'FIXED';
-        
+
         if (totalPercentage > 0) {
            feeLabel = `Biaya ${totalPercentage}%`;
            feeValue = totalPercentage;
@@ -163,14 +164,16 @@ export class DetailPembayaranComponent implements OnInit {
     this.isSubmitting = true;
     this.errorMessage = null;
 
-    // Send the base amount; backend will calculate and add the tax.
+    const idempotencyKey = createIdempotencyKey();
+
     this.walletStore.pay({
       merchantName: this.selectedWallet.merchantName,
       amount: this.selectedAmount,
       description: `Top-up ${this.selectedWallet.name} untuk ${this.recipientName}`,
-    }).subscribe({
+    }, idempotencyKey).subscribe({
       next: (response) => {
-        const finalAmount = response.data.amount; // backend returns total amount deducted
+        const finalAmount = response.data.amount;
+
         this.router.navigate(['/topup'], {
           state: {
             successNotification: {
