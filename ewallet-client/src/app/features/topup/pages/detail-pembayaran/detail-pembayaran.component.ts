@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -26,8 +26,10 @@ type WalletPaymentTarget = EWallet & {
   templateUrl: './detail-pembayaran.component.html',
   styleUrl: './detail-pembayaran.component.css',
 })
-export class DetailPembayaranComponent implements OnInit {
+export class DetailPembayaranComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
+  private errorToastTimer: ReturnType<typeof setTimeout> | null = null;
+  readonly errorToastDurationMs = 4500;
 
   accountBalance = 0;
   isSubmitting = false;
@@ -64,7 +66,7 @@ export class DetailPembayaranComponent implements OnInit {
 
     this.walletStore.loadBalance().subscribe({
       error: () => {
-        this.errorMessage = 'Gagal memuat saldo terbaru.';
+        this.showErrorToast('Gagal memuat saldo terbaru.');
       },
     });
 
@@ -76,6 +78,10 @@ export class DetailPembayaranComponent implements OnInit {
     } else {
       this.fetchMerchant(walletId);
     }
+  }
+
+  ngOnDestroy(): void {
+    this.clearErrorToastTimer();
   }
 
   fetchMerchant(walletId: string): void {
@@ -154,6 +160,7 @@ export class DetailPembayaranComponent implements OnInit {
 
   onAmountChange(amount: number): void {
     this.selectedAmount = amount;
+    this.dismissErrorToast();
   }
 
   onPay(): void {
@@ -162,7 +169,7 @@ export class DetailPembayaranComponent implements OnInit {
     }
 
     this.isSubmitting = true;
-    this.errorMessage = null;
+    this.dismissErrorToast();
 
     const idempotencyKey = createIdempotencyKey();
 
@@ -187,7 +194,7 @@ export class DetailPembayaranComponent implements OnInit {
       },
       error: () => {
         this.isSubmitting = false;
-        this.errorMessage = 'Pembayaran gagal diproses. Pastikan saldo cukup dan coba lagi.';
+        this.showErrorToast('Pembayaran gagal diproses. Pastikan saldo cukup dan coba lagi.');
       },
       complete: () => {
         this.isSubmitting = false;
@@ -199,7 +206,28 @@ export class DetailPembayaranComponent implements OnInit {
     this.router.navigate(['/topup']);
   }
 
+  dismissErrorToast(): void {
+    this.clearErrorToastTimer();
+    this.errorMessage = null;
+  }
+
   format(value: number): string {
     return new Intl.NumberFormat('id-ID').format(value);
+  }
+
+  private showErrorToast(message: string): void {
+    this.errorMessage = message;
+    this.clearErrorToastTimer();
+    this.errorToastTimer = setTimeout(() => {
+      this.errorMessage = null;
+      this.errorToastTimer = null;
+    }, this.errorToastDurationMs);
+  }
+
+  private clearErrorToastTimer(): void {
+    if (this.errorToastTimer) {
+      clearTimeout(this.errorToastTimer);
+      this.errorToastTimer = null;
+    }
   }
 }
