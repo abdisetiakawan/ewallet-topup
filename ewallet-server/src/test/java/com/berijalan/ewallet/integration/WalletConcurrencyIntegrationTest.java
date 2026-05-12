@@ -23,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,6 +33,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         "logging.level.org.hibernate.SQL=OFF"
 })
 class WalletConcurrencyIntegrationTest {
+
+    private static final long CONCURRENCY_TIMEOUT_SECONDS = 30L;
 
     @MockBean(name = "redisTemplate")
     private RedisTemplate<String, Object> redisTemplate;
@@ -60,36 +63,10 @@ class WalletConcurrencyIntegrationTest {
         long topupAmount = 10_000L;
         long expectedFinalBalance = 100_000L + (threadCount * topupAmount);
 
-        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
-        CountDownLatch readyLatch = new CountDownLatch(threadCount);
-        CountDownLatch startLatch = new CountDownLatch(1);
-        List<Future<?>> futures = new ArrayList<>();
-
-        for (int i = 0; i < threadCount; i++) {
-            futures.add(executorService.submit(() -> {
-                try {
-                    readyLatch.countDown();
-                    startLatch.await();
-
-                    walletService.topup(
-                            new ReqTopupDto(topupAmount),
-                            user.getId()
-                    );
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException(exception);
-                }
-            }));
-        }
-
-        readyLatch.await();
-        startLatch.countDown();
-
-        for (Future<?> future : futures) {
-            future.get();
-        }
-
-        executorService.shutdown();
+        runConcurrently(threadCount, () -> walletService.topup(
+                new ReqTopupDto(topupAmount),
+                user.getId()
+        ));
 
         Wallet updatedWallet = walletRepository.findById(wallet.getId())
                 .orElseThrow();
@@ -107,45 +84,60 @@ class WalletConcurrencyIntegrationTest {
         long paymentAmount = 10_000L;
         long expectedFinalBalance = 100_000L - (threadCount * paymentAmount);
 
-        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
-        CountDownLatch readyLatch = new CountDownLatch(threadCount);
-        CountDownLatch startLatch = new CountDownLatch(1);
-        List<Future<?>> futures = new ArrayList<>();
-
-        for (int i = 0; i < threadCount; i++) {
-            futures.add(executorService.submit(() -> {
-                try {
-                    readyLatch.countDown();
-                    startLatch.await();
-
-                    transactionService.pay(
-                            new ReqPayDto(
-                                    merchant.getName(),
-                                    paymentAmount,
-                                    "Concurrent payment test"
-                            ),
-                            user.getId()
-                    );
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException(exception);
-                }
-            }));
-        }
-
-        readyLatch.await();
-        startLatch.countDown();
-
-        for (Future<?> future : futures) {
-            future.get();
-        }
-
-        executorService.shutdown();
+        runConcurrently(threadCount, () -> transactionService.pay(
+                new ReqPayDto(
+                        merchant.getName(),
+                        paymentAmount,
+                        "Concurrent payment test"
+                ),
+                user.getId()
+        ));
 
         Wallet updatedWallet = walletRepository.findById(wallet.getId())
                 .orElseThrow();
 
         assertThat(updatedWallet.getBalance()).isEqualTo(expectedFinalBalance);
+    }
+
+    private void runConcurrently(int threadCount, ConcurrentTask task) throws Exception {
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch readyLatch = new CountDownLatch(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        List<Future<?>> futures = new ArrayList<>();
+
+        try {
+            for (int i = 0; i < threadCount; i++) {
+                futures.add(executorService.submit(() -> {
+                    try {
+                        readyLatch.countDown();
+                        if (!startLatch.await(CONCURRENCY_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                            throw new IllegalStateException("Timed out waiting for start signal");
+                        }
+
+                        task.run();
+                        return null;
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(exception);
+                    }
+                }));
+            }
+
+            if (!readyLatch.await(CONCURRENCY_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timed out waiting for worker threads");
+            }
+            startLatch.countDown();
+
+            for (Future<?> future : futures) {
+                future.get(CONCURRENCY_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            }
+        } finally {
+            startLatch.countDown();
+            executorService.shutdown();
+            if (!executorService.awaitTermination(CONCURRENCY_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        }
     }
 
     private User createUser() {
@@ -171,5 +163,10 @@ class WalletConcurrencyIntegrationTest {
         merchant.setIsActive(true);
 
         return merchantRepository.saveAndFlush(merchant);
+    }
+
+    @FunctionalInterface
+    private interface ConcurrentTask {
+        void run() throws Exception;
     }
 }

@@ -29,6 +29,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -169,6 +170,7 @@ class TransactionServiceTest {
                 TransactionStatus.SUCCESS,
                 TransactionType.PAYMENT
         );
+        Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(transactionRepository.findByUserWithFilters(
@@ -176,13 +178,13 @@ class TransactionServiceTest {
                 any(),
                 any(),
                 any(Pageable.class)
-        )).thenReturn(new PageImpl<>(List.of(transaction)));
+        )).thenReturn(new PageImpl<>(List.of(transaction), pageable, 1));
 
         ResTransactionHistoryDto response = transactionService.getTransactions(userId, request);
 
         assertThat(response.content()).hasSize(1);
         assertThat(response.page()).isZero();
-        assertThat(response.size()).isEqualTo(1);
+        assertThat(response.size()).isEqualTo(10);
         assertThat(response.totalElements()).isEqualTo(1);
         assertThat(response.totalPages()).isEqualTo(1);
 
