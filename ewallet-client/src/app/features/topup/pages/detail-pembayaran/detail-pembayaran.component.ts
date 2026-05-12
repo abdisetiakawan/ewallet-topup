@@ -7,6 +7,7 @@ import { PaymentSummaryComponent } from '../../components/payment-summary/paymen
 import { EWallet } from '../../../../core/models/ewallet.model';
 import { WalletStoreService } from '../../../../core/services/wallet-store.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { MerchantApiService } from '../../../../core/services/merchant-api.service';
 import { UserSummary } from '../../../../core/models/auth.model';
 import { createIdempotencyKey } from '../../../../core/utils/idempotency-key.util';
 
@@ -33,27 +34,26 @@ export class DetailPembayaranComponent implements OnInit {
   errorMessage: string | null = null;
   currentUser: UserSummary | null = null;
 
-  readonly walletData: Record<string, WalletPaymentTarget> = {
-    gopay: { id: 'gopay', name: 'GoPay', icon: 'account_balance_wallet', iconBgColor: '#e5eeff', iconTextColor: '#0058be', adminFee: 0, feeLabel: 'Bebas biaya admin', merchantName: 'Gopay' },
-    ovo: { id: 'ovo', name: 'OVO', icon: 'toll', iconBgColor: '#E5E0F4', iconTextColor: '#4A25AA', adminFee: 0, feeLabel: 'Instan', merchantName: 'ovo' },
-    dana: { id: 'dana', name: 'DANA', icon: 'account_balance_wallet', iconBgColor: '#dce9ff', iconTextColor: '#0058be', adminFee: 0, feeLabel: 'Instan', merchantName: 'Dana' },
-    shopeepay: { id: 'shopeepay', name: 'ShopeePay', icon: 'local_mall', iconBgColor: '#FCE3D9', iconTextColor: '#EE4D2D', adminFee: 500, feeLabel: 'Biaya Rp 500', merchantName: 'Shoopepay' },
-    linkaja: { id: 'linkaja', name: 'LinkAja', icon: 'link', iconBgColor: '#ffdad6', iconTextColor: '#93000a', adminFee: 0, feeLabel: 'Instan', merchantName: 'linkAja' },
-  };
-
-  selectedWallet: WalletPaymentTarget = this.walletData['gopay'];
+  selectedWallet: WalletPaymentTarget | null = null;
   selectedAmount: number = 0;
+
+  private readonly uiMetadata: Record<string, Partial<EWallet>> = {
+    'gopay': { id: 'gopay', icon: 'payments', iconBgColor: '#e5eeff', iconTextColor: '#0058be' },
+    'ovo': { id: 'ovo', icon: 'toll', iconBgColor: '#E5E0F4', iconTextColor: '#4A25AA' },
+    'dana': { id: 'dana', icon: 'account_balance_wallet', iconBgColor: '#dce9ff', iconTextColor: '#0058be' },
+    'shopeepay': { id: 'shopeepay', icon: 'local_mall', iconBgColor: '#FCE3D9', iconTextColor: '#EE4D2D' },
+    'linkaja': { id: 'linkaja', icon: 'link', iconBgColor: '#ffdad6', iconTextColor: '#93000a' },
+  };
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private walletStore: WalletStoreService,
-    private authService: AuthService
+    private authService: AuthService,
+    private merchantApi: MerchantApiService
   ) {}
 
   ngOnInit(): void {
-    const walletId = this.route.snapshot.paramMap.get('walletId') ?? 'gopay';
-    this.selectedWallet = this.walletData[walletId] ?? this.walletData['gopay'];
     this.currentUser = this.authService.getCurrentUser();
 
     this.walletStore.balance$
@@ -67,10 +67,81 @@ export class DetailPembayaranComponent implements OnInit {
         this.errorMessage = 'Gagal memuat saldo terbaru.';
       },
     });
+
+    const state = typeof window !== 'undefined' ? window.history.state : null;
+    const walletId = this.route.snapshot.paramMap.get('walletId') || '';
+
+    if (state && state.wallet && state.wallet.id === walletId) {
+      this.selectedWallet = { ...state.wallet, merchantName: state.wallet.name };
+    } else {
+      this.fetchMerchant(walletId);
+    }
+  }
+
+  fetchMerchant(walletId: string): void {
+    this.merchantApi.getAllMerchants().subscribe({
+      next: (res) => {
+        const merchant = res.data.find(m => m.name.toLowerCase() === walletId.toLowerCase());
+        if (!merchant) {
+           this.router.navigate(['/topup']);
+           return;
+        }
+
+        const lowerName = merchant.name.toLowerCase();
+        const meta = this.uiMetadata[lowerName] || {
+           id: lowerName,
+           icon: 'account_balance_wallet',
+           iconBgColor: '#f3f4f6',
+           iconTextColor: '#374151'
+        };
+
+        let totalFixed = 0;
+        let totalPercentage = 0;
+
+        merchant.taxes.forEach(tax => {
+          if (tax.valueType === 'FIXED') totalFixed += tax.taxValue;
+          if (tax.valueType === 'PERCENTAGE') totalPercentage += tax.taxValue;
+        });
+
+        let feeLabel = 'Bebas biaya';
+        let feeValue = 0;
+        let feeType: 'FIXED' | 'PERCENTAGE' = 'FIXED';
+
+        if (totalPercentage > 0) {
+           feeLabel = `Biaya ${totalPercentage}%`;
+           feeValue = totalPercentage;
+           feeType = 'PERCENTAGE';
+        } else if (totalFixed > 0) {
+           feeLabel = `Biaya Rp ${new Intl.NumberFormat('id-ID').format(totalFixed)}`;
+           feeValue = totalFixed;
+           feeType = 'FIXED';
+        }
+
+        this.selectedWallet = {
+            ...meta,
+            id: meta.id as string,
+            name: merchant.name,
+            icon: meta.icon as string,
+            iconBgColor: meta.iconBgColor as string,
+            iconTextColor: meta.iconTextColor as string,
+            feeValue,
+            feeType,
+            feeLabel,
+            merchantName: merchant.name
+        };
+      },
+      error: () => {
+        this.router.navigate(['/topup']);
+      }
+    });
   }
 
   get adminFee(): number {
-    return this.selectedWallet?.adminFee ?? 1000;
+    if (!this.selectedWallet) return 0;
+    if (this.selectedWallet.feeType === 'PERCENTAGE') {
+      return Math.round((this.selectedAmount * this.selectedWallet.feeValue) / 100);
+    }
+    return this.selectedWallet.feeValue;
   }
 
   get recipientName(): string {
@@ -86,28 +157,30 @@ export class DetailPembayaranComponent implements OnInit {
   }
 
   onPay(): void {
-    if (this.isSubmitting || this.selectedAmount < 10000) {
+    if (this.isSubmitting || this.selectedAmount < 10000 || !this.selectedWallet) {
       return;
     }
 
     this.isSubmitting = true;
     this.errorMessage = null;
 
-    const total = this.selectedAmount + this.adminFee;
     const idempotencyKey = createIdempotencyKey();
+
     this.walletStore.pay({
       merchantName: this.selectedWallet.merchantName,
-      amount: total,
+      amount: this.selectedAmount,
       description: `Top-up ${this.selectedWallet.name} untuk ${this.recipientName}`,
     }, idempotencyKey).subscribe({
-      next: () => {
+      next: (response) => {
+        const finalAmount = response.data.amount;
+
         this.router.navigate(['/topup'], {
           state: {
             successNotification: {
               icon: 'check_circle',
               title: 'Payment sukses',
               message: '',
-              amountLabel: `- Rp ${this.format(total)}`,
+              amountLabel: `- Rp ${this.format(finalAmount)}`,
             },
           },
         });

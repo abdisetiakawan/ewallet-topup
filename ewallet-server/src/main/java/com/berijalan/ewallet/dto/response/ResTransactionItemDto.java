@@ -9,6 +9,8 @@ public record ResTransactionItemDto(
         String userEmail,
         String referenceId,
         Long amount,
+        Long baseAmount,
+        Long taxAmount,
         Long balanceBefore,
         Long balanceAfter,
         String type,

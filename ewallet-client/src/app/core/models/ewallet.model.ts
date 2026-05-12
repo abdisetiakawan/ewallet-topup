@@ -4,7 +4,8 @@ export interface EWallet {
   icon: string;
   iconBgColor: string;
   iconTextColor: string;
-  adminFee: number;
+  feeValue: number;
+  feeType: 'FIXED' | 'PERCENTAGE';
   feeLabel: string;
   featured?: boolean;
 }
