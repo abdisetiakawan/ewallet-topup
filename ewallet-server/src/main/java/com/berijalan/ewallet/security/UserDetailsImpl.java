@@ -32,6 +32,15 @@ public class UserDetailsImpl implements UserDetails {
         );
     }
 
+    public static UserDetailsImpl fromToken(Long userId) {
+        return new UserDetailsImpl(
+                userId,
+                null,
+                null,
+                null
+        );
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(); // No roles specified in TRD
