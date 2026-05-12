@@ -1,6 +1,7 @@
 package com.berijalan.ewallet.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RefreshTokenService {
@@ -53,13 +55,20 @@ public class RefreshTokenService {
             return null;
         }
 
-        // Cross-check that the user's active token matches
-        String activeToken = redisTemplate.opsForValue().get(buildUserKey(Long.parseLong(userIdStr)));
-        if (!token.equals(activeToken)) {
+        try {
+            long userId = Long.parseLong(userIdStr);
+
+            // Cross-check that the user's active token matches
+            String activeToken = redisTemplate.opsForValue().get(buildUserKey(userId));
+            if (!token.equals(activeToken)) {
+                return null;
+            }
+
+            return userId;
+        } catch (NumberFormatException e) {
+            log.warn("Corrupted userId value in Redis for token lookup: '{}' — treating as invalid token", userIdStr);
             return null;
         }
-
-        return Long.parseLong(userIdStr);
     }
 
     /**
