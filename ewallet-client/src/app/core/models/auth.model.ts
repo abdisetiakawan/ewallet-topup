@@ -20,6 +20,12 @@ export interface LoginResponse {
   user: UserSummary;
 }
 
+export interface RefreshResponse {
+  token: string;
+  tokenType: string;
+  expiresIn: number;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
