@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { catchError, finalize, map, tap } from 'rxjs/operators';
-import { BaseResponse } from '../models/auth.model';
 import { PaymentRequest, PaymentResponse } from '../models/transaction.model';
 import { TopupResponse } from '../models/wallet.model';
 import { TransactionApiService } from './transaction-api.service';
 import { WalletApiService } from './wallet-api.service';
+import { BaseResponse } from '../models/api.model';
 
 @Injectable({
   providedIn: 'root',
