@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { TopAppBarComponent } from '../../../../shared/components/top-app-bar/top-app-bar.component';
 
 interface AdminMerchantTax {
   taxName: string;
@@ -20,7 +21,7 @@ interface AdminMerchant {
 @Component({
   selector: 'app-merchant-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TopAppBarComponent],
   templateUrl: './merchant-management.component.html',
   styleUrl: './merchant-management.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

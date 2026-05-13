@@ -10,6 +10,7 @@ import { EWallet } from '../../../../core/models/ewallet.model';
 import { WalletStoreService } from '../../../../core/services/wallet-store.service';
 import { MerchantApiService } from '../../../../core/services/merchant-api.service';
 import { MerchantMapperService } from '../../../../core/services/merchant-mapper.service';
+import { TopAppBarComponent } from '../../../../shared/components/top-app-bar/top-app-bar.component';
 import { Observable } from 'rxjs';
 
 interface SuccessNotification {
@@ -24,6 +25,7 @@ interface SuccessNotification {
   standalone: true,
   imports: [
     CommonModule,
+    TopAppBarComponent,
     BottomNavBarComponent,
     BalanceCardComponent,
     EwalletCardComponent,
