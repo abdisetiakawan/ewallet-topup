@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
+
 export const routes: Routes = [
   {
     path: '',
@@ -66,6 +67,22 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/history/pages/history/history.component').then(
         (m) => m.HistoryComponent
+      ),
+  },
+  {
+    path: 'admin/merchants',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admin/pages/merchant-management/merchant-management.component').then(
+        (m) => m.MerchantManagementComponent
+      ),
+  },
+  {
+    path: 'admin/merchants/:merchantId/config',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admin/pages/merchant-config/merchant-config.component').then(
+        (m) => m.MerchantConfigComponent
       ),
   },
   {
