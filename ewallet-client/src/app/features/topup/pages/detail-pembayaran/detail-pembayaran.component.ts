@@ -65,7 +65,7 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
     });
 
     const state = typeof window !== 'undefined' ? window.history.state : null;
-    const walletId = this.route.snapshot.paramMap.get('walletId') || '';
+    const walletId = this.route.snapshot.paramMap.get('merchantId') || '';
 
     if (state && state.wallet && state.wallet.id === walletId) {
       this.selectedWallet = { ...state.wallet, merchantName: state.wallet.name };

@@ -91,7 +91,7 @@ export class PilihEwalletComponent implements OnInit, OnDestroy {
   }
 
   onWalletSelected(wallet: EWallet): void {
-    this.router.navigate(['/topup/detail', wallet.id], { state: { wallet } });
+    this.router.navigate(['/payment', wallet.id], { state: { wallet } });
   }
 
   closeSuccessNotification(): void {
