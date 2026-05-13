@@ -6,5 +6,6 @@ public record ResUserSummaryDto(
         Long userId,
         String name,
         String email,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String role
 ) {}

@@ -1,7 +1,10 @@
 package com.berijalan.ewallet.entity;
 
+import com.berijalan.ewallet.entity.constant.RoleName;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -33,6 +36,10 @@ public class User extends BaseEntity {
 
     @Column(nullable = false)
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private RoleName role = RoleName.CUSTOMER;
 
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private Wallet wallet;

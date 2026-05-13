@@ -1,5 +1,6 @@
 package com.berijalan.ewallet.security;
 
+import com.berijalan.ewallet.entity.constant.RoleName;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,8 @@ import static org.mockito.Mockito.when;
 class JwtAuthFilterTest {
 
     private final JwtUtils jwtUtils = mock(JwtUtils.class);
-    private final JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtUtils);
+    private final UserDetailsServiceImpl userDetailsService = mock(UserDetailsServiceImpl.class);
+    private final JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtUtils, userDetailsService);
 
     @AfterEach
     void tearDown() {
@@ -33,6 +35,8 @@ class JwtAuthFilterTest {
 
         when(jwtUtils.validateJwtToken(token)).thenReturn(true);
         when(jwtUtils.getUserIdFromJwtToken(token)).thenReturn("42");
+        when(userDetailsService.loadUserById(42L))
+                .thenReturn(new UserDetailsImpl(42L, "Admin", "admin@example.com", RoleName.ADMIN, null));
 
         jwtAuthFilter.doFilter(request, response, filterChain);
 
@@ -43,7 +47,9 @@ class JwtAuthFilterTest {
         UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
         assertThat(principal.getId()).isEqualTo(42L);
         assertThat(principal.getUsername()).isEqualTo("42");
-        assertThat(principal.getAuthorities()).isEmpty();
+        assertThat(principal.getAuthorities())
+                .extracting("authority")
+                .containsExactly("ROLE_ADMIN");
 
         verify(filterChain).doFilter(request, response);
     }
