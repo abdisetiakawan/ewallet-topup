@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
+import { BottomNavBarComponent } from '../../../../shared/components/bottom-nav-bar/bottom-nav-bar.component';
 
 type HistoryType = 'ALL' | 'TOPUP' | 'PAYMENT';
 type HistoryStatus = 'SUCCESS' | 'PENDING' | 'FAILED';
@@ -31,7 +32,7 @@ interface HistoryGroup {
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, BottomNavBarComponent],
   templateUrl: './history.component.html',
   styleUrl: './history.component.css',
 })
@@ -96,18 +97,17 @@ export class HistoryComponent {
     },
   ];
 
-  constructor(private router: Router) {}
+  constructor() {}
 
   get visibleGroups(): HistoryGroup[] {
     const keyword = this.searchTerm.trim().toLowerCase();
-    const visibleTransactions = this.transactions.filter((transaction) => {
-      const matchesType = this.selectedType === 'ALL' || transaction.type === this.selectedType;
-      const matchesKeyword = !keyword || this.matchesSearch(transaction, keyword);
-
+    const filtered = this.transactions.filter((t) => {
+      const matchesType = this.selectedType === 'ALL' || t.type === this.selectedType;
+      const matchesKeyword = !keyword || this.matchesSearch(t, keyword);
       return matchesType && matchesKeyword;
     });
 
-    return this.groupTransactions(visibleTransactions);
+    return this.groupTransactions(filtered);
   }
 
   selectType(type: HistoryType): void {
@@ -183,9 +183,7 @@ export class HistoryComponent {
     }).format(new Date(createdAt));
   }
 
-  goBack(): void {
-    this.router.navigate(['/topup']);
-  }
+
 
   private matchesSearch(transaction: HistoryTransaction, keyword: string): boolean {
     return [

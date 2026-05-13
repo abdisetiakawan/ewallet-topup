@@ -86,6 +86,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'admin/merchants',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admin/pages/merchant-management/merchant-management.component').then(
+        (m) => m.MerchantManagementComponent
+      ),
+  },
+  {
+    path: 'admin/merchants/:merchantId/config',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admin/pages/merchant-config/merchant-config.component').then(
+        (m) => m.MerchantConfigComponent
+      ),
+  },
+  {
     path: '**',
     redirectTo: '',
   },
