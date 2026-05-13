@@ -11,12 +11,15 @@ import {
   UserSummary,
 } from '../models/auth.model';
 import { environment } from '../../../environments/environment';
+import { inject } from '@angular/core';
+import { TokenRefreshService } from './token-refresh.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private readonly apiUrl = `${environment.apiUrl}/api/auth`;
+  private readonly tokenRefresh = inject(TokenRefreshService);
 
   /** Access token stored in memory only — never in localStorage */
   private accessToken: string | null = null;
@@ -82,6 +85,7 @@ export class AuthService {
       )
       .pipe(
         tap(() => {
+          this.tokenRefresh.reset();
           this.clearSession();
         })
       );
