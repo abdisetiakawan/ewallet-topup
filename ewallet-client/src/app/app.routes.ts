@@ -46,6 +46,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'history',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/history/pages/history/history.component').then(
+        (m) => m.HistoryComponent
+      ),
+  },
+  {
     path: '**',
     redirectTo: '',
   },
