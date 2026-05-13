@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -20,7 +19,7 @@ interface EditableTax {
 @Component({
   selector: 'app-merchant-config',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   templateUrl: './merchant-config.component.html',
   styleUrl: './merchant-config.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

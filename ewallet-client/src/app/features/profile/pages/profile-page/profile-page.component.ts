@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BottomNavBarComponent } from '../../../../shared/components/bottom-nav-bar/bottom-nav-bar.component';
+import { TopAppBarComponent } from '../../../../shared/components/top-app-bar/top-app-bar.component';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [RouterLink, BottomNavBarComponent],
+  imports: [RouterLink, BottomNavBarComponent, TopAppBarComponent],
   templateUrl: './profile-page.component.html',
   styleUrl: './profile-page.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

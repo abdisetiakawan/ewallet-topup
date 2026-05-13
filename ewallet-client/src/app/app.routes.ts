@@ -7,7 +7,7 @@ export const routes: Routes = [
     path: '',
     canActivate: [guestGuard],
     loadComponent: () =>
-      import('./features/home/page/home/home.component').then((m) => m.HomeComponent),
+      import('./features/home/pages/home/home.component').then((m) => m.HomeComponent),
   },
   {
     path: 'login',
@@ -30,7 +30,7 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'topup/saldo',
+    path: 'wallet/topup',
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/topup/pages/halaman-topup/halaman-topup.component').then(
@@ -38,7 +38,7 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'topup/detail/:walletId',
+    path: 'payment/:merchantId',
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/topup/pages/detail-pembayaran/detail-pembayaran.component').then(

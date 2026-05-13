@@ -1,13 +1,16 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BottomNavBarComponent } from '../../../../shared/components/bottom-nav-bar/bottom-nav-bar.component';
 import { BalanceCardComponent } from '../../components/balance-card/balance-card.component';
 import { EwalletCardComponent } from '../../components/ewallet-card/ewallet-card.component';
 import { EWallet } from '../../../../core/models/ewallet.model';
 import { WalletStoreService } from '../../../../core/services/wallet-store.service';
 import { MerchantApiService } from '../../../../core/services/merchant-api.service';
+import { MerchantMapperService } from '../../../../core/services/merchant-mapper.service';
+import { TopAppBarComponent } from '../../../../shared/components/top-app-bar/top-app-bar.component';
 import { Observable } from 'rxjs';
 
 interface SuccessNotification {
@@ -22,6 +25,7 @@ interface SuccessNotification {
   standalone: true,
   imports: [
     CommonModule,
+    TopAppBarComponent,
     BottomNavBarComponent,
     BalanceCardComponent,
     EwalletCardComponent,
@@ -31,6 +35,7 @@ interface SuccessNotification {
 })
 export class PilihEwalletComponent implements OnInit, OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef);
   private successToastTimer: ReturnType<typeof setTimeout> | null = null;
   readonly successToastDurationMs = 4500;
 
@@ -38,19 +43,14 @@ export class PilihEwalletComponent implements OnInit, OnDestroy {
   successNotification: SuccessNotification | null = null;
 
   ewallets: EWallet[] = [];
-  
-  private readonly uiMetadata: Record<string, Partial<EWallet>> = {
-    'gopay': { id: 'gopay', icon: 'payments', iconBgColor: '#e5eeff', iconTextColor: '#0058be', featured: true },
-    'ovo': { id: 'ovo', icon: 'toll', iconBgColor: '#E5E0F4', iconTextColor: '#4A25AA' },
-    'dana': { id: 'dana', icon: 'account_balance_wallet', iconBgColor: '#dce9ff', iconTextColor: '#0058be' },
-    'shopeepay': { id: 'shopeepay', icon: 'local_mall', iconBgColor: '#FCE3D9', iconTextColor: '#EE4D2D' },
-    'linkaja': { id: 'linkaja', icon: 'link', iconBgColor: '#ffdad6', iconTextColor: '#93000a' },
-  };
+  merchantsError: string | null = null;
+  isLoadingMerchants = false;
 
   constructor(
     private router: Router,
     private walletStore: WalletStoreService,
-    private merchantApi: MerchantApiService
+    private merchantApi: MerchantApiService,
+    private merchantMapper: MerchantMapperService
   ) {
     this.balance$ = this.walletStore.balance$;
   }
@@ -58,7 +58,9 @@ export class PilihEwalletComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.successNotification = this.resolveSuccessNotification();
     this.scheduleSuccessToastDismiss();
-    this.walletStore.loadBalance().subscribe();
+    this.walletStore.loadBalance()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
     this.fetchMerchants();
   }
 
@@ -67,60 +69,29 @@ export class PilihEwalletComponent implements OnInit, OnDestroy {
   }
 
   fetchMerchants(): void {
-    this.merchantApi.getAllMerchants().subscribe({
-      next: (res) => {
-        const merchants = res.data;
-        this.ewallets = merchants.map(merchant => {
-          const lowerName = merchant.name.toLowerCase();
-          const meta = this.uiMetadata[lowerName] || {
-             id: lowerName,
-             icon: 'account_balance_wallet',
-             iconBgColor: '#f3f4f6',
-             iconTextColor: '#374151'
-          };
-          
-          let totalFixed = 0;
-          let totalPercentage = 0;
-          
-          merchant.taxes.forEach(tax => {
-            if (tax.valueType === 'FIXED') totalFixed += tax.taxValue;
-            if (tax.valueType === 'PERCENTAGE') totalPercentage += tax.taxValue;
-          });
-          
-          let feeLabel = 'Bebas biaya';
-          let feeValue = 0;
-          let feeType: 'FIXED' | 'PERCENTAGE' = 'FIXED';
-          
-          if (totalPercentage > 0) {
-             feeLabel = `Biaya ${totalPercentage}%`;
-             feeValue = totalPercentage;
-             feeType = 'PERCENTAGE';
-          } else if (totalFixed > 0) {
-             feeLabel = `Biaya Rp ${new Intl.NumberFormat('id-ID').format(totalFixed)}`;
-             feeValue = totalFixed;
-             feeType = 'FIXED';
-          }
-          
-          return {
-            ...meta,
-            id: meta.id as string,
-            name: merchant.name,
-            icon: meta.icon as string,
-            iconBgColor: meta.iconBgColor as string,
-            iconTextColor: meta.iconTextColor as string,
-            feeValue,
-            feeType,
-            feeLabel,
-            featured: meta.featured
-          };
-        });
-      },
-      error: (err) => console.error('Failed to fetch merchants', err)
-    });
+    this.isLoadingMerchants = true;
+    this.merchantsError = null;
+
+    this.merchantApi.getAllMerchants()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.ewallets = this.merchantMapper.mapAllToEWallets(res.data);
+          this.isLoadingMerchants = false;
+        },
+        error: () => {
+          this.isLoadingMerchants = false;
+          this.merchantsError = 'Gagal memuat daftar e-wallet. Periksa koneksi dan coba lagi.';
+        },
+      });
+  }
+
+  retryFetchMerchants(): void {
+    this.fetchMerchants();
   }
 
   onWalletSelected(wallet: EWallet): void {
-    this.router.navigate(['/topup/detail', wallet.id], { state: { wallet } });
+    this.router.navigate(['/payment', wallet.id], { state: { wallet } });
   }
 
   closeSuccessNotification(): void {

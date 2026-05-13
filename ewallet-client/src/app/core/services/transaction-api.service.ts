@@ -1,14 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { BaseResponse } from '../models/auth.model';
+import { BaseResponse } from '../models/api.model';
 import { PaymentRequest, PaymentResponse } from '../models/transaction.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TransactionApiService {
-  private readonly apiUrl = 'http://localhost:8080/api/transactions';
+  private readonly apiUrl = `${environment.apiUrl}/api/transactions`;
 
   constructor(private http: HttpClient) {}
 

@@ -1,24 +1,7 @@
 <div class="bg-background text-on-background min-h-screen flex flex-col font-sans antialiased">
 
-  <!-- Mobile header (simplified) -->
-  <header class="bg-surface shadow-sm sticky top-0 z-50">
-    <div class="flex justify-between items-center px-margin-mobile py-md">
-    <div class="flex items-center gap-[8px]">
-      <span class="material-symbols-outlined text-primary text-[24px]"
-            style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
-      <h1 class="text-[24px] leading-[32px] font-bold text-primary">WalletPay</h1>
-    </div>
-      <div class="flex items-center gap-md">
-        <span class="text-label-md text-on-surface-variant hidden">Balance</span>
-        <button type="button" class="w-10 h-10 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors flex items-center justify-center">
-          <span class="material-symbols-outlined leading-none">notifications</span>
-        </button>
-        <div class="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center cursor-pointer">
-          <span class="material-symbols-outlined text-on-surface-variant text-[20px] leading-none">person</span>
-        </div>
-      </div>
-    </div>
-  </header>
+  <!-- Brand header -->
+  <app-top-app-bar />
 
   @if (successNotification) {
     <section
@@ -62,16 +45,39 @@
 
     <section class="mb-md">
       <h2 class="font-semibold text-h3 text-on-surface mb-md">Pilih E-Wallet</h2>
-      <div class="grid grid-cols-2 gap-md">
-        @for (wallet of ewallets; track wallet.id) {
-          <app-ewallet-card
-            [wallet]="wallet"
-            variant="mobile"
-            (selected)="onWalletSelected($event)"
-          />
-        }
-      </div>
+
+      @if (isLoadingMerchants) {
+        <div class="grid grid-cols-2 gap-md">
+          @for (_ of [1, 2, 3, 4]; track $index) {
+            <div class="animate-pulse rounded-xl bg-surface-container-low h-[96px]"></div>
+          }
+        </div>
+      } @else if (merchantsError) {
+        <div class="flex flex-col items-center gap-sm py-xl text-center">
+          <span class="material-symbols-outlined text-[40px] text-error">wifi_off</span>
+          <p class="text-body-sm text-on-surface-variant">{{ merchantsError }}</p>
+          <button
+            type="button"
+            (click)="retryFetchMerchants()"
+            class="mt-xs flex items-center gap-xs rounded-lg bg-primary px-md py-sm text-label-md font-semibold text-on-primary transition hover:opacity-90"
+          >
+            <span class="material-symbols-outlined text-[18px] leading-none">refresh</span>
+            Coba Lagi
+          </button>
+        </div>
+      } @else {
+        <div class="grid grid-cols-2 gap-md">
+          @for (wallet of ewallets; track wallet.id) {
+            <app-ewallet-card
+              [wallet]="wallet"
+              variant="mobile"
+              (selected)="onWalletSelected($event)"
+            />
+          }
+        </div>
+      }
     </section>
+
   </main>
 
   <app-bottom-nav-bar activeNav="wallets" />
