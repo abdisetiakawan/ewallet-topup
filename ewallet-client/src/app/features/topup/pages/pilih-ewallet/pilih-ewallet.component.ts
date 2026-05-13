@@ -8,6 +8,7 @@ import { EwalletCardComponent } from '../../components/ewallet-card/ewallet-card
 import { EWallet } from '../../../../core/models/ewallet.model';
 import { WalletStoreService } from '../../../../core/services/wallet-store.service';
 import { MerchantApiService } from '../../../../core/services/merchant-api.service';
+import { MerchantMapperService } from '../../../../core/services/merchant-mapper.service';
 import { Observable } from 'rxjs';
 
 interface SuccessNotification {
@@ -38,19 +39,12 @@ export class PilihEwalletComponent implements OnInit, OnDestroy {
   successNotification: SuccessNotification | null = null;
 
   ewallets: EWallet[] = [];
-  
-  private readonly uiMetadata: Record<string, Partial<EWallet>> = {
-    'gopay': { id: 'gopay', icon: 'payments', iconBgColor: '#e5eeff', iconTextColor: '#0058be', featured: true },
-    'ovo': { id: 'ovo', icon: 'toll', iconBgColor: '#E5E0F4', iconTextColor: '#4A25AA' },
-    'dana': { id: 'dana', icon: 'account_balance_wallet', iconBgColor: '#dce9ff', iconTextColor: '#0058be' },
-    'shopeepay': { id: 'shopeepay', icon: 'local_mall', iconBgColor: '#FCE3D9', iconTextColor: '#EE4D2D' },
-    'linkaja': { id: 'linkaja', icon: 'link', iconBgColor: '#ffdad6', iconTextColor: '#93000a' },
-  };
 
   constructor(
     private router: Router,
     private walletStore: WalletStoreService,
-    private merchantApi: MerchantApiService
+    private merchantApi: MerchantApiService,
+    private merchantMapper: MerchantMapperService
   ) {
     this.balance$ = this.walletStore.balance$;
   }
@@ -69,53 +63,9 @@ export class PilihEwalletComponent implements OnInit, OnDestroy {
   fetchMerchants(): void {
     this.merchantApi.getAllMerchants().subscribe({
       next: (res) => {
-        const merchants = res.data;
-        this.ewallets = merchants.map(merchant => {
-          const lowerName = merchant.name.toLowerCase();
-          const meta = this.uiMetadata[lowerName] || {
-             id: lowerName,
-             icon: 'account_balance_wallet',
-             iconBgColor: '#f3f4f6',
-             iconTextColor: '#374151'
-          };
-          
-          let totalFixed = 0;
-          let totalPercentage = 0;
-          
-          merchant.taxes.forEach(tax => {
-            if (tax.valueType === 'FIXED') totalFixed += tax.taxValue;
-            if (tax.valueType === 'PERCENTAGE') totalPercentage += tax.taxValue;
-          });
-          
-          let feeLabel = 'Bebas biaya';
-          let feeValue = 0;
-          let feeType: 'FIXED' | 'PERCENTAGE' = 'FIXED';
-          
-          if (totalPercentage > 0) {
-             feeLabel = `Biaya ${totalPercentage}%`;
-             feeValue = totalPercentage;
-             feeType = 'PERCENTAGE';
-          } else if (totalFixed > 0) {
-             feeLabel = `Biaya Rp ${new Intl.NumberFormat('id-ID').format(totalFixed)}`;
-             feeValue = totalFixed;
-             feeType = 'FIXED';
-          }
-          
-          return {
-            ...meta,
-            id: meta.id as string,
-            name: merchant.name,
-            icon: meta.icon as string,
-            iconBgColor: meta.iconBgColor as string,
-            iconTextColor: meta.iconTextColor as string,
-            feeValue,
-            feeType,
-            feeLabel,
-            featured: meta.featured
-          };
-        });
+        this.ewallets = this.merchantMapper.mapAllToEWallets(res.data);
       },
-      error: (err) => console.error('Failed to fetch merchants', err)
+      error: (err) => console.error('Failed to fetch merchants', err),
     });
   }
 
