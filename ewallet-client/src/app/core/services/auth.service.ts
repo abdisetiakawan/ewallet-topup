@@ -10,12 +10,13 @@ import {
   RegisterRequest,
   UserSummary,
 } from '../models/auth.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private readonly apiUrl = 'http://localhost:8080/api/auth';
+  private readonly apiUrl = `${environment.apiUrl}/api/auth`;
 
   /** Access token stored in memory only — never in localStorage */
   private accessToken: string | null = null;

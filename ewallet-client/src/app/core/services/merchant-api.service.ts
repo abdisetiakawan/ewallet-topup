@@ -3,12 +3,13 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { BaseResponse } from '../models/auth.model';
 import { MerchantDto } from '../models/merchant.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class MerchantApiService {
-  private readonly apiUrl = 'http://localhost:8080/api/merchants';
+  private readonly apiUrl = `${environment.apiUrl}/api/merchants`;
 
   constructor(private http: HttpClient) {}
 
