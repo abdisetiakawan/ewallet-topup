@@ -1,0 +1,104 @@
+<div class="bg-background font-[Inter,sans-serif] text-on-background min-h-screen flex flex-col">
+
+  <!-- Contextual App Bar -->
+  <header class="flex justify-between items-center px-[16px] h-16 w-full bg-surface border-b border-outline-variant/30 sticky top-0 z-50">
+    <button
+      type="button"
+      (click)="goBack()"
+      class="text-on-surface hover:opacity-80 transition-opacity duration-200 p-2 -ml-2 rounded-full flex items-center justify-center"
+      aria-label="Kembali">
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+    </button>
+    <h1 class="text-[24px] leading-[32px] font-semibold text-on-surface">Edit Profil</h1>
+    <div class="w-10"></div> <!-- Spacer for center alignment -->
+  </header>
+
+  <!-- Scrollable Content -->
+  <div class="flex-1 overflow-y-auto pb-[80px]">
+
+    <!-- Profile Picture Section -->
+    <section class="flex flex-col items-center mt-[32px] mb-[24px] px-[16px]">
+      <div class="relative w-28 h-28 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden border-4 border-surface-container-lowest shadow-sm">
+        <span class="material-symbols-outlined text-on-surface-variant text-[48px]">person</span>
+        <!-- Camera Overlay -->
+        <div class="absolute bottom-0 w-full h-9 bg-on-background/40 backdrop-blur-sm flex items-center justify-center cursor-pointer hover:bg-on-background/50 transition-colors">
+          <span class="material-symbols-outlined text-on-primary text-[18px]"
+                style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="mt-[16px] text-[14px] leading-[20px] font-semibold text-primary hover:text-primary-container transition-colors py-2 px-4 rounded-full bg-primary-fixed/30 active:scale-95 duration-100">
+        Change Photo
+      </button>
+    </section>
+
+    <!-- Form Details Section -->
+    <section class="px-[16px] mb-[24px]">
+      <div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-outline-variant/30 p-[24px] flex flex-col gap-[24px]">
+
+        <!-- Full Name Input -->
+        <div class="flex flex-col gap-[8px]">
+          <label class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface-variant">
+            Ganti Nama
+          </label>
+          <div class="relative flex items-center">
+            <span class="material-symbols-outlined absolute left-3 text-outline">person</span>
+            <input
+              id="edit-profile-name"
+              type="text"
+              placeholder="Masukkan nama lengkap"
+              value="Budi Santoso"
+              class="w-full h-12 pl-10 pr-4 bg-surface rounded-lg border border-outline-variant text-on-surface text-[16px] leading-[24px] focus:border-primary focus:ring-2 focus:ring-primary-fixed-dim outline-none transition-all placeholder:text-outline-variant" />
+          </div>
+        </div>
+
+        <!-- Email Address Input -->
+        <div class="flex flex-col gap-[8px]">
+          <label class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface-variant">
+            Ganti Email
+          </label>
+          <div class="relative flex items-center">
+            <span class="material-symbols-outlined absolute left-3 text-outline">mail</span>
+            <input
+              id="edit-profile-email"
+              type="email"
+              placeholder="Masukkan alamat email"
+              value="budi.santoso@walletpay.com"
+              class="w-full h-12 pl-10 pr-4 bg-surface rounded-lg border border-outline-variant text-on-surface text-[16px] leading-[24px] focus:border-primary focus:ring-2 focus:ring-primary-fixed-dim outline-none transition-all placeholder:text-outline-variant" />
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Reset Password Action -->
+    <section class="px-[16px] mb-[32px]">
+      <button
+        type="button"
+        class="w-full h-16 bg-surface-container-lowest shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-outline-variant/30 hover:border-outline-variant/60 rounded-xl flex items-center justify-between px-[16px] transition-all group"
+        aria-label="Reset Kata Sandi">
+        <div class="flex items-center gap-[16px]">
+          <div class="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed group-hover:bg-secondary-fixed-dim transition-colors">
+            <span class="material-symbols-outlined text-[20px]">lock_reset</span>
+          </div>
+          <span class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface">Reset Kata Sandi</span>
+        </div>
+        <span class="material-symbols-outlined text-outline-variant group-hover:text-on-surface transition-colors">chevron_right</span>
+      </button>
+    </section>
+
+  </div>
+
+  <!-- Sticky Bottom Action Button -->
+  <div class="fixed bottom-0 w-full max-w-[480px] p-[16px] bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant/30 z-40">
+    <button
+      id="edit-profile-save"
+      type="button"
+      class="w-full h-12 bg-primary hover:bg-surface-tint text-on-primary text-[14px] leading-[20px] font-medium tracking-[0.05em] rounded-xl shadow-sm transition-all active:scale-95 duration-100 flex items-center justify-center gap-[8px]">
+      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">save</span>
+      Simpan Perubahan
+    </button>
+  </div>
+
+</div>

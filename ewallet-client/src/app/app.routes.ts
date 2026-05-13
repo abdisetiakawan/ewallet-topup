@@ -46,6 +46,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'account',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/profile/pages/profile-page/profile-page.component').then(
+        (m) => m.ProfilePageComponent
+      ),
+  },
+  {
+    path: 'account/edit-profile',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/profile/pages/edit-profile/edit-profile.component').then(
+        (m) => m.EditProfileComponent
+      ),
+  },
+  {
     path: '**',
     redirectTo: '',
   },
