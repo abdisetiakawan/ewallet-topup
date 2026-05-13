@@ -1,14 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { BaseResponse } from '../models/auth.model';
+import { BaseResponse } from '../models/api.model';
 import { TopupRequest, TopupResponse, WalletBalanceResponse } from '../models/wallet.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WalletApiService {
-  private readonly apiUrl = 'http://localhost:8080/api/wallet';
+  private readonly apiUrl = `${environment.apiUrl}/api/wallet`;
 
   constructor(private http: HttpClient) {}
 

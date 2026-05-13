@@ -1,7 +1,7 @@
 <!-- Mobile variant -->
 @if (variant === 'mobile') {
   <a
-    routerLink="/topup/saldo"
+    routerLink="/wallet/topup"
     aria-label="Top-up saldo"
     class="block bg-primary text-on-primary rounded-xl p-lg shadow-lg relative overflow-hidden mb-xl transition-all active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2"
   >
@@ -27,7 +27,7 @@
     <div class="absolute top-0 right-0 w-32 h-32 bg-primary-fixed rounded-full blur-3xl opacity-40 -mr-16 -mt-16 pointer-events-none"></div>
     <p class="text-label-md text-on-surface-variant mb-xs">Saldo Tersedia</p>
     <h1 class="text-num-display text-on-background mb-lg">Rp {{ formattedBalance }}</h1>
-    <a routerLink="/topup/saldo" class="bg-primary text-on-primary text-label-md px-xl py-sm rounded-full hover:shadow-md hover:bg-primary-container transition-all active:scale-95">
+    <a routerLink="/wallet/topup" class="bg-primary text-on-primary text-label-md px-xl py-sm rounded-full hover:shadow-md hover:bg-primary-container transition-all active:scale-95">
       Top-Up Instan
     </a>
   </section>

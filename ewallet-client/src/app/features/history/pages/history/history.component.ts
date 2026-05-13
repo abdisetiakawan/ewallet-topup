@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BottomNavBarComponent } from '../../../../shared/components/bottom-nav-bar/bottom-nav-bar.component';
+import { TopAppBarComponent } from '../../../../shared/components/top-app-bar/top-app-bar.component';
 
 type HistoryType = 'ALL' | 'TOPUP' | 'PAYMENT';
 type HistoryStatus = 'SUCCESS' | 'PENDING' | 'FAILED';
@@ -32,7 +33,7 @@ interface HistoryGroup {
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, RouterLink, BottomNavBarComponent],
+  imports: [CommonModule, RouterLink, BottomNavBarComponent, TopAppBarComponent],
   templateUrl: './history.component.html',
   styleUrl: './history.component.css',
 })
