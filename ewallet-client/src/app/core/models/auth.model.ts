@@ -1,4 +1,4 @@
-
+export type UserRole = 'CUSTOMER' | 'ADMIN';
 
 export interface UserSummary {
   id?: number;
@@ -6,6 +6,7 @@ export interface UserSummary {
   name: string;
   email: string;
   createdAt: string;
+  role: UserRole;
 }
 
 export interface LoginResponse {

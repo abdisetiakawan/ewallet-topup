@@ -1,10 +1,12 @@
 package com.berijalan.ewallet.security;
 
 import com.berijalan.ewallet.entity.User;
+import com.berijalan.ewallet.entity.constant.RoleName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -19,6 +21,7 @@ public class UserDetailsImpl implements UserDetails {
     private Long id;
     private String name;
     private String email;
+    private RoleName role;
 
     @JsonIgnore
     private String password;
@@ -28,22 +31,14 @@ public class UserDetailsImpl implements UserDetails {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
+                user.getRole(),
                 user.getPassword()
-        );
-    }
-
-    public static UserDetailsImpl fromToken(Long userId) {
-        return new UserDetailsImpl(
-                userId,
-                null,
-                null,
-                null
         );
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(); // No roles specified in TRD
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override

@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface MerchantTaxRepository extends JpaRepository<MerchantTax, Long> {
     List<MerchantTax> findByMerchantIdAndIsActiveTrue(Long merchantId);
+
+    List<MerchantTax> findByMerchantId(Long merchantId);
 }

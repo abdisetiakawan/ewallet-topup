@@ -57,7 +57,8 @@ public class AuthService {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                user.getRole().name()
         );
     }
 
@@ -78,7 +79,8 @@ public class AuthService {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                user.getRole().name()
         );
 
         ResLoginDto loginDto = new ResLoginDto(

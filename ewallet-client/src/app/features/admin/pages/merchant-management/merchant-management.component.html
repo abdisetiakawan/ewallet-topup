@@ -1,18 +1,48 @@
-<div class="min-h-screen bg-surface text-on-surface pb-24">
-  <!-- Brand header -->
+<div class="min-h-screen bg-surface text-on-surface pb-20">
   <app-top-app-bar />
 
-  <main class="flex flex-col gap-lg px-margin-mobile py-lg">
-    <section class="flex flex-col gap-md">
+  @if (successNotification) {
+    <section
+      role="status"
+      aria-live="polite"
+      class="fixed left-0 right-0 top-[76px] z-[60] px-margin-mobile pointer-events-none"
+    >
+      <div class="success-toast mx-auto max-w-[600px] overflow-hidden rounded-xl border border-tertiary/20 bg-surface-container-lowest shadow-[0_12px_32px_rgba(0,0,0,0.16)] pointer-events-auto">
+        <div class="flex items-center gap-sm px-md py-sm">
+          <div class="w-8 h-8 rounded-full bg-tertiary-fixed text-tertiary flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[20px] leading-none" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+          </div>
+          <p class="text-[15px] font-semibold text-on-surface flex-1">{{ successNotification.title }}</p>
+          <button
+            type="button"
+            aria-label="Tutup notifikasi"
+            class="p-xs rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors shrink-0"
+            (click)="closeSuccessNotification()"
+          >
+            <span class="material-symbols-outlined text-[18px] leading-none">close</span>
+          </button>
+        </div>
+        <div class="h-1 bg-surface-container">
+          <div
+            class="success-toast-progress h-full bg-tertiary"
+            [style.animation-duration.ms]="successToastDurationMs"
+          ></div>
+        </div>
+      </div>
+    </section>
+  }
+
+  <main class="flex flex-col gap-md px-margin-mobile py-lg">
+    <section class="flex flex-col gap-sm">
       <div>
         <p class="text-label-md font-medium uppercase tracking-wide text-primary">Admin Panel</p>
-        <h1 class="mt-xs text-h2 text-on-surface">Merchants</h1>
-        <p class="mt-xs text-body-md text-on-surface-variant">Kelola partner e-wallet, status merchant, dan ringkasan tax aktif.</p>
+        <h1 class="text-[28px] font-semibold leading-9 text-on-surface">Merchants</h1>
+        <p class="mt-xs text-body-sm text-on-surface-variant">Kelola partner e-wallet, status merchant, dan ringkasan tax aktif.</p>
       </div>
 
       <a
         routerLink="/admin/merchants/new/config"
-        class="flex h-12 w-full items-center justify-center gap-sm rounded-lg bg-primary text-label-md font-semibold text-on-primary shadow-sm transition hover:bg-on-primary-fixed-variant"
+        class="mt-sm flex h-11 w-full items-center justify-center gap-sm rounded-lg bg-primary text-label-md font-semibold text-on-primary shadow-sm transition hover:bg-on-primary-fixed-variant"
       >
         <span class="material-symbols-outlined text-[20px]">add</span>
         Add New Merchant
@@ -24,54 +54,70 @@
       <input
         type="search"
         [(ngModel)]="searchTerm"
-        class="h-12 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-10 pr-4 text-body-md text-on-surface shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
+        class="h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-10 pr-4 text-body-sm text-on-surface shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
         placeholder="Search merchant by name or ID..."
       />
     </label>
 
     <section class="grid gap-md">
+      @if (isLoading) {
+        <div class="rounded-lg border border-outline-variant bg-surface-container-lowest p-md text-body-sm text-on-surface-variant">
+          Loading merchants...
+        </div>
+      }
+
+      @if (errorMessage) {
+        <div class="rounded-lg border border-[#ffb4ab] bg-error-container p-md text-body-sm text-on-error-container">
+          {{ errorMessage }}
+        </div>
+      }
+
       @for (merchant of filteredMerchants; track merchant.id) {
-      <article
-        class="rounded-lg border border-outline-variant bg-surface-container-lowest p-md shadow-sm"
-      >
-        <div class="flex items-start justify-between gap-md">
-          <div class="min-w-0">
-            <h2 class="truncate text-body-lg font-semibold text-on-surface">{{ merchant.name }}</h2>
-            <p class="mt-xs text-body-sm text-on-surface-variant">ID: {{ formatMerchantId(merchant.id) }}</p>
-          </div>
+        <article class="overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest shadow-sm">
+          <div class="flex items-start justify-between gap-md p-md pb-sm">
+            <div class="min-w-0">
+              <h2 class="truncate text-body-lg font-semibold text-on-surface">{{ merchant.name }}</h2>
+              <p class="mt-xs text-body-sm text-on-surface-variant">ID: {{ formatMerchantId(merchant.id) }}</p>
+            </div>
 
-          <a
-            [routerLink]="['/admin/merchants', merchant.id, 'config']"
-            class="flex h-10 shrink-0 items-center justify-center gap-xs rounded-lg bg-surface-container px-3 text-label-md font-semibold text-primary transition hover:bg-surface-variant"
-          >
-            <span class="material-symbols-outlined text-[18px]">edit</span>
-            Edit
-          </a>
-        </div>
-
-        <div class="mt-md border-t border-surface-variant pt-md">
-          <div class="flex flex-wrap items-center gap-sm">
-            <span
-              class="inline-flex items-center gap-xs rounded-full px-3 py-1 text-[13px] font-semibold"
-              [class.bg-surface-container]="merchant.isActive"
-              [class.text-tertiary]="merchant.isActive"
-              [class.bg-surface-variant]="!merchant.isActive"
-              [class.text-on-surface-variant]="!merchant.isActive"
+            <a
+              [routerLink]="['/admin/merchants', merchant.id, 'config']"
+              class="flex h-9 shrink-0 items-center justify-center gap-xs rounded-lg bg-surface-container px-3 text-[13px] font-semibold text-primary transition hover:bg-surface-variant"
             >
-              <span class="material-symbols-outlined text-[16px]" [class.icon-fill]="merchant.isActive">
-                {{ merchant.isActive ? 'check_circle' : 'cancel' }}
-              </span>
-              {{ merchant.isActive ? 'Active' : 'Inactive' }}
-            </span>
-
-            <span class="rounded-full bg-surface-container-low px-3 py-1 text-[13px] font-medium text-on-surface-variant">
-              {{ merchant.taxes.length }} tax policies
-            </span>
+              <span class="material-symbols-outlined text-[17px]">edit</span>
+              Edit
+            </a>
           </div>
 
-          <p class="mt-sm line-clamp-2 text-body-sm text-on-surface-variant">{{ formatTaxSummary(merchant) }}</p>
+          <div class="border-t border-surface-variant px-md py-sm">
+            <div class="flex flex-wrap items-center gap-sm">
+              <span
+                class="inline-flex h-7 items-center gap-xs rounded-full px-3 text-[12px] font-semibold"
+                [class.bg-surface-container]="merchant.isActive"
+                [class.text-tertiary]="merchant.isActive"
+                [class.bg-surface-variant]="!merchant.isActive"
+                [class.text-on-surface-variant]="!merchant.isActive"
+              >
+                <span class="material-symbols-outlined text-[16px]" [class.icon-fill]="merchant.isActive">
+                  {{ merchant.isActive ? 'check_circle' : 'cancel' }}
+                </span>
+                {{ merchant.isActive ? 'Active' : 'Inactive' }}
+              </span>
+
+              <span class="inline-flex h-7 items-center rounded-full bg-surface-container-low px-3 text-[12px] font-medium text-on-surface-variant">
+                {{ merchant.taxes.length }} tax policies
+              </span>
+            </div>
+
+            <p class="mt-sm line-clamp-2 text-body-sm text-on-surface-variant">{{ formatTaxSummary(merchant) }}</p>
+          </div>
+        </article>
+      }
+
+      @if (!isLoading && !errorMessage && filteredMerchants.length === 0) {
+        <div class="rounded-lg border border-outline-variant bg-surface-container-lowest p-md text-body-sm text-on-surface-variant">
+          Merchant tidak ditemukan.
         </div>
-      </article>
       }
     </section>
   </main>
