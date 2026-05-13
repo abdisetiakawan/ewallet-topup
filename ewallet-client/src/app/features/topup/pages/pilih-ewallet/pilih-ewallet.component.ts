@@ -1,7 +1,8 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BottomNavBarComponent } from '../../../../shared/components/bottom-nav-bar/bottom-nav-bar.component';
 import { BalanceCardComponent } from '../../components/balance-card/balance-card.component';
 import { EwalletCardComponent } from '../../components/ewallet-card/ewallet-card.component';
@@ -32,6 +33,7 @@ interface SuccessNotification {
 })
 export class PilihEwalletComponent implements OnInit, OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef);
   private successToastTimer: ReturnType<typeof setTimeout> | null = null;
   readonly successToastDurationMs = 4500;
 
@@ -39,6 +41,8 @@ export class PilihEwalletComponent implements OnInit, OnDestroy {
   successNotification: SuccessNotification | null = null;
 
   ewallets: EWallet[] = [];
+  merchantsError: string | null = null;
+  isLoadingMerchants = false;
 
   constructor(
     private router: Router,
@@ -52,7 +56,9 @@ export class PilihEwalletComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.successNotification = this.resolveSuccessNotification();
     this.scheduleSuccessToastDismiss();
-    this.walletStore.loadBalance().subscribe();
+    this.walletStore.loadBalance()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
     this.fetchMerchants();
   }
 
@@ -61,12 +67,25 @@ export class PilihEwalletComponent implements OnInit, OnDestroy {
   }
 
   fetchMerchants(): void {
-    this.merchantApi.getAllMerchants().subscribe({
-      next: (res) => {
-        this.ewallets = this.merchantMapper.mapAllToEWallets(res.data);
-      },
-      error: (err) => console.error('Failed to fetch merchants', err),
-    });
+    this.isLoadingMerchants = true;
+    this.merchantsError = null;
+
+    this.merchantApi.getAllMerchants()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.ewallets = this.merchantMapper.mapAllToEWallets(res.data);
+          this.isLoadingMerchants = false;
+        },
+        error: () => {
+          this.isLoadingMerchants = false;
+          this.merchantsError = 'Gagal memuat daftar e-wallet. Periksa koneksi dan coba lagi.';
+        },
+      });
+  }
+
+  retryFetchMerchants(): void {
+    this.fetchMerchants();
   }
 
   onWalletSelected(wallet: EWallet): void {
