@@ -67,8 +67,8 @@
         <p class="text-body-sm">Backend membatasi satu tax aktif untuk setiap <strong>Tax Type</strong> per merchant.</p>
       </div>
 
+      @for (tax of taxes; track $index; let index = $index) {
       <article
-        *ngFor="let tax of taxes; let index = index"
         class="flex flex-col gap-md rounded-lg border border-outline-variant bg-surface-container-lowest p-md shadow-sm"
         [class.duplicate-tax]="hasDuplicateActiveTaxType(tax)"
       >
@@ -99,11 +99,15 @@
               [(ngModel)]="tax.taxType"
               class="h-12 w-full appearance-none rounded-md border border-outline-variant bg-surface-container-lowest px-3 pr-10 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
             >
-              <option *ngFor="let option of taxTypeOptions" [value]="option.value">{{ option.label }}</option>
+              @for (option of taxTypeOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
             </select>
             <span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">expand_more</span>
           </span>
-          <span *ngIf="hasDuplicateActiveTaxType(tax)" class="text-body-sm text-error">Tax type ini sudah aktif di policy lain.</span>
+          @if (hasDuplicateActiveTaxType(tax)) {
+            <span class="text-body-sm text-error">Tax type ini sudah aktif di policy lain.</span>
+          }
         </label>
 
         <div class="flex flex-col gap-sm">
@@ -137,7 +141,9 @@
         <label class="flex flex-col gap-sm">
           <span class="text-label-md font-medium text-on-surface-variant">Tax Value</span>
           <span class="relative">
-            <span *ngIf="tax.valueType === 'FIXED'" class="absolute left-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">Rp</span>
+            @if (tax.valueType === 'FIXED') {
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">Rp</span>
+            }
             <input
               type="number"
               min="0"
@@ -146,7 +152,9 @@
               [class.pl-10]="tax.valueType === 'FIXED'"
               [class.pr-8]="tax.valueType === 'PERCENTAGE'"
             />
-            <span *ngIf="tax.valueType === 'PERCENTAGE'" class="absolute right-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">%</span>
+            @if (tax.valueType === 'PERCENTAGE') {
+              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">%</span>
+            }
           </span>
         </label>
 
@@ -181,6 +189,7 @@
           </label>
         </div>
       </article>
+      }
     </section>
   </main>
 
