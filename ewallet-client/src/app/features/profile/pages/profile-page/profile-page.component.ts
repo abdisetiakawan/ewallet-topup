@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../../core/services/auth.service';
 import { BottomNavBarComponent } from '../../../../shared/components/bottom-nav-bar/bottom-nav-bar.component';
 import { TopAppBarComponent } from '../../../../shared/components/top-app-bar/top-app-bar.component';
 
@@ -11,4 +12,16 @@ import { TopAppBarComponent } from '../../../../shared/components/top-app-bar/to
   styleUrl: './profile-page.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProfilePageComponent {}
+export class ProfilePageComponent {
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
+
+  logout(): void {
+    this.authService.logout().subscribe({
+      next: () => this.router.navigate(['/login']),
+      error: () => this.router.navigate(['/login']),
+    });
+  }
+}

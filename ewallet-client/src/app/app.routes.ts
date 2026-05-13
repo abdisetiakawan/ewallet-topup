@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './core/guards/admin.guard';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 
@@ -47,7 +48,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin/merchants',
-    canActivate: [authGuard],
+    canActivate: [authGuard, adminGuard],
     loadComponent: () =>
       import('./features/admin/pages/merchant-management/merchant-management.component').then(
         (m) => m.MerchantManagementComponent
@@ -55,7 +56,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin/merchants/:merchantId/config',
-    canActivate: [authGuard],
+    canActivate: [authGuard, adminGuard],
     loadComponent: () =>
       import('./features/admin/pages/merchant-config/merchant-config.component').then(
         (m) => m.MerchantConfigComponent
@@ -83,22 +84,6 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/history/pages/history/history.component').then(
         (m) => m.HistoryComponent
-      ),
-  },
-  {
-    path: 'admin/merchants',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/admin/pages/merchant-management/merchant-management.component').then(
-        (m) => m.MerchantManagementComponent
-      ),
-  },
-  {
-    path: 'admin/merchants/:merchantId/config',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/admin/pages/merchant-config/merchant-config.component').then(
-        (m) => m.MerchantConfigComponent
       ),
   },
   {

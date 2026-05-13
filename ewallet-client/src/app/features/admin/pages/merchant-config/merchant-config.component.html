@@ -21,182 +21,207 @@
       <p class="mt-xs text-body-md text-on-surface-variant">Atur profil merchant dan policy tax yang dipakai saat transaksi pembayaran.</p>
     </section>
 
-    <section class="flex flex-col gap-md">
-      <h2 class="text-label-md font-semibold uppercase tracking-wide text-primary">Merchant Profile</h2>
+    @if (isLoading) {
+      <div class="rounded-lg border border-outline-variant bg-surface-container-lowest p-md text-body-sm text-on-surface-variant">
+        Loading configuration...
+      </div>
+    }
 
-      <div class="flex flex-col gap-lg rounded-lg border border-outline-variant bg-surface-container-lowest p-md shadow-sm">
-        <label class="flex flex-col gap-sm">
-          <span class="text-label-md font-medium text-on-surface-variant">Merchant Name</span>
-          <input
-            type="text"
-            [(ngModel)]="merchantName"
-            class="h-12 rounded-md border border-outline-variant bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
-            placeholder="Enter merchant name"
-          />
-        </label>
+    @if (errorMessage) {
+      <div class="rounded-lg border border-[#ffb4ab] bg-error-container p-md text-body-sm text-on-error-container">
+        {{ errorMessage }}
+      </div>
+    }
 
-        <div class="flex items-center justify-between gap-md border-t border-outline-variant pt-lg">
-          <div>
-            <p class="text-body-md font-semibold text-on-surface">Merchant Status</p>
-            <p class="mt-xs text-body-sm text-on-surface-variant">Enable to allow transactions</p>
-          </div>
+    @if (successMessage) {
+      <div class="rounded-lg border border-tertiary-fixed-dim bg-tertiary-fixed p-md text-body-sm text-on-tertiary-fixed">
+        {{ successMessage }}
+      </div>
+    }
 
-          <label class="toggle">
-            <input type="checkbox" [(ngModel)]="isMerchantActive" />
-            <span></span>
+    @if (!isLoading) {
+      <section class="flex flex-col gap-md">
+        <h2 class="text-label-md font-semibold uppercase tracking-wide text-primary">Merchant Profile</h2>
+
+        <div class="flex flex-col gap-lg rounded-lg border border-outline-variant bg-surface-container-lowest p-md shadow-sm">
+          <label class="flex flex-col gap-sm">
+            <span class="text-label-md font-medium text-on-surface-variant">Merchant Name</span>
+            <input
+              type="text"
+              [(ngModel)]="merchantName"
+              class="h-12 rounded-md border border-outline-variant bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
+              placeholder="Enter merchant name"
+            />
           </label>
+
+          <div class="flex items-center justify-between gap-md border-t border-outline-variant pt-lg">
+            <div>
+              <p class="text-body-md font-semibold text-on-surface">Merchant Status</p>
+              <p class="mt-xs text-body-sm text-on-surface-variant">Enable to allow transactions</p>
+            </div>
+
+            <label class="toggle">
+              <input type="checkbox" [(ngModel)]="isMerchantActive" />
+              <span></span>
+            </label>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="flex flex-col gap-md">
-      <div class="flex items-end justify-between gap-md">
-        <div>
-          <h2 class="text-label-md font-semibold uppercase tracking-wide text-primary">Tax Policies</h2>
-          <p class="mt-xs text-body-sm text-on-surface-variant">{{ activeTaxCount }} active policies</p>
-        </div>
-
-        <button type="button" (click)="addTax()" class="flex shrink-0 items-center gap-xs rounded-lg px-2 py-2 text-label-md font-semibold text-primary transition hover:bg-surface-container-low">
-          <span class="material-symbols-outlined text-[18px]">add</span>
-          Add Tax
-        </button>
-      </div>
-
-      <div class="flex items-start gap-sm rounded-md border border-[#ffb4ab] bg-error-container p-sm text-on-error-container shadow-sm">
-        <span class="material-symbols-outlined mt-0.5 shrink-0 text-[20px]">error</span>
-        <p class="text-body-sm">Backend membatasi satu tax aktif untuk setiap <strong>Tax Type</strong> per merchant.</p>
-      </div>
-
-      @for (tax of taxes; track $index; let index = $index) {
-      <article
-        class="flex flex-col gap-md rounded-lg border border-outline-variant bg-surface-container-lowest p-md shadow-sm"
-        [class.duplicate-tax]="hasDuplicateActiveTaxType(tax)"
-      >
-        <div class="flex items-center justify-between gap-md border-b border-surface-container-high pb-sm">
-          <div class="min-w-0">
-            <h3 class="truncate text-[18px] font-semibold leading-7 text-on-surface">{{ tax.taxName || 'Tax Policy ' + (index + 1) }}</h3>
-            <p class="text-body-sm text-on-surface-variant">Policy #{{ index + 1 }}</p>
+      <section class="flex flex-col gap-md">
+        <div class="flex items-end justify-between gap-md">
+          <div>
+            <h2 class="text-label-md font-semibold uppercase tracking-wide text-primary">Tax Policies</h2>
+            <p class="mt-xs text-body-sm text-on-surface-variant">{{ activeTaxCount }} active policies</p>
           </div>
 
-          <button type="button" (click)="removeTax(tax.id)" aria-label="Delete Tax" class="rounded-full p-1 text-error transition hover:bg-error-container">
-            <span class="material-symbols-outlined text-[20px]">delete</span>
+          <button type="button" (click)="addTax()" class="flex shrink-0 items-center gap-xs rounded-lg px-2 py-2 text-label-md font-semibold text-primary transition hover:bg-surface-container-low">
+            <span class="material-symbols-outlined text-[18px]">add</span>
+            Add Tax
           </button>
         </div>
 
-        <label class="flex flex-col gap-sm">
-          <span class="text-label-md font-medium text-on-surface-variant">Tax Name</span>
-          <input
-            type="text"
-            [(ngModel)]="tax.taxName"
-            class="h-12 rounded-md border border-outline-variant bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
-          />
-        </label>
+        <div class="flex items-start gap-sm rounded-md border border-[#ffb4ab] bg-error-container p-sm text-on-error-container shadow-sm">
+          <span class="material-symbols-outlined mt-0.5 shrink-0 text-[20px]">error</span>
+          <p class="text-body-sm">Backend membatasi satu tax aktif untuk setiap <strong>Tax Type</strong> per merchant.</p>
+        </div>
 
-        <label class="flex flex-col gap-sm">
-          <span class="text-label-md font-medium text-on-surface-variant">Tax Type</span>
-          <span class="relative">
-            <select
-              [(ngModel)]="tax.taxType"
-              class="h-12 w-full appearance-none rounded-md border border-outline-variant bg-surface-container-lowest px-3 pr-10 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
-            >
-              @for (option of taxTypeOptions; track option.value) {
-                <option [value]="option.value">{{ option.label }}</option>
+        @for (tax of taxes; track $index; let index = $index) {
+          <article
+            class="flex flex-col gap-md rounded-lg border border-outline-variant bg-surface-container-lowest p-md shadow-sm"
+            [class.duplicate-tax]="hasDuplicateActiveTaxType(tax)"
+          >
+            <div class="flex items-center justify-between gap-md border-b border-surface-container-high pb-sm">
+              <div class="min-w-0">
+                <h3 class="truncate text-[18px] font-semibold leading-7 text-on-surface">{{ tax.taxName || 'Tax Policy ' + (index + 1) }}</h3>
+                <p class="text-body-sm text-on-surface-variant">Policy #{{ index + 1 }}</p>
+              </div>
+
+              <button type="button" (click)="removeTaxAt(index)" aria-label="Delete Tax" class="rounded-full p-1 text-error transition hover:bg-error-container">
+                <span class="material-symbols-outlined text-[20px]">delete</span>
+              </button>
+            </div>
+
+            <label class="flex flex-col gap-sm">
+              <span class="text-label-md font-medium text-on-surface-variant">Tax Name</span>
+              <input
+                type="text"
+                [(ngModel)]="tax.taxName"
+                class="h-12 rounded-md border border-outline-variant bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
+              />
+            </label>
+
+            <label class="flex flex-col gap-sm">
+              <span class="text-label-md font-medium text-on-surface-variant">Tax Type</span>
+              <span class="relative">
+                <select
+                  [(ngModel)]="tax.taxType"
+                  class="h-12 w-full appearance-none rounded-md border border-outline-variant bg-surface-container-lowest px-3 pr-10 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
+                >
+                  @for (option of taxTypeOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+                <span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">expand_more</span>
+              </span>
+              @if (hasDuplicateActiveTaxType(tax)) {
+                <span class="text-body-sm text-error">Tax type ini sudah aktif di policy lain.</span>
               }
-            </select>
-            <span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">expand_more</span>
-          </span>
-          @if (hasDuplicateActiveTaxType(tax)) {
-            <span class="text-body-sm text-error">Tax type ini sudah aktif di policy lain.</span>
-          }
-        </label>
+            </label>
 
-        <div class="flex flex-col gap-sm">
-          <span class="text-label-md font-medium text-on-surface-variant">Value Type</span>
-          <div class="grid grid-cols-2 rounded-md border border-outline-variant bg-surface-container-low p-1">
-            <button
-              type="button"
-              (click)="setValueType(tax, 'PERCENTAGE')"
-              class="h-10 rounded text-label-md font-semibold transition"
-              [class.bg-surface-container-lowest]="tax.valueType === 'PERCENTAGE'"
-              [class.text-primary]="tax.valueType === 'PERCENTAGE'"
-              [class.shadow-sm]="tax.valueType === 'PERCENTAGE'"
-              [class.text-on-surface-variant]="tax.valueType !== 'PERCENTAGE'"
-            >
-              Percentage
-            </button>
-            <button
-              type="button"
-              (click)="setValueType(tax, 'FIXED')"
-              class="h-10 rounded text-label-md font-semibold transition"
-              [class.bg-surface-container-lowest]="tax.valueType === 'FIXED'"
-              [class.text-primary]="tax.valueType === 'FIXED'"
-              [class.shadow-sm]="tax.valueType === 'FIXED'"
-              [class.text-on-surface-variant]="tax.valueType !== 'FIXED'"
-            >
-              Fixed Amount
-            </button>
-          </div>
-        </div>
+            <div class="flex flex-col gap-sm">
+              <span class="text-label-md font-medium text-on-surface-variant">Value Type</span>
+              <div class="grid grid-cols-2 rounded-md border border-outline-variant bg-surface-container-low p-1">
+                <button
+                  type="button"
+                  (click)="setValueType(tax, 'PERCENTAGE')"
+                  class="h-10 rounded text-label-md font-semibold transition"
+                  [class.bg-surface-container-lowest]="tax.valueType === 'PERCENTAGE'"
+                  [class.text-primary]="tax.valueType === 'PERCENTAGE'"
+                  [class.shadow-sm]="tax.valueType === 'PERCENTAGE'"
+                  [class.text-on-surface-variant]="tax.valueType !== 'PERCENTAGE'"
+                >
+                  Percentage
+                </button>
+                <button
+                  type="button"
+                  (click)="setValueType(tax, 'FIXED')"
+                  class="h-10 rounded text-label-md font-semibold transition"
+                  [class.bg-surface-container-lowest]="tax.valueType === 'FIXED'"
+                  [class.text-primary]="tax.valueType === 'FIXED'"
+                  [class.shadow-sm]="tax.valueType === 'FIXED'"
+                  [class.text-on-surface-variant]="tax.valueType !== 'FIXED'"
+                >
+                  Fixed Amount
+                </button>
+              </div>
+            </div>
 
-        <label class="flex flex-col gap-sm">
-          <span class="text-label-md font-medium text-on-surface-variant">Tax Value</span>
-          <span class="relative">
-            @if (tax.valueType === 'FIXED') {
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">Rp</span>
-            }
-            <input
-              type="number"
-              min="0"
-              [(ngModel)]="tax.taxValue"
-              class="h-12 w-full rounded-md border border-outline-variant bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
-              [class.pl-10]="tax.valueType === 'FIXED'"
-              [class.pr-8]="tax.valueType === 'PERCENTAGE'"
-            />
-            @if (tax.valueType === 'PERCENTAGE') {
-              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">%</span>
-            }
-          </span>
-        </label>
+            <label class="flex flex-col gap-sm">
+              <span class="text-label-md font-medium text-on-surface-variant">Tax Value</span>
+              <span class="relative">
+                @if (tax.valueType === 'FIXED') {
+                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">Rp</span>
+                }
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="tax.taxValue"
+                  class="h-12 w-full rounded-md border border-outline-variant bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
+                  [class.pl-10]="tax.valueType === 'FIXED'"
+                  [class.pr-8]="tax.valueType === 'PERCENTAGE'"
+                />
+                @if (tax.valueType === 'PERCENTAGE') {
+                  <span class="absolute right-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">%</span>
+                }
+              </span>
+            </label>
 
-        <div class="flex items-center justify-between gap-md rounded-md bg-surface-container-low p-sm">
-          <div>
-            <p class="text-body-md font-semibold text-on-surface">Tax Status</p>
-            <p class="mt-xs text-body-sm text-on-surface-variant">Only active tax is calculated</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" [(ngModel)]="tax.isActive" />
-            <span></span>
-          </label>
-        </div>
+            <div class="flex items-center justify-between gap-md rounded-md bg-surface-container-low p-sm">
+              <div>
+                <p class="text-body-md font-semibold text-on-surface">Tax Status</p>
+                <p class="mt-xs text-body-sm text-on-surface-variant">Only active tax is calculated</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" [(ngModel)]="tax.isActive" />
+                <span></span>
+              </label>
+            </div>
 
-        <div class="grid gap-md sm:grid-cols-2">
-          <label class="flex flex-col gap-sm">
-            <span class="text-label-md font-medium text-on-surface-variant">Effective Date</span>
-            <input
-              type="date"
-              [(ngModel)]="tax.effectiveAt"
-              class="h-12 rounded-md border border-outline-variant bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
-            />
-          </label>
+            <div class="grid gap-md sm:grid-cols-2">
+              <label class="flex flex-col gap-sm">
+                <span class="text-label-md font-medium text-on-surface-variant">Effective Date</span>
+                <input
+                  type="date"
+                  [(ngModel)]="tax.effectiveAt"
+                  class="h-12 rounded-md border border-outline-variant bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
+                />
+              </label>
 
-          <label class="flex flex-col gap-sm">
-            <span class="text-label-md font-medium text-on-surface-variant">Expiry Date (Optional)</span>
-            <input
-              type="date"
-              [(ngModel)]="tax.expiredAt"
-              class="h-12 rounded-md border border-outline-variant bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
-            />
-          </label>
-        </div>
-      </article>
-      }
-    </section>
+              <label class="flex flex-col gap-sm">
+                <span class="text-label-md font-medium text-on-surface-variant">Expiry Date (Optional)</span>
+                <input
+                  type="date"
+                  [(ngModel)]="tax.expiredAt"
+                  class="h-12 rounded-md border border-outline-variant bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25"
+                />
+              </label>
+            </div>
+          </article>
+        }
+      </section>
+    }
   </main>
 
   <footer class="fixed bottom-0 z-40 w-full max-w-[480px] border-t border-outline-variant bg-surface-container-lowest p-margin-mobile shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
-    <button type="button" class="flex h-12 w-full items-center justify-center gap-sm rounded-md bg-primary text-label-md font-semibold text-on-primary shadow-sm transition hover:bg-on-primary-fixed-variant">
+    <button
+      type="button"
+      (click)="save()"
+      [disabled]="isSaving || isLoading"
+      class="flex h-12 w-full items-center justify-center gap-sm rounded-md bg-primary text-label-md font-semibold text-on-primary shadow-sm transition hover:bg-on-primary-fixed-variant disabled:cursor-not-allowed disabled:opacity-60"
+    >
       <span class="material-symbols-outlined text-[20px]">save</span>
-      Save Configurations
+      {{ isSaving ? 'Saving...' : 'Save Configurations' }}
     </button>
   </footer>
 </div>
