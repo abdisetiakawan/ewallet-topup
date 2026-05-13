@@ -1,0 +1,137 @@
+<div class="min-h-screen bg-background text-on-background pb-24 md:pb-0">
+  <header class="sticky top-0 z-50 w-full border-b border-outline-variant bg-surface">
+    <div class="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-margin-mobile md:px-margin-desktop">
+      <button
+        type="button"
+        aria-label="Kembali"
+        class="-ml-2 flex h-10 w-10 items-center justify-center rounded-full text-primary transition-colors hover:bg-surface-container-low active:opacity-80"
+        (click)="goBack()"
+      >
+        <span class="material-symbols-outlined text-[24px] leading-none">arrow_back</span>
+      </button>
+
+      <h1 class="text-center text-[20px] font-bold leading-7 text-primary md:text-h3">Riwayat Transaksi</h1>
+
+      <button
+        type="button"
+        aria-label="Filter transaksi"
+        class="-mr-2 flex h-10 w-10 items-center justify-center rounded-full text-primary transition-colors hover:bg-surface-container-low active:opacity-80"
+      >
+        <span class="material-symbols-outlined text-[24px] leading-none">filter_list</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="mx-auto w-full max-w-7xl md:px-margin-desktop md:py-lg">
+    <section class="sticky top-16 z-40 border-b border-surface-variant bg-surface px-margin-mobile py-md md:static md:mb-lg md:rounded-lg md:border md:border-outline-variant">
+      <div class="relative">
+        <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+          search
+        </span>
+        <input
+          type="search"
+          placeholder="Cari transaksi..."
+          class="h-12 w-full rounded-lg border border-outline-variant bg-surface-container-low py-3 pl-10 pr-4 text-body-md text-on-surface transition-colors placeholder:text-outline focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          [value]="searchTerm"
+          (input)="onSearchChange($event)"
+        />
+      </div>
+
+      <div class="scrollbar-hide -mx-margin-mobile mt-md flex gap-sm overflow-x-auto px-margin-mobile pb-xs md:mx-0 md:px-0">
+        @for (filter of filters; track filter.label) {
+          <button
+            type="button"
+            class="h-10 whitespace-nowrap rounded-full border px-4 text-label-md font-medium transition-colors"
+            [class.border-primary]="selectedType === filter.value"
+            [class.bg-primary]="selectedType === filter.value"
+            [class.text-on-primary]="selectedType === filter.value"
+            [class.border-outline-variant]="selectedType !== filter.value"
+            [class.bg-surface-container]="selectedType !== filter.value"
+            [class.text-on-surface-variant]="selectedType !== filter.value"
+            [class.hover:bg-surface-variant]="selectedType !== filter.value"
+            (click)="selectType(filter.value)"
+          >
+            {{ filter.label }}
+          </button>
+        }
+      </div>
+    </section>
+
+    <section class="space-y-xl px-margin-mobile py-sm md:px-0">
+      @if (visibleGroups.length === 0) {
+        <div class="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg text-center">
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-fixed text-primary">
+            <span class="material-symbols-outlined">history</span>
+          </div>
+          <h2 class="mt-md text-body-lg font-semibold text-on-surface">Belum ada transaksi</h2>
+          <p class="mt-xs text-body-sm text-on-surface-variant">
+            Riwayat akan muncul sesuai filter yang dipilih.
+          </p>
+        </div>
+      } @else {
+        @for (group of visibleGroups; track group.label) {
+          <div class="space-y-sm">
+            <h2 class="text-body-lg font-semibold text-on-surface">{{ group.label }}</h2>
+
+            <div class="space-y-sm">
+              @for (transaction of group.transactions; track transaction.transactionId) {
+                <article
+                  class="flex items-center gap-md rounded-lg border border-surface-variant bg-surface p-md transition-shadow hover:shadow-sm"
+                  [class.opacity-75]="transaction.status === 'FAILED'"
+                >
+                  <div
+                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+                    [ngClass]="iconClass(transaction)"
+                  >
+                    <span class="material-symbols-outlined text-[24px] leading-none">{{ iconFor(transaction.type) }}</span>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <h3 class="truncate text-body-md font-semibold text-on-surface">{{ titleFor(transaction) }}</h3>
+                    <div class="mt-1 flex flex-wrap items-center gap-2">
+                      <span class="text-label-md font-medium" [ngClass]="statusClass(transaction.status)">
+                        {{ statusLabel(transaction.status) }}
+                      </span>
+                      <span class="h-1 w-1 rounded-full bg-outline-variant"></span>
+                      <span class="text-body-sm text-on-surface-variant">{{ typeLabel(transaction.type) }}</span>
+                      <span class="h-1 w-1 rounded-full bg-outline-variant"></span>
+                      <span class="text-body-sm text-outline">{{ timeLabel(transaction.createdAt) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="shrink-0 text-right">
+                    <p class="text-body-md font-bold" [ngClass]="amountClass(transaction)">
+                      {{ amountLabel(transaction) }}
+                    </p>
+                    @if (transaction.taxAmount > 0) {
+                      <p class="mt-xs text-[11px] text-outline">Pajak {{ taxLabel(transaction.taxAmount) }}</p>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          </div>
+        }
+      }
+    </section>
+  </main>
+
+  <nav class="fixed bottom-0 left-0 z-50 flex h-20 w-full items-center justify-around bg-surface-container px-2 shadow-sm md:hidden">
+    <a routerLink="/" class="flex flex-col items-center justify-center px-4 py-1 text-on-surface-variant transition-colors hover:bg-surface-variant">
+      <span class="material-symbols-outlined transition-transform duration-100 active:scale-95">home</span>
+      <span class="mt-1 text-[10px] font-medium tracking-wide">Home</span>
+    </a>
+    <a routerLink="/topup" class="flex flex-col items-center justify-center px-4 py-1 text-on-surface-variant transition-colors hover:bg-surface-variant">
+      <span class="material-symbols-outlined transition-transform duration-100 active:scale-95">account_balance_wallet</span>
+      <span class="mt-1 text-[10px] font-medium tracking-wide">Wallets</span>
+    </a>
+    <a routerLink="/history" class="flex flex-col items-center justify-center rounded-full bg-secondary-container px-4 py-1 text-on-secondary-container transition-colors">
+      <span class="material-symbols-outlined filled transition-transform duration-100 active:scale-95">history</span>
+      <span class="mt-1 text-[10px] font-medium tracking-wide">History</span>
+    </a>
+    <a routerLink="/" class="flex flex-col items-center justify-center px-4 py-1 text-on-surface-variant transition-colors hover:bg-surface-variant">
+      <span class="material-symbols-outlined transition-transform duration-100 active:scale-95">person</span>
+      <span class="mt-1 text-[10px] font-medium tracking-wide">Account</span>
+    </a>
+  </nav>
+</div>

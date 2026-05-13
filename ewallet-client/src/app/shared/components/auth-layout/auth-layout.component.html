@@ -1,0 +1,64 @@
+<div class="bg-background text-on-background min-h-screen flex flex-col">
+
+  <!-- ===== Top App Bar ===== -->
+  <header class="w-full top-0 sticky bg-background z-50 border-b border-outline-variant/30">
+    <div class="flex items-center px-[16px] h-16 w-full">
+
+      <!-- Back Button -->
+      <div class="flex-1 flex items-center">
+        <a [routerLink]="backRoute"
+           aria-label="Kembali"
+           class="p-2 -ml-2 rounded-full text-on-surface hover:bg-surface-container-low transition-colors">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+      </div>
+
+      <!-- Logo (center) -->
+      <div class="flex items-center gap-[8px]">
+        <span class="material-symbols-outlined text-primary text-[28px]"
+              style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+        <span class="text-[30px] leading-[38px] font-bold text-primary">WalletPay</span>
+      </div>
+
+      <!-- Spacer (for centering logo) -->
+      <div class="flex-1"></div>
+
+    </div>
+  </header>
+
+  <!-- ===== Page Content (projected) ===== -->
+  <main class="flex-grow flex flex-col w-full max-w-md mx-auto px-[16px] pt-[8px] pb-[96px]">
+    <ng-content />
+  </main>
+
+  <!-- ===== Auth Bottom Nav ===== -->
+  <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2
+              bg-surface-container-lowest shadow-sm rounded-t-xl">
+
+    <!-- Login Tab -->
+    <a routerLink="/login"
+       class="flex flex-col items-center justify-center rounded-full px-6 py-1
+              transition-transform duration-150 active:scale-90"
+       [class.bg-primary-container]="activeTab === 'login'"
+       [class.text-on-primary-container]="activeTab === 'login'"
+       [class.text-on-secondary-container]="activeTab !== 'login'"
+       [class.hover:bg-secondary-container]="activeTab !== 'login'">
+      <span class="material-symbols-outlined">login</span>
+      <span class="text-[14px] leading-[20px] font-medium tracking-[0.05em]">Login</span>
+    </a>
+
+    <!-- Register Tab -->
+    <a routerLink="/register"
+       class="flex flex-col items-center justify-center rounded-full px-6 py-1
+              transition-transform duration-150 active:scale-90"
+       [class.bg-primary-container]="activeTab === 'register'"
+       [class.text-on-primary-container]="activeTab === 'register'"
+       [class.text-on-secondary-container]="activeTab !== 'register'"
+       [class.hover:bg-secondary-container]="activeTab !== 'register'">
+      <span class="material-symbols-outlined">person_add</span>
+      <span class="text-[14px] leading-[20px] font-medium tracking-[0.05em]">Register</span>
+    </a>
+
+  </nav>
+
+</div>
