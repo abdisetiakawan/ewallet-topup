@@ -5,7 +5,7 @@
      [class.bg-secondary-container]="activeNav === 'home'"
      [class.text-on-secondary-container]="activeNav === 'home'"
      [class.rounded-xl]="activeNav === 'home'"
-     href="#">
+     routerLink="/">
     <span class="material-symbols-outlined mb-1">home</span>
     <span class="text-[10px] tracking-wide font-medium">Home</span>
   </a>
@@ -15,7 +15,7 @@
      [class.bg-secondary-container]="activeNav === 'wallets'"
      [class.text-on-secondary-container]="activeNav === 'wallets'"
      [class.rounded-xl]="activeNav === 'wallets'"
-     href="#">
+     routerLink="/topup">
     <span class="material-symbols-outlined mb-1" [class.filled]="activeNav === 'wallets'">account_balance_wallet</span>
     <span class="text-[10px] tracking-wide font-medium">Wallets</span>
   </a>
@@ -25,7 +25,7 @@
      [class.bg-secondary-container]="activeNav === 'history'"
      [class.text-on-secondary-container]="activeNav === 'history'"
      [class.rounded-xl]="activeNav === 'history'"
-     href="#">
+     routerLink="/history">
     <span class="material-symbols-outlined mb-1">history</span>
     <span class="text-[10px] tracking-wide font-medium">History</span>
   </a>
@@ -35,7 +35,7 @@
      [class.bg-secondary-container]="activeNav === 'account'"
      [class.text-on-secondary-container]="activeNav === 'account'"
      [class.rounded-xl]="activeNav === 'account'"
-     href="#">
+     routerLink="/">
     <span class="material-symbols-outlined mb-1">person</span>
     <span class="text-[10px] tracking-wide font-medium">Account</span>
   </a>

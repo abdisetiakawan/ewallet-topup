@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
-
 export const routes: Routes = [
   {
     path: '',
@@ -59,6 +58,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/profile/pages/edit-profile/edit-profile.component').then(
         (m) => m.EditProfileComponent
+      ),
+  },
+  {
+    path: 'history',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/history/pages/history/history.component').then(
+        (m) => m.HistoryComponent
       ),
   },
   {
