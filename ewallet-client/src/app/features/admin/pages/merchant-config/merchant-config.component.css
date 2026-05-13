@@ -1,0 +1,60 @@
+:host {
+  display: block;
+}
+
+.icon-fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.toggle span {
+  width: 100%;
+  border-radius: 9999px;
+  background: #c2c6d6;
+  transition: background 160ms ease;
+}
+
+.toggle span::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgb(11 28 48 / 0.22);
+  transition: transform 160ms ease;
+}
+
+.toggle input:checked + span {
+  background: #0058be;
+}
+
+.toggle input:checked + span::after {
+  transform: translateX(20px);
+}
+
+.toggle input:focus-visible + span {
+  outline: 2px solid #0058be;
+  outline-offset: 2px;
+}
+
+.duplicate-tax {
+  border-color: #ba1a1a;
+}
