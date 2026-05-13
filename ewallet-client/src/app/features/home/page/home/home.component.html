@@ -1,31 +1,49 @@
-<main class="min-h-screen bg-primary/10 text-secondary">
-  <section class="mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center justify-center px-6 py-12 text-center">
-    <div class="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-3xl font-bold text-white shadow-lg shadow-primary/25">
-      W
+<div class="bg-background text-on-background min-h-screen flex flex-col items-center justify-center">
+
+  <!-- Top App Bar - Brand Only (Splash style) -->
+  <header class="w-full absolute top-0 left-0 px-[16px] flex justify-center items-center h-16">
+    <div class="flex items-center gap-[8px]">
+      <span class="material-symbols-outlined text-primary text-[28px]"
+            style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+      <h1 class="text-[30px] leading-[38px] font-bold text-primary">WalletPay</h1>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 w-full max-w-md px-[16px] flex flex-col justify-center items-center text-center pb-[32px] pt-24">
+
+    <!-- Visual Illustration -->
+    <div class="w-full max-w-[280px] aspect-square mb-[32px] rounded-2xl overflow-hidden bg-surface-container-low flex items-center justify-center relative">
+      <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-tr from-primary/20 to-transparent">
+        <span class="material-symbols-outlined text-primary drop-shadow-md"
+              style="font-size: 80px; font-variation-settings: 'FILL' 1;">attach_money</span>
+      </div>
     </div>
 
-    <h1 class="max-w-3xl text-4xl font-bold leading-tight">
-      Wallet Pay
-    </h1>
-
-    <p class="mt-5 max-w-2xl text-base leading-7 text-neutral">
-      Kelola saldo, top up, dan pembayaran digital dengan cepat, aman, dan praktis dalam satu aplikasi e-wallet.
+    <!-- Typography -->
+    <h2 class="text-[30px] leading-[38px] font-semibold text-on-surface mb-[16px] max-w-[320px]">
+      Kelola Finansial Lebih Cerdas dengan WalletPay
+    </h2>
+    <p class="text-[18px] leading-[28px] text-on-surface-variant mb-[32px] max-w-[340px]">
+      Platform aman dan mudah untuk semua kebutuhan transaksi digital dan top-up e-wallet Anda.
     </p>
 
-    <div class="mt-10 flex w-full max-w-sm flex-col gap-3">
+    <!-- Actions -->
+    <div class="w-full flex flex-col gap-[16px] mt-auto md:mt-0">
       <a
         routerLink="/login"
-        class="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-primary/10"
-      >
-        Login
+        id="welcome-btn-mulai"
+        class="w-full h-12 bg-primary text-on-primary text-[14px] leading-[20px] font-medium tracking-[0.05em] rounded-full flex items-center justify-center hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+        Mulai Sekarang
       </a>
-
       <a
-        routerLink="/register"
-        class="inline-flex items-center justify-center rounded-lg border border-primary/30 bg-white px-6 py-3 text-sm font-semibold text-primary transition hover:border-primary hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-primary/10"
-      >
-        Register
+        routerLink="/login"
+        id="welcome-btn-masuk"
+        class="w-full h-12 bg-transparent text-primary text-[14px] leading-[20px] font-medium tracking-[0.05em] rounded-full flex items-center justify-center hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+        Sudah punya akun? Masuk
       </a>
     </div>
-  </section>
-</main>
+
+  </main>
+
+</div>

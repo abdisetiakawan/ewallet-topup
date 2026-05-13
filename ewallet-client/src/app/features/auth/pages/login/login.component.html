@@ -1,96 +1,108 @@
-<section class="flex min-h-screen items-center justify-center bg-primary/10 px-6 py-12 text-secondary">
-  <div class="w-full max-w-md rounded-xl border border-primary/20 bg-white p-8 shadow-xl shadow-primary/10">
-    <h1 class="text-2xl font-bold text-secondary">Login</h1>
-    <p class="mt-2 text-sm text-neutral">Masuk ke akun Wallet Pay Anda.</p>
+<app-auth-layout backRoute="/" activeTab="login">
 
-    <form #loginForm="ngForm" class="mt-8 space-y-5" novalidate (ngSubmit)="onSubmit(loginForm)">
-      <div>
-        <label for="email" class="block text-sm font-medium text-secondary">Email</label>
+  <!-- Hero / Brand Section -->
+  <div class="mb-[32px] text-center mt-[24px]">
+    <h2 class="text-[40px] leading-[48px] font-bold text-on-background mb-[8px]">Selamat Datang</h2>
+    <p class="text-[16px] leading-[24px] text-on-surface-variant">
+      Kelola finansial Anda dengan transparansi dan keamanan penuh.
+    </p>
+  </div>
+
+  <!-- Login Form -->
+  <form #loginForm="ngForm" class="flex flex-col gap-[24px]" novalidate (ngSubmit)="onSubmit(loginForm)">
+
+    <!-- Email Field -->
+    <div class="flex flex-col gap-[4px]">
+      <label for="login-email"
+             class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface-variant px-[8px]">
+        Email atau Nomor Telepon
+      </label>
+      <div class="relative">
         <input
-          id="email"
+          id="login-email"
           #emailInput="ngModel"
           [(ngModel)]="email"
           name="email"
           type="email"
           required
           email
-          class="mt-2 w-full rounded-lg border border-primary/20 bg-white px-4 py-3 text-sm text-secondary outline-none transition placeholder:text-neutral/70 focus:border-primary focus:ring-2 focus:ring-primary/20"
-          placeholder="nama@email.com"
-        />
-        @if (emailInput.invalid && (emailInput.dirty || emailInput.touched)) {
-          <span class="mt-2 block text-sm text-red-400">
-            @if (emailInput.errors?.['required']) {
-              Email wajib diisi.
-            } @else if (emailInput.errors?.['email']) {
-              Format email tidak valid.
-            }
-          </span>
-        }
+          placeholder="name@example.com"
+          class="w-full h-12 bg-surface-container-lowest border border-outline-variant rounded-xl px-[16px]
+                 text-[16px] leading-[24px] text-on-surface focus:ring-2 focus:ring-primary focus:border-primary
+                 outline-none transition-all duration-200 placeholder:text-outline" />
       </div>
-
-      <div>
-        <label for="password" class="block text-sm font-medium text-secondary">Password</label>
-        <div class="relative mt-2">
-          <input
-            id="password"
-            #passwordInput="ngModel"
-            [(ngModel)]="password"
-            name="password"
-            [type]="showPassword ? 'text' : 'password'"
-            required
-            class="w-full rounded-lg border border-primary/20 bg-white px-4 py-3 pr-12 text-sm text-secondary outline-none transition placeholder:text-neutral/70 focus:border-primary focus:ring-2 focus:ring-primary/20"
-            placeholder="Masukkan password"
-          />
-          <button
-            type="button"
-            class="absolute inset-y-0 right-3 flex items-center text-neutral transition hover:text-primary focus:outline-none"
-            [attr.aria-label]="showPassword ? 'Sembunyikan password' : 'Lihat password'"
-            (click)="togglePasswordVisibility()"
-          >
-            @if (showPassword) {
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 3l18 18" />
-                <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" />
-                <path d="M9.9 4.2A10.7 10.7 0 0 1 12 4c5 0 9 4.5 10 8a12 12 0 0 1-3.1 4.9" />
-                <path d="M6.6 6.6A12 12 0 0 0 2 12c1 3.5 5 8 10 8a10.8 10.8 0 0 0 4.2-.9" />
-              </svg>
-            } @else {
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8S2 12 2 12z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            }
-          </button>
-        </div>
-        @if (passwordInput.invalid && (passwordInput.dirty || passwordInput.touched)) {
-          <span class="mt-2 block text-sm text-red-400">
-            @if (passwordInput.errors?.['required']) {
-              Password wajib diisi.
-            }
-          </span>
-        }
-      </div>
-
-      @if (errorMessage) {
-        <div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-          {{ errorMessage }}
-        </div>
+      @if (emailInput.invalid && (emailInput.dirty || emailInput.touched)) {
+        <span class="mt-1 block text-sm text-error px-[8px]">
+          @if (emailInput.errors?.['required']) { Email wajib diisi. }
+          @else if (emailInput.errors?.['email']) { Format email tidak valid. }
+        </span>
       }
+    </div>
 
-      <button
-        type="submit"
-        [disabled]="isLoading"
-        class="w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {{ isLoading ? 'Memproses...' : 'Login' }}
-      </button>
-    </form>
+    <!-- Password Field -->
+    <div class="flex flex-col gap-[4px]">
+      <label for="login-password"
+             class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface-variant px-[8px]">
+        Kata Sandi
+      </label>
+      <div class="relative">
+        <input
+          id="login-password"
+          #passwordInput="ngModel"
+          [(ngModel)]="password"
+          name="password"
+          [type]="showPassword ? 'text' : 'password'"
+          required
+          placeholder="••••••••"
+          class="w-full h-12 bg-surface-container-lowest border border-outline-variant rounded-xl px-[16px] pr-12
+                 text-[16px] leading-[24px] text-on-surface focus:ring-2 focus:ring-primary focus:border-primary
+                 outline-none transition-all duration-200 placeholder:text-outline" />
+        <button
+          type="button"
+          class="absolute right-[16px] top-1/2 -translate-y-1/2 text-on-surface-variant cursor-pointer"
+          [attr.aria-label]="showPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'"
+          (click)="togglePasswordVisibility()">
+          <span class="material-symbols-outlined">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+        </button>
+      </div>
+      @if (passwordInput.invalid && (passwordInput.dirty || passwordInput.touched)) {
+        <span class="mt-1 block text-sm text-error px-[8px]">
+          @if (passwordInput.errors?.['required']) { Kata sandi wajib diisi. }
+        </span>
+      }
+      <div class="flex justify-end mt-[4px]">
+        <a href="#" class="text-[14px] leading-[20px] font-semibold text-primary hover:underline">
+          Forgot Password?
+        </a>
+      </div>
+    </div>
 
-    <p class="mt-6 text-center text-sm text-neutral">
-      Belum memiliki akun?
-      <a routerLink="/register" class="font-semibold text-tertiary transition hover:text-tertiary/80">
-        Register
-      </a>
+    <!-- Error Message -->
+    @if (errorMessage) {
+      <div class="rounded-xl bg-error-container px-[16px] py-3 text-sm text-on-error-container">
+        {{ errorMessage }}
+      </div>
+    }
+
+    <!-- Submit Button -->
+    <button
+      type="submit"
+      id="login-btn-submit"
+      [disabled]="isLoading"
+      class="w-full h-12 bg-primary text-on-primary rounded-xl text-[14px] leading-[20px] font-medium
+             uppercase tracking-wider shadow-sm hover:brightness-110 active:scale-95 transition-all
+             duration-200 disabled:opacity-60 disabled:cursor-not-allowed">
+      {{ isLoading ? 'Memproses...' : 'Masuk' }}
+    </button>
+
+  </form>
+
+  <!-- Register Link -->
+  <div class="text-center mt-[24px]">
+    <p class="text-[14px] leading-[20px] text-on-surface-variant">
+      Belum punya akun?
+      <a routerLink="/register" class="text-primary font-bold hover:underline">Daftar</a>
     </p>
   </div>
-</section>
+
+</app-auth-layout>
