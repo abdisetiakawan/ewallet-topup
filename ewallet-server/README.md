@@ -43,6 +43,15 @@ mvn spring-boot:run -Dspring-boot.run.profiles=prod
 
 Sesuaikan `spring.datasource.*`, `spring.data.redis.*`, dan `app.jwt.secret` sebelum deploy.
 
+## Default Seed Accounts
+
+Setelah menjalankan aplikasi, Flyway akan otomatis membuat akun berikut:
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@ewallet.com` | `admin123` |
+| Customer | `customer@ewallet.com` | `customer123` |
+
 ## Database Migration
 
 Migration dikelola Flyway dengan dua folder:
