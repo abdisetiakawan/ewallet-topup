@@ -1,0 +1,15 @@
+/* Step panel slide-in animation */
+.step-panel {
+  animation: slide-in-right 0.28s cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

@@ -32,3 +32,13 @@ export interface RegisterRequest {
   email: string;
   password: string;
 }
+
+export interface EmailChangeResponse {
+  newEmail: string;
+  expiresInMinutes: number;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+}

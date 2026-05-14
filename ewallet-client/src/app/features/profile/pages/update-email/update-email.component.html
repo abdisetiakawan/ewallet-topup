@@ -1,0 +1,235 @@
+<div class="bg-background font-[Inter,sans-serif] text-on-background min-h-screen flex flex-col">
+
+  <!-- Contextual App Bar -->
+  <header class="flex justify-between items-center px-[16px] h-16 w-full bg-surface border-b border-outline-variant/30 sticky top-0 z-50">
+    <button
+      type="button"
+      (click)="goBack()"
+      class="text-on-surface hover:opacity-80 transition-opacity duration-200 p-2 -ml-2 rounded-full flex items-center justify-center"
+      aria-label="Kembali">
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+    </button>
+    <h1 class="text-[24px] leading-[32px] font-semibold text-on-surface">Ganti Email</h1>
+    <div class="w-10"></div>
+  </header>
+
+  <!-- ═══════════════════════════ STEP 1 — REQUEST ═══════════════════════════ -->
+  @if (step === 'request') {
+    <div class="step-panel flex-1 flex flex-col">
+
+      <!-- Illustration -->
+      <section class="flex flex-col items-center mt-[40px] mb-[32px] px-[16px]">
+        <div class="w-20 h-20 rounded-full bg-primary-fixed/20 flex items-center justify-center mb-[16px] ring-8 ring-primary-fixed/10">
+          <span class="material-symbols-outlined text-primary text-[40px]" style="font-variation-settings: 'FILL' 1;">mark_email_unread</span>
+        </div>
+        <p class="text-[14px] leading-[20px] text-center text-on-surface-variant max-w-[280px]">
+          Masukkan alamat email baru. Kami akan mengirimkan kode verifikasi ke email tersebut.
+        </p>
+      </section>
+
+      <!-- Form -->
+      <form id="requestForm" #requestForm="ngForm" (ngSubmit)="onRequestSubmit(requestForm)" class="flex-1 flex flex-col pb-[100px]">
+        <section class="px-[16px] mb-[24px]">
+          <div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-outline-variant/30 p-[24px] flex flex-col gap-[24px]">
+
+            <!-- Current Email (info only) -->
+            <div class="flex flex-col gap-[6px]">
+              <span class="text-[12px] font-medium tracking-[0.05em] uppercase text-on-surface-variant/60">Email Saat Ini</span>
+              <div class="flex items-center gap-[10px] px-[12px] py-[10px] bg-surface rounded-lg border border-outline-variant/50">
+                <span class="material-symbols-outlined text-outline text-[18px]" style="font-variation-settings: 'FILL' 1;">mail</span>
+                <span class="text-[14px] text-outline truncate">{{ currentEmail }}</span>
+              </div>
+            </div>
+
+            <!-- New Email Input -->
+            <div class="flex flex-col gap-[8px]">
+              <label for="update-email-new" class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface-variant">
+                Email Baru
+              </label>
+              <div class="relative flex items-center">
+                <span class="material-symbols-outlined absolute left-3 text-outline text-[20px]">alternate_email</span>
+                <input
+                  id="update-email-new"
+                  name="newEmail"
+                  type="email"
+                  required
+                  email
+                  [(ngModel)]="newEmail"
+                  #newEmailInput="ngModel"
+                  placeholder="contoh@email.com"
+                  autocomplete="off"
+                  class="w-full h-12 pl-10 pr-4 bg-surface rounded-lg border text-on-surface text-[16px] leading-[24px] focus:ring-2 focus:ring-primary-fixed-dim outline-none transition-all placeholder:text-outline-variant"
+                  [class.border-error]="newEmailInput.invalid && newEmailInput.touched"
+                  [class.border-outline-variant]="!(newEmailInput.invalid && newEmailInput.touched)" />
+              </div>
+              @if (newEmailInput.invalid && newEmailInput.touched) {
+                @if (newEmailInput.errors?.['required']) {
+                  <span class="text-[12px] text-error flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">error</span>
+                    Email tidak boleh kosong
+                  </span>
+                } @else if (newEmailInput.errors?.['email']) {
+                  <span class="text-[12px] text-error flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">error</span>
+                    Format email tidak valid
+                  </span>
+                }
+              }
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Error -->
+        @if (error$ | async; as error) {
+          <section class="px-[16px] mb-[16px]">
+            <div class="flex items-start gap-[10px] bg-error-container/60 border border-error/30 rounded-xl p-[14px]">
+              <span class="material-symbols-outlined text-error text-[18px] mt-[1px] shrink-0">warning</span>
+              <p class="text-[13px] text-error leading-[18px]">{{ error }}</p>
+            </div>
+          </section>
+        }
+      </form>
+
+      <!-- Sticky Bottom -->
+      <div class="fixed bottom-0 w-full max-w-[480px] p-[16px] bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant/30 z-40">
+        <button
+          id="update-email-send-code"
+          type="submit"
+          form="requestForm"
+          [disabled]="loading$ | async"
+          class="w-full h-12 bg-primary hover:bg-surface-tint text-on-primary text-[14px] leading-[20px] font-medium tracking-[0.05em] rounded-xl shadow-sm transition-all active:scale-95 duration-100 flex items-center justify-center gap-[8px] disabled:opacity-60 disabled:cursor-not-allowed">
+          @if (loading$ | async) {
+            <span class="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+            Mengirim Kode...
+          } @else {
+            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">send</span>
+            Kirim Kode Verifikasi
+          }
+        </button>
+      </div>
+
+    </div>
+  }
+
+  <!-- ═══════════════════════════ STEP 2 — CONFIRM ══════════════════════════ -->
+  @if (step === 'confirm') {
+    <div class="step-panel flex-1 flex flex-col">
+
+      <!-- Illustration -->
+      <section class="flex flex-col items-center mt-[40px] mb-[32px] px-[16px]">
+        <div class="relative w-20 h-20 rounded-full bg-secondary-fixed/30 flex items-center justify-center mb-[16px] ring-8 ring-secondary-fixed/10">
+          <span class="material-symbols-outlined text-secondary text-[40px]" style="font-variation-settings: 'FILL' 1;">forward_to_inbox</span>
+          <!-- Pulse badge -->
+          <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+            <span class="material-symbols-outlined text-on-primary text-[11px]" style="font-variation-settings: 'FILL' 1;">check</span>
+          </span>
+        </div>
+        <h2 class="text-[18px] font-semibold text-on-surface mb-[6px]">Cek Kotak Masuk Anda</h2>
+        <p class="text-[13px] leading-[20px] text-center text-on-surface-variant max-w-[280px]">
+          Kode verifikasi telah dikirim ke
+        </p>
+        <span class="text-[14px] font-semibold text-primary mt-[4px]">{{ pendingEmail }}</span>
+      </section>
+
+      <!-- Form -->
+      <form id="confirmForm" #confirmForm="ngForm" (ngSubmit)="onConfirmSubmit(confirmForm)" class="flex-1 flex flex-col pb-[100px]">
+        <section class="px-[16px] mb-[24px]">
+          <div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-outline-variant/30 p-[24px] flex flex-col gap-[20px]">
+
+            <!-- Token Input -->
+            <div class="flex flex-col gap-[8px]">
+              <label for="update-email-token" class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface-variant">
+                Kode Verifikasi
+              </label>
+              <div class="relative flex items-center">
+                <span class="material-symbols-outlined absolute left-3 text-outline text-[20px]" style="font-variation-settings: 'FILL' 1;">pin</span>
+                <input
+                  id="update-email-token"
+                  name="token"
+                  type="text"
+                  required
+                  minlength="1"
+                  [(ngModel)]="token"
+                  #tokenInput="ngModel"
+                  placeholder="Masukkan kode verifikasi"
+                  autocomplete="one-time-code"
+                  class="w-full h-14 pl-10 pr-4 bg-surface rounded-lg border text-on-surface text-[18px] leading-[24px] font-mono tracking-[0.2em] focus:ring-2 focus:ring-primary-fixed-dim outline-none transition-all placeholder:text-outline-variant placeholder:font-sans placeholder:tracking-normal"
+                  [class.border-error]="tokenInput.invalid && tokenInput.touched"
+                  [class.border-outline-variant]="!(tokenInput.invalid && tokenInput.touched)" />
+              </div>
+              @if (tokenInput.invalid && tokenInput.touched) {
+                <span class="text-[12px] text-error flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[14px]">error</span>
+                  Kode verifikasi tidak boleh kosong
+                </span>
+              }
+            </div>
+
+            <!-- Countdown & Resend -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-[6px]">
+                <span class="material-symbols-outlined text-outline text-[16px]">timer</span>
+                @if (countdown > 0) {
+                  <span class="text-[13px] text-on-surface-variant">
+                    Kode berlaku: <span class="font-semibold text-primary">{{ formattedCountdown }}</span>
+                  </span>
+                } @else {
+                  <span class="text-[13px] text-error">Kode sudah kedaluwarsa</span>
+                }
+              </div>
+              <button
+                type="button"
+                (click)="resendCode()"
+                [disabled]="countdown > 0"
+                class="text-[13px] font-semibold text-primary hover:text-primary/70 transition-colors disabled:text-outline disabled:cursor-not-allowed">
+                Kirim Ulang
+              </button>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Info hint -->
+        <section class="px-[16px] mb-[16px]">
+          <div class="flex items-start gap-[10px] bg-primary-fixed/10 border border-primary-fixed/30 rounded-xl p-[14px]">
+            <span class="material-symbols-outlined text-primary text-[18px] mt-[1px] shrink-0" style="font-variation-settings: 'FILL' 1;">info</span>
+            <p class="text-[12px] text-on-surface-variant leading-[18px]">
+              Tidak menemukan email? Periksa folder <span class="font-semibold">Spam</span> atau <span class="font-semibold">Junk</span> Anda.
+            </p>
+          </div>
+        </section>
+
+        <!-- Error -->
+        @if (error$ | async; as error) {
+          <section class="px-[16px] mb-[16px]">
+            <div class="flex items-start gap-[10px] bg-error-container/60 border border-error/30 rounded-xl p-[14px]">
+              <span class="material-symbols-outlined text-error text-[18px] mt-[1px] shrink-0">warning</span>
+              <p class="text-[13px] text-error leading-[18px]">{{ error }}</p>
+            </div>
+          </section>
+        }
+      </form>
+
+      <!-- Sticky Bottom -->
+      <div class="fixed bottom-0 w-full max-w-[480px] p-[16px] bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant/30 z-40">
+        <button
+          id="update-email-confirm"
+          type="submit"
+          form="confirmForm"
+          [disabled]="loading$ | async"
+          class="w-full h-12 bg-primary hover:bg-surface-tint text-on-primary text-[14px] leading-[20px] font-medium tracking-[0.05em] rounded-xl shadow-sm transition-all active:scale-95 duration-100 flex items-center justify-center gap-[8px] disabled:opacity-60 disabled:cursor-not-allowed">
+          @if (loading$ | async) {
+            <span class="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+            Memverifikasi...
+          } @else {
+            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+            Konfirmasi Perubahan
+          }
+        </button>
+      </div>
+
+    </div>
+  }
+
+</div>

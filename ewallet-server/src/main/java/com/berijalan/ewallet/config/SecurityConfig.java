@@ -55,6 +55,7 @@ public class SecurityConfig {
                                 .requestMatchers("/api/wallet/**").hasRole("CUSTOMER")
                                 .requestMatchers("/api/transactions/**").hasRole("CUSTOMER")
                                 .requestMatchers("/api/merchants/**").hasRole("CUSTOMER")
+                                .requestMatchers("/api/users/**").hasRole("CUSTOMER")
                                 .anyRequest().authenticated()
                 );
 

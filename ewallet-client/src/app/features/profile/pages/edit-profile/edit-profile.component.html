@@ -14,7 +14,7 @@
   </header>
 
   <!-- Scrollable Content -->
-  <div class="flex-1 overflow-y-auto pb-[80px]">
+  <form id="editForm" #editForm="ngForm" (ngSubmit)="onSubmit(editForm)" class="flex-1 overflow-y-auto pb-[80px]">
 
     <!-- Profile Picture Section -->
     <section class="flex flex-col items-center mt-[32px] mb-[24px] px-[16px]">
@@ -39,65 +39,94 @@
 
         <!-- Full Name Input -->
         <div class="flex flex-col gap-[8px]">
-          <label class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface-variant">
+          <label for="edit-profile-name" class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface-variant">
             Ganti Nama
           </label>
           <div class="relative flex items-center">
             <span class="material-symbols-outlined absolute left-3 text-outline">person</span>
             <input
               id="edit-profile-name"
+              name="name"
               type="text"
+              required
+              [(ngModel)]="name"
               placeholder="Masukkan nama lengkap"
-              value="Budi Santoso"
-              class="w-full h-12 pl-10 pr-4 bg-surface rounded-lg border border-outline-variant text-on-surface text-[16px] leading-[24px] focus:border-primary focus:ring-2 focus:ring-primary-fixed-dim outline-none transition-all placeholder:text-outline-variant" />
+              #nameInput="ngModel"
+              class="w-full h-12 pl-10 pr-4 bg-surface rounded-lg border text-on-surface text-[16px] leading-[24px] focus:ring-2 focus:ring-primary-fixed-dim outline-none transition-all placeholder:text-outline-variant"
+              [class.border-error]="nameInput.invalid && nameInput.touched"
+              [class.border-outline-variant]="!(nameInput.invalid && nameInput.touched)"
+              [class.focus:border-primary]="!(nameInput.invalid && nameInput.touched)" />
           </div>
+          @if (nameInput.invalid && nameInput.touched) {
+            <span class="text-[12px] text-error">Nama tidak boleh kosong</span>
+          }
         </div>
 
-        <!-- Email Address Input -->
+        <!-- Email — navigasi ke halaman ganti email -->
         <div class="flex flex-col gap-[8px]">
           <label class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface-variant">
-            Ganti Email
+            Email
           </label>
-          <div class="relative flex items-center">
-            <span class="material-symbols-outlined absolute left-3 text-outline">mail</span>
-            <input
-              id="edit-profile-email"
-              type="email"
-              placeholder="Masukkan alamat email"
-              value="budi.santoso@walletpay.com"
-              class="w-full h-12 pl-10 pr-4 bg-surface rounded-lg border border-outline-variant text-on-surface text-[16px] leading-[24px] focus:border-primary focus:ring-2 focus:ring-primary-fixed-dim outline-none transition-all placeholder:text-outline-variant" />
-          </div>
+          <button
+            id="edit-profile-change-email"
+            type="button"
+            routerLink="/account/update-email"
+            class="w-full h-12 flex items-center justify-between pl-3 pr-4 bg-surface rounded-lg border border-outline-variant hover:border-outline-variant/80 hover:bg-surface-container transition-all group">
+            <div class="flex items-center gap-[10px] min-w-0">
+              <span class="material-symbols-outlined text-outline text-[20px]" style="font-variation-settings: 'FILL' 1;">mail</span>
+              <span class="text-[15px] text-on-surface truncate">{{ email }}</span>
+            </div>
+            <div class="flex items-center gap-[4px] shrink-0 ml-2">
+              <span class="text-[11px] font-medium text-primary bg-primary-fixed/30 px-[8px] py-[2px] rounded-full">Ganti</span>
+              <span class="material-symbols-outlined text-outline-variant text-[18px] group-hover:text-on-surface transition-colors">chevron_right</span>
+            </div>
+          </button>
         </div>
 
       </div>
     </section>
 
-    <!-- Reset Password Action -->
+    <!-- Error Message -->
+    @if (error$ | async; as error) {
+      <section class="px-[16px] mb-[16px]">
+        <p class="text-[14px] text-error text-center">{{ error }}</p>
+      </section>
+    }
+
+    <!-- Change Password Action -->
     <section class="px-[16px] mb-[32px]">
       <button
         type="button"
+        routerLink="/account/change-password"
         class="w-full h-16 bg-surface-container-lowest shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-outline-variant/30 hover:border-outline-variant/60 rounded-xl flex items-center justify-between px-[16px] transition-all group"
-        aria-label="Reset Kata Sandi">
+        aria-label="Ganti Kata Sandi">
         <div class="flex items-center gap-[16px]">
           <div class="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed group-hover:bg-secondary-fixed-dim transition-colors">
             <span class="material-symbols-outlined text-[20px]">lock_reset</span>
           </div>
-          <span class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface">Reset Kata Sandi</span>
+          <span class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-on-surface">Ganti Kata Sandi</span>
         </div>
         <span class="material-symbols-outlined text-outline-variant group-hover:text-on-surface transition-colors">chevron_right</span>
       </button>
     </section>
 
-  </div>
+  </form>
 
   <!-- Sticky Bottom Action Button -->
   <div class="fixed bottom-0 w-full max-w-[480px] p-[16px] bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant/30 z-40">
     <button
       id="edit-profile-save"
-      type="button"
-      class="w-full h-12 bg-primary hover:bg-surface-tint text-on-primary text-[14px] leading-[20px] font-medium tracking-[0.05em] rounded-xl shadow-sm transition-all active:scale-95 duration-100 flex items-center justify-center gap-[8px]">
-      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">save</span>
-      Simpan Perubahan
+      type="submit"
+      form="editForm"
+      [disabled]="loading$ | async"
+      class="w-full h-12 bg-primary hover:bg-surface-tint text-on-primary text-[14px] leading-[20px] font-medium tracking-[0.05em] rounded-xl shadow-sm transition-all active:scale-95 duration-100 flex items-center justify-center gap-[8px] disabled:opacity-60 disabled:cursor-not-allowed">
+      @if (loading$ | async) {
+        <span class="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+        Menyimpan...
+      } @else {
+        <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">save</span>
+        Simpan Perubahan
+      }
     </button>
   </div>
 
