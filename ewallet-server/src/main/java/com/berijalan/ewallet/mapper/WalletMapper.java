@@ -4,6 +4,7 @@ import com.berijalan.ewallet.dto.response.ResTopupDto;
 import com.berijalan.ewallet.dto.response.ResWalletBalanceDto;
 import com.berijalan.ewallet.entity.Transaction;
 import com.berijalan.ewallet.entity.Wallet;
+import com.berijalan.ewallet.service.WalletBalanceCache;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,6 +17,10 @@ public class WalletMapper implements BaseMapper<Wallet, ResWalletBalanceDto> {
 
     public ResWalletBalanceDto toBalanceDto(Wallet wallet) {
         return toDto(wallet);
+    }
+
+    public ResWalletBalanceDto toBalanceDto(WalletBalanceCache cache) {
+        return new ResWalletBalanceDto(cache.balance(), cache.updatedAt());
     }
 
     public ResTopupDto toTopupDto(Transaction transaction) {

@@ -1,6 +1,5 @@
 package com.berijalan.ewallet.service;
 
-import com.berijalan.ewallet.dto.response.ResWalletBalanceDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,7 @@ public class WalletCacheService {
     @Value("${app.cache.wallet.ttl-minutes:30}")
     private long ttlMinutes;
 
-    public ResWalletBalanceDto get(Long userId) {
+    public WalletBalanceCache get(Long userId) {
         try {
             Object raw = redisTemplate.opsForValue().get(buildKey(userId));
             if (raw == null) {
@@ -34,7 +33,7 @@ public class WalletCacheService {
                 return null;
             }
             log.debug("Cache hit: wallet balance for userId={}", userId);
-            return objectMapper.convertValue(raw, ResWalletBalanceDto.class);
+            return objectMapper.convertValue(raw, WalletBalanceCache.class);
         } catch (Exception e) {
             log.warn("Failed to read wallet cache for userId={}, falling back to DB. Cause: {}", userId, e.getMessage());
             return null;
@@ -45,7 +44,7 @@ public class WalletCacheService {
         try {
             redisTemplate.opsForValue().set(
                     buildKey(userId),
-                    new ResWalletBalanceDto(balance, updatedAt),
+                    new WalletBalanceCache(balance, updatedAt),
                     Duration.ofMinutes(ttlMinutes)
             );
             log.debug("Cached wallet balance for userId={}, balance={}", userId, balance);

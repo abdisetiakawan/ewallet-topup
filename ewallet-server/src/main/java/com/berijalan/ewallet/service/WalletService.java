@@ -32,9 +32,9 @@ public class WalletService {
     private final WalletMapper walletMapper;
 
     public ResWalletBalanceDto getBalance(Long userId) {
-        ResWalletBalanceDto cached = walletCacheService.get(userId);
+        WalletBalanceCache cached = walletCacheService.get(userId);
         if (cached != null) {
-            return cached;
+            return walletMapper.toBalanceDto(cached);
         }
 
         Wallet wallet = walletRepository.findByUserId(userId)
