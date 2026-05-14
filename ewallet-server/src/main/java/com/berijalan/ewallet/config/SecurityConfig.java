@@ -52,6 +52,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("/api/auth/**").permitAll()
                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                .requestMatchers("/api/wallet/**").hasRole("CUSTOMER")
+                                .requestMatchers("/api/transactions/**").hasRole("CUSTOMER")
+                                .requestMatchers("/api/merchants/**").hasRole("CUSTOMER")
                                 .anyRequest().authenticated()
                 );
 
