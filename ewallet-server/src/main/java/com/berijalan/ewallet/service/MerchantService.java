@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +33,7 @@ public class MerchantService {
                                     tax.getValueType().name(),
                                     tax.getTaxValue()
                             ))
-                            .collect(Collectors.toList());
+                            .toList();
 
                     return new ResMerchantDto(
                             merchant.getId(),
@@ -43,6 +42,6 @@ public class MerchantService {
                             taxDtos
                     );
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 }
