@@ -1,9 +1,8 @@
 package com.berijalan.ewallet.exception;
 
-import com.berijalan.ewallet.config.MdcFilter;
+import com.berijalan.ewallet.common.web.ApiResponseFactory;
 import com.berijalan.ewallet.dto.response.BaseResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -18,19 +17,10 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    private String getRequestId() {
-        String requestId = MDC.get(MdcFilter.REQUEST_ID);
-        if (requestId == null) {
-            requestId = "req-" + UUID.randomUUID().toString();
-        }
-        return requestId;
-    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<BaseResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -50,14 +40,7 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        BaseResponse<Map<String, String>> response = new BaseResponse<>(
-                getRequestId(),
-                false,
-                "Validation Error",
-                errors
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return error(HttpStatus.BAD_REQUEST, "Validation Error", errors);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -70,86 +53,44 @@ public class GlobalExceptionHandler {
         Map<String, String> errors = new HashMap<>();
         errors.put(ex.getName(), message);
 
-        BaseResponse<Map<String, String>> response = new BaseResponse<>(
-                getRequestId(),
-                false,
-                "Validation Error",
-                errors
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return error(HttpStatus.BAD_REQUEST, "Validation Error", errors);
     }
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<BaseResponse<Void>> handleBadRequestException(BadRequestException ex) {
-        BaseResponse<Void> response = new BaseResponse<>(
-                getRequestId(),
-                false,
-                ex.getMessage(),
-                null
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
     @ExceptionHandler({UnauthorizedException.class, AuthenticationException.class})
     public ResponseEntity<BaseResponse<Void>> handleUnauthorizedException(Exception ex) {
-        BaseResponse<Void> response = new BaseResponse<>(
-                getRequestId(),
-                false,
-                ex.getMessage() != null && !ex.getMessage().isEmpty() ? ex.getMessage() : "Unauthorized",
-                null
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        String message = ex.getMessage() != null && !ex.getMessage().isEmpty() ? ex.getMessage() : "Unauthorized";
+        return error(HttpStatus.UNAUTHORIZED, message, null);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<BaseResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
-        BaseResponse<Void> response = new BaseResponse<>(
-                getRequestId(),
-                false,
-                "Access Denied",
-                null
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+        return error(HttpStatus.FORBIDDEN, "Access Denied", null);
     }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<BaseResponse<Void>> handleNotFoundException(NotFoundException ex) {
-        BaseResponse<Void> response = new BaseResponse<>(
-                getRequestId(),
-                false,
-                ex.getMessage(),
-                null
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        return error(HttpStatus.NOT_FOUND, ex.getMessage(), null);
     }
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<BaseResponse<Void>> handleConflictException(ConflictException ex) {
-        BaseResponse<Void> response = new BaseResponse<>(
-                getRequestId(),
-                false,
-                ex.getMessage(),
-                null
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+        return error(HttpStatus.CONFLICT, ex.getMessage(), null);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseResponse<Void>> handleGlobalException(Exception ex) {
         log.error("Internal Server Error", ex);
-        BaseResponse<Void> response = new BaseResponse<>(
-                getRequestId(),
-                false,
-                "Internal Server Error",
-                null
-        );
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+    }
 
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    private <T> ResponseEntity<BaseResponse<T>> error(HttpStatus status, String message, T data) {
+        return ResponseEntity
+                .status(status)
+                .body(ApiResponseFactory.error(message, data));
     }
 }
