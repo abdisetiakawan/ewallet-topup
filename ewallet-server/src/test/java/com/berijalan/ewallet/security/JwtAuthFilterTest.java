@@ -36,7 +36,7 @@ class JwtAuthFilterTest {
         when(jwtUtils.validateJwtToken(token)).thenReturn(true);
         when(jwtUtils.getUserIdFromJwtToken(token)).thenReturn("42");
         when(userDetailsService.loadUserById(42L))
-                .thenReturn(new UserDetailsImpl(42L, "Admin", "admin@example.com", RoleName.ADMIN, null));
+                .thenReturn(new UserDetailsImpl(42L, "Admin", "admin@example.com", RoleName.ADMIN, null, "password"));
 
         jwtAuthFilter.doFilter(request, response, filterChain);
 

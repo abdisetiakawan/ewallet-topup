@@ -8,6 +8,7 @@ import com.berijalan.ewallet.entity.Wallet;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.mapper.WalletMapper;
 import com.berijalan.ewallet.repository.TransactionRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
@@ -34,6 +36,12 @@ class WalletServiceTest {
 
     @Mock
     private TransactionRepository transactionRepository;
+
+    @Mock
+    private WalletCacheService walletCacheService;
+
+    @Spy
+    private WalletMapper walletMapper = new WalletMapper();
 
     @InjectMocks
     private WalletService walletService;
