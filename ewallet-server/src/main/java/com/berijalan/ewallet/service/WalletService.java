@@ -14,6 +14,7 @@ import com.berijalan.ewallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -26,12 +27,18 @@ public class WalletService {
 
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
+    private final WalletCacheService walletCacheService;
 
     public ResWalletBalanceDto getBalance(Long userId) {
+        ResWalletBalanceDto cached = walletCacheService.get(userId);
+        if (cached != null) return cached;
+
         Wallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new NotFoundException("Wallet not found"));
 
-        return new ResWalletBalanceDto(wallet.getBalance(), wallet.getUpdatedAt());
+        ResWalletBalanceDto result = new ResWalletBalanceDto(wallet.getBalance(), wallet.getUpdatedAt());
+        walletCacheService.put(userId, wallet.getBalance(), wallet.getUpdatedAt());
+        return result;
     }
 
     @Transactional
@@ -47,6 +54,7 @@ public class WalletService {
 
         wallet.setBalance(balanceAfter);
         walletRepository.save(wallet);
+        walletCacheService.putAfterCommit(userId, balanceAfter, LocalDateTime.now());
 
         Transaction transaction = new Transaction();
         transaction.setUser(user);

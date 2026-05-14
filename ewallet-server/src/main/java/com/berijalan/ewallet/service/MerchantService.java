@@ -16,12 +16,16 @@ import java.util.stream.Collectors;
 public class MerchantService {
 
     private final MerchantRepository merchantRepository;
+    private final MerchantCacheService merchantCacheService;
 
     @Transactional(readOnly = true)
     public List<ResMerchantDto> getAllActiveMerchants() {
+        List<ResMerchantDto> cached = merchantCacheService.get();
+        if (cached != null) return cached;
+
         List<Merchant> merchants = merchantRepository.findAll();
-        
-        return merchants.stream()
+
+        List<ResMerchantDto> result = merchants.stream()
                 .filter(Merchant::getIsActive)
                 .map(merchant -> {
                     List<ResMerchantTaxDto> taxDtos = merchant.getTaxes().stream()
@@ -42,5 +46,8 @@ public class MerchantService {
                     );
                 })
                 .collect(Collectors.toList());
+
+        merchantCacheService.put(result);
+        return result;
     }
 }

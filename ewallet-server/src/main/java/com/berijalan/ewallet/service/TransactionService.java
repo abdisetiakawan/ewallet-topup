@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -48,6 +49,7 @@ public class TransactionService {
     private final MerchantRepository merchantRepository;
     private final MerchantTaxRepository merchantTaxRepository;
     private final ObjectMapper objectMapper;
+    private final WalletCacheService walletCacheService;
 
     @Transactional
     public ResPaymentDto pay(ReqPayDto request, Long userId) {
@@ -91,6 +93,7 @@ public class TransactionService {
         long balanceBefore = wallet.getBalance();
         long balanceAfter = balanceBefore - finalAmount;
         wallet.setBalance(balanceAfter);
+        walletCacheService.putAfterCommit(userId, balanceAfter, LocalDateTime.now());
 
         Transaction transaction = new Transaction();
         transaction.setReferenceId(referenceId);

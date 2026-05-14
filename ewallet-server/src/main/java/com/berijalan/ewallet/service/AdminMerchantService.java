@@ -31,6 +31,7 @@ public class AdminMerchantService {
 
     private final MerchantRepository merchantRepository;
     private final MerchantTaxRepository merchantTaxRepository;
+    private final MerchantCacheService merchantCacheService;
 
     @Transactional(readOnly = true)
     public List<ResAdminMerchantDto> getAllMerchants() {
@@ -55,7 +56,9 @@ public class AdminMerchantService {
 
         upsertTaxes(merchant, List.of(), normalizeTaxes(request));
 
-        return toDto(merchant, merchantTaxRepository.findByMerchantId(merchant.getId()));
+        ResAdminMerchantDto response = toDto(merchant, merchantTaxRepository.findByMerchantId(merchant.getId()));
+        merchantCacheService.evict();
+        return response;
     }
 
     @Transactional
@@ -69,7 +72,9 @@ public class AdminMerchantService {
         List<MerchantTax> existingTaxes = merchantTaxRepository.findByMerchantId(id);
         upsertTaxes(merchant, existingTaxes, normalizeTaxes(request));
 
-        return toDto(merchant, merchantTaxRepository.findByMerchantId(id));
+        ResAdminMerchantDto response = toDto(merchant, merchantTaxRepository.findByMerchantId(id));
+        merchantCacheService.evict();
+        return response;
     }
 
     private Merchant findMerchant(Long id) {
