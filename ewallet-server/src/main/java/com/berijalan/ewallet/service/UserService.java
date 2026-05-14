@@ -6,6 +6,7 @@ import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.mapper.UserMapper;
 import com.berijalan.ewallet.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,13 +21,14 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public ResUserSummaryDto getProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        return ResUserSummaryDto.from(user);
+        return userMapper.toSummaryDto(user);
     }
 
     @Transactional
@@ -37,7 +39,7 @@ public class UserService {
         user.setName(request.name());
         userRepository.save(user);
 
-        return ResUserSummaryDto.from(user);
+        return userMapper.toSummaryDto(user);
     }
 
     @Transactional

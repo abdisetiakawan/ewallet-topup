@@ -1,7 +1,6 @@
 package com.berijalan.ewallet.repository;
 
 import com.berijalan.ewallet.entity.Transaction;
-import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
 import org.springframework.data.domain.Page;

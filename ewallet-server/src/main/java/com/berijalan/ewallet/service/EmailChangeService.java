@@ -6,6 +6,7 @@ import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.ConflictException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.mapper.UserMapper;
 import com.berijalan.ewallet.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ public class EmailChangeService {
     private final StringRedisTemplate redisTemplate;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final UserMapper userMapper;
 
     @Value("${app.email-change.ttl-minutes:15}")
     private int ttlMinutes;
@@ -86,7 +88,7 @@ public class EmailChangeService {
 
         log.info("Email changed successfully for userId={} to newEmail={}", userId, newEmail);
 
-        return ResUserSummaryDto.from(user);
+        return userMapper.toSummaryDto(user);
     }
 
     private void revokePendingRequest(Long userId) {

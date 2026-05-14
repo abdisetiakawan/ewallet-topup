@@ -1,8 +1,7 @@
 package com.berijalan.ewallet.service;
 
 import com.berijalan.ewallet.dto.response.ResMerchantDto;
-import com.berijalan.ewallet.dto.response.ResMerchantTaxDto;
-import com.berijalan.ewallet.entity.Merchant;
+import com.berijalan.ewallet.mapper.MerchantMapper;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
@@ -16,32 +15,11 @@ import java.util.List;
 public class MerchantService {
 
     private final MerchantRepository merchantRepository;
+    private final MerchantMapper merchantMapper;
 
     @Cacheable(value = "merchants:active", key = "'all'")
     @Transactional(readOnly = true)
     public List<ResMerchantDto> getAllActiveMerchants() {
-        List<Merchant> merchants = merchantRepository.findAll();
-
-        return merchants.stream()
-                .filter(Merchant::getIsActive)
-                .map(merchant -> {
-                    List<ResMerchantTaxDto> taxDtos = merchant.getTaxes().stream()
-                            .filter(tax -> tax.getIsActive())
-                            .map(tax -> new ResMerchantTaxDto(
-                                    tax.getTaxName(),
-                                    tax.getTaxType().name(),
-                                    tax.getValueType().name(),
-                                    tax.getTaxValue()
-                            ))
-                            .toList();
-
-                    return new ResMerchantDto(
-                            merchant.getId(),
-                            merchant.getName(),
-                            merchant.getIsActive(),
-                            taxDtos
-                    );
-                })
-                .toList();
+        return merchantMapper.toActiveDtos(merchantRepository.findAll());
     }
 }

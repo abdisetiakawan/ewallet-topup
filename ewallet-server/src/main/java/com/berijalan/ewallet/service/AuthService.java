@@ -7,11 +7,12 @@ import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
 import com.berijalan.ewallet.exception.BadRequestException;
-import com.berijalan.ewallet.exception.NotFoundException;
 import com.berijalan.ewallet.exception.UnauthorizedException;
+import com.berijalan.ewallet.mapper.UserMapper;
 import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import com.berijalan.ewallet.security.JwtUtils;
+import com.berijalan.ewallet.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,7 +22,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.berijalan.ewallet.security.UserDetailsImpl;
 
 @Slf4j
 @Service
@@ -34,6 +34,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final RefreshTokenService refreshTokenService;
+    private final UserMapper userMapper;
 
     @Transactional
     public ResUserSummaryDto register(ReqRegisterDto request) {
@@ -54,7 +55,7 @@ public class AuthService {
 
         walletRepository.save(wallet);
 
-        return ResUserSummaryDto.from(user);
+        return userMapper.toSummaryDto(user);
     }
 
     public LoginResult login(ReqLoginDto request) {
@@ -70,14 +71,7 @@ public class AuthService {
 
         String refreshToken = refreshTokenService.create(user.getId());
 
-        ResUserSummaryDto userSummary = ResUserSummaryDto.from(user);
-
-        ResLoginDto loginDto = new ResLoginDto(
-                accessToken,
-                "Bearer",
-                jwtUtils.getAccessTokenTtlSeconds(),
-                userSummary
-        );
+        ResLoginDto loginDto = userMapper.toLoginDto(accessToken, jwtUtils.getAccessTokenTtlSeconds(), user);
 
         return new LoginResult(loginDto, refreshToken);
     }
