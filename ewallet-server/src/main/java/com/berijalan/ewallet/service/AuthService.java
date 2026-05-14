@@ -67,11 +67,10 @@ public class AuthService {
         String accessToken = jwtUtils.generateJwtToken(authentication);
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userDetails.getUser();
 
-        String refreshToken = refreshTokenService.create(user.getId());
+        String refreshToken = refreshTokenService.create(userDetails.getId());
 
-        ResLoginDto loginDto = userMapper.toLoginDto(accessToken, jwtUtils.getAccessTokenTtlSeconds(), user);
+        ResLoginDto loginDto = userMapper.toLoginDto(accessToken, jwtUtils.getAccessTokenTtlSeconds(), userDetails);
 
         return new LoginResult(loginDto, refreshToken);
     }

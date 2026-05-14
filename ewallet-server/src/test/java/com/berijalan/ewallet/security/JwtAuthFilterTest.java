@@ -9,6 +9,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -36,7 +38,14 @@ class JwtAuthFilterTest {
         when(jwtUtils.validateJwtToken(token)).thenReturn(true);
         when(jwtUtils.getUserIdFromJwtToken(token)).thenReturn("42");
         when(userDetailsService.loadUserById(42L))
-                .thenReturn(new UserDetailsImpl(42L, "Admin", "admin@example.com", RoleName.ADMIN, null, "password"));
+                .thenReturn(new UserDetailsImpl(
+                        42L,
+                        "Admin",
+                        "admin@example.com",
+                        RoleName.ADMIN,
+                        LocalDateTime.of(2026, 1, 1, 0, 0),
+                        "password"
+                ));
 
         jwtAuthFilter.doFilter(request, response, filterChain);
 
