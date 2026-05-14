@@ -12,6 +12,7 @@ import com.berijalan.ewallet.exception.NotFoundException;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.MerchantTaxRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +32,6 @@ public class AdminMerchantService {
 
     private final MerchantRepository merchantRepository;
     private final MerchantTaxRepository merchantTaxRepository;
-    private final MerchantCacheService merchantCacheService;
 
     @Transactional(readOnly = true)
     public List<ResAdminMerchantDto> getAllMerchants() {
@@ -45,6 +45,7 @@ public class AdminMerchantService {
         return toDto(findMerchant(id));
     }
 
+    @CacheEvict(value = "merchants:active", key = "'all'")
     @Transactional
     public ResAdminMerchantDto createMerchant(ReqAdminMerchantConfigDto request) {
         validateConfig(request);
@@ -56,11 +57,10 @@ public class AdminMerchantService {
 
         upsertTaxes(merchant, List.of(), normalizeTaxes(request));
 
-        ResAdminMerchantDto response = toDto(merchant, merchantTaxRepository.findByMerchantId(merchant.getId()));
-        merchantCacheService.evict();
-        return response;
+        return toDto(merchant, merchantTaxRepository.findByMerchantId(merchant.getId()));
     }
 
+    @CacheEvict(value = "merchants:active", key = "'all'")
     @Transactional
     public ResAdminMerchantDto updateMerchant(Long id, ReqAdminMerchantConfigDto request) {
         validateConfig(request);
@@ -72,9 +72,7 @@ public class AdminMerchantService {
         List<MerchantTax> existingTaxes = merchantTaxRepository.findByMerchantId(id);
         upsertTaxes(merchant, existingTaxes, normalizeTaxes(request));
 
-        ResAdminMerchantDto response = toDto(merchant, merchantTaxRepository.findByMerchantId(id));
-        merchantCacheService.evict();
-        return response;
+        return toDto(merchant, merchantTaxRepository.findByMerchantId(id));
     }
 
     private Merchant findMerchant(Long id) {
