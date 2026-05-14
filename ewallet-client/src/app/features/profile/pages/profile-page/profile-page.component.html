@@ -7,6 +7,7 @@
   <main class="px-[16px] pt-[24px] flex flex-col gap-[32px] max-w-lg mx-auto">
 
     <!-- Profile Header Section -->
+    @if (user$ | async; as user) {
     <section class="flex flex-col items-center gap-[16px]">
       <div class="relative">
         <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-primary-container p-1">
@@ -20,13 +21,16 @@
         </div>
       </div>
       <div class="text-center">
-        <h2 class="text-[30px] leading-[38px] font-semibold text-on-surface">Budi Santoso</h2>
+        <h2 class="text-[30px] leading-[38px] font-semibold text-on-surface">{{ user.name }}</h2>
         <div class="flex flex-col gap-[4px] mt-1">
-          <span class="text-[14px] leading-[20px] text-on-surface-variant">ID: WP-88294105</span>
-          <span class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-outline">Member Since Oct 2021</span>
+          <span class="text-[14px] leading-[20px] text-on-surface-variant">{{ user.email }}</span>
+          <span class="text-[14px] leading-[20px] font-medium tracking-[0.05em] text-outline">
+            Member Since {{ user.createdAt | date:'MMM yyyy' }}
+          </span>
         </div>
       </div>
     </section>
+    }
 
     <!-- Account Settings Group -->
     <section>
