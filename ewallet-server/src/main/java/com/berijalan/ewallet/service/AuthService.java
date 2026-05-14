@@ -21,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.berijalan.ewallet.security.UserDetailsImpl;
 
 @Slf4j
 @Service
@@ -53,13 +54,7 @@ public class AuthService {
 
         walletRepository.save(wallet);
 
-        return new ResUserSummaryDto(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getCreatedAt(),
-                user.getRole().name()
-        );
+        return ResUserSummaryDto.from(user);
     }
 
     public LoginResult login(ReqLoginDto request) {
@@ -70,18 +65,12 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String accessToken = jwtUtils.generateJwtToken(authentication);
 
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userDetails.getUser();
 
         String refreshToken = refreshTokenService.create(user.getId());
 
-        ResUserSummaryDto userSummary = new ResUserSummaryDto(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getCreatedAt(),
-                user.getRole().name()
-        );
+        ResUserSummaryDto userSummary = ResUserSummaryDto.from(user);
 
         ResLoginDto loginDto = new ResLoginDto(
                 accessToken,

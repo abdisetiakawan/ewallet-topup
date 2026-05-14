@@ -86,13 +86,7 @@ public class EmailChangeService {
 
         log.info("Email changed successfully for userId={} to newEmail={}", userId, newEmail);
 
-        return new ResUserSummaryDto(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getCreatedAt(),
-                user.getRole().name()
-        );
+        return ResUserSummaryDto.from(user);
     }
 
     private void revokePendingRequest(Long userId) {

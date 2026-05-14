@@ -21,11 +21,12 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Transactional(readOnly = true)
     public ResUserSummaryDto getProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        return toDto(user);
+        return ResUserSummaryDto.from(user);
     }
 
     @Transactional
@@ -36,17 +37,7 @@ public class UserService {
         user.setName(request.name());
         userRepository.save(user);
 
-        return toDto(user);
-    }
-
-    private ResUserSummaryDto toDto(User user) {
-        return new ResUserSummaryDto(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getCreatedAt(),
-                user.getRole().name()
-        );
+        return ResUserSummaryDto.from(user);
     }
 
     @Transactional
@@ -55,11 +46,11 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
-            throw new BadRequestException("Password lama tidak sesuai");
+            throw new BadRequestException("Old password does not match");
         }
 
         if (request.oldPassword().equals(request.newPassword())) {
-            throw new BadRequestException("Password baru tidak boleh sama dengan password lama");
+            throw new BadRequestException("New password cannot be the same as old password");
         }
 
         user.setPassword(passwordEncoder.encode(request.newPassword()));
