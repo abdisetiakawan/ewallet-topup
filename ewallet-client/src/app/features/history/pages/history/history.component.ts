@@ -1,28 +1,32 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize } from 'rxjs/operators';
+import {
+  TransactionHistoryItem,
+  TransactionStatus,
+  TransactionType,
+} from '../../../../core/models/transaction.model';
+import { TransactionApiService } from '../../../../core/services/transaction-api.service';
 import { BottomNavBarComponent } from '../../../../shared/components/bottom-nav-bar/bottom-nav-bar.component';
 import { TopAppBarComponent } from '../../../../shared/components/top-app-bar/top-app-bar.component';
 
-type HistoryType = 'ALL' | 'TOPUP' | 'PAYMENT';
-type HistoryStatus = 'SUCCESS' | 'PENDING' | 'FAILED';
+type HistoryType = 'ALL' | TransactionType;
+type HistorySort = 'NEWEST' | 'OLDEST';
 
 interface HistoryFilter {
   label: string;
   value: HistoryType;
 }
 
-interface HistoryTransaction {
-  transactionId: number;
+interface HistorySortOption {
+  label: string;
+  value: HistorySort;
+  icon: string;
+}
+
+interface HistoryTransaction extends TransactionHistoryItem {
   title: string;
-  referenceId: string;
-  amount: number;
-  taxAmount: number;
-  type: Exclude<HistoryType, 'ALL'>;
-  status: HistoryStatus;
-  description: string | null;
-  merchantName: string | null;
-  createdAt: string;
 }
 
 interface HistoryGroup {
@@ -33,91 +37,94 @@ interface HistoryGroup {
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, RouterLink, BottomNavBarComponent, TopAppBarComponent],
+  imports: [CommonModule, BottomNavBarComponent, TopAppBarComponent],
   templateUrl: './history.component.html',
   styleUrl: './history.component.css',
 })
-export class HistoryComponent {
+export class HistoryComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly pageSize = 10;
+  private requestSequence = 0;
+
   readonly filters: HistoryFilter[] = [
     { label: 'Semua', value: 'ALL' },
     { label: 'Topup', value: 'TOPUP' },
     { label: 'Payment', value: 'PAYMENT' },
   ];
+  readonly sortOptions: HistorySortOption[] = [
+    { label: 'Terbaru', value: 'NEWEST', icon: 'south' },
+    { label: 'Terlama', value: 'OLDEST', icon: 'north' },
+  ];
+  readonly loadingRows = [1, 2, 3, 4];
 
   selectedType: HistoryType = 'ALL';
+  selectedSort: HistorySort = 'NEWEST';
   searchTerm = '';
+  transactions: HistoryTransaction[] = [];
+  visibleGroups: HistoryGroup[] = [];
+  isSortMenuOpen = false;
+  isLoading = false;
+  isLoadingMore = false;
+  errorMessage: string | null = null;
+  currentPage = 0;
+  totalPages = 0;
+  totalElements = 0;
 
-  readonly transactions: HistoryTransaction[] = [
-    {
-      transactionId: 1,
-      title: 'Top-up Saldo',
-      referenceId: 'TOPUP-DEMO-001',
-      amount: 500000,
-      taxAmount: 0,
-      type: 'TOPUP',
-      status: 'SUCCESS',
-      description: 'Top-up saldo WalletPay',
-      merchantName: null,
-      createdAt: this.createDate(14, 30),
-    },
-    {
-      transactionId: 2,
-      title: 'Pembayaran Tokopedia',
-      referenceId: 'PAY-DEMO-001',
-      amount: 250000,
-      taxAmount: 2500,
-      type: 'PAYMENT',
-      status: 'SUCCESS',
-      description: 'Belanja kebutuhan bulanan',
-      merchantName: 'Tokopedia',
-      createdAt: this.createDate(10, 15),
-    },
-    {
-      transactionId: 3,
-      title: 'Pembayaran PLN',
-      referenceId: 'PAY-DEMO-002',
-      amount: 450000,
-      taxAmount: 0,
-      type: 'PAYMENT',
-      status: 'PENDING',
-      description: 'Tagihan listrik',
-      merchantName: 'PLN',
-      createdAt: this.createDate(9, 0, 1),
-    },
-    {
-      transactionId: 4,
-      title: 'Top-up Saldo',
-      referenceId: 'TOPUP-DEMO-002',
-      amount: 100000,
-      taxAmount: 0,
-      type: 'TOPUP',
-      status: 'FAILED',
-      description: 'Top-up saldo WalletPay',
-      merchantName: null,
-      createdAt: this.createDate(18, 45, 1),
-    },
-  ];
+  constructor(private transactionApi: TransactionApiService) {}
 
-  constructor() {}
+  ngOnInit(): void {
+    this.loadTransactions();
+  }
 
-  get visibleGroups(): HistoryGroup[] {
-    const keyword = this.searchTerm.trim().toLowerCase();
-    const filtered = this.transactions.filter((t) => {
-      const matchesType = this.selectedType === 'ALL' || t.type === this.selectedType;
-      const matchesKeyword = !keyword || this.matchesSearch(t, keyword);
-      return matchesType && matchesKeyword;
-    });
-
-    return this.groupTransactions(filtered);
+  get hasMoreTransactions(): boolean {
+    return this.currentPage + 1 < this.totalPages;
   }
 
   selectType(type: HistoryType): void {
+    if (this.selectedType === type) {
+      return;
+    }
+
     this.selectedType = type;
+    this.searchTerm = '';
+    this.loadTransactions(0, true);
   }
 
   onSearchChange(event: Event): void {
     const target = event.target as HTMLInputElement;
     this.searchTerm = target.value;
+    this.updateVisibleGroups();
+  }
+
+  toggleSortMenu(): void {
+    this.isSortMenuOpen = !this.isSortMenuOpen;
+  }
+
+  closeSortMenu(): void {
+    this.isSortMenuOpen = false;
+  }
+
+  selectSort(sort: HistorySort): void {
+    this.selectedSort = sort;
+    this.isSortMenuOpen = false;
+    this.updateVisibleGroups();
+  }
+
+  isSelectedSort(sort: HistorySort): boolean {
+    return this.selectedSort === sort;
+  }
+
+  retryLoadTransactions(): void {
+    this.isSortMenuOpen = false;
+    this.loadTransactions();
+  }
+
+  loadMoreTransactions(): void {
+    if (!this.hasMoreTransactions || this.isLoadingMore) {
+      return;
+    }
+
+    this.loadTransactions(this.currentPage + 1);
   }
 
   titleFor(transaction: HistoryTransaction): string {
@@ -133,8 +140,8 @@ export class HistoryComponent {
     return `Rp ${this.formatNumber(taxAmount)}`;
   }
 
-  statusLabel(status: HistoryStatus): string {
-    const labels: Record<HistoryStatus, string> = {
+  statusLabel(status: TransactionStatus): string {
+    const labels: Record<TransactionStatus, string> = {
       SUCCESS: 'Berhasil',
       PENDING: 'Pending',
       FAILED: 'Gagal',
@@ -143,11 +150,17 @@ export class HistoryComponent {
     return labels[status];
   }
 
-  typeLabel(type: Exclude<HistoryType, 'ALL'>): string {
-    return type === 'TOPUP' ? 'Topup' : 'Payment';
+  typeLabel(type: TransactionType): string {
+    const labels: Record<TransactionType, string> = {
+      TOPUP: 'Topup',
+      PAYMENT: 'Payment',
+      TRANSFER: 'Transfer',
+    };
+
+    return labels[type];
   }
 
-  statusClass(status: HistoryStatus): string {
+  statusClass(status: TransactionStatus): string {
     if (status === 'SUCCESS') {
       return 'text-tertiary';
     }
@@ -159,8 +172,14 @@ export class HistoryComponent {
     return 'text-amber-600';
   }
 
-  iconFor(type: Exclude<HistoryType, 'ALL'>): string {
-    return type === 'TOPUP' ? 'wallet' : 'shopping_cart';
+  iconFor(type: TransactionType): string {
+    const icons: Record<TransactionType, string> = {
+      TOPUP: 'wallet',
+      PAYMENT: 'shopping_cart',
+      TRANSFER: 'sync_alt',
+    };
+
+    return icons[type];
   }
 
   iconClass(transaction: HistoryTransaction): string {
@@ -184,7 +203,117 @@ export class HistoryComponent {
     }).format(new Date(createdAt));
   }
 
+  private loadTransactions(page = 0, force = false): void {
+    const isFirstPage = page === 0;
 
+    if (!force && ((isFirstPage && this.isLoading) || (!isFirstPage && this.isLoadingMore))) {
+      return;
+    }
+
+    const requestId = ++this.requestSequence;
+
+    if (isFirstPage) {
+      this.isLoading = true;
+      this.isLoadingMore = false;
+    } else {
+      this.isLoadingMore = true;
+    }
+
+    this.errorMessage = null;
+
+    this.transactionApi.getTransactions({
+      page,
+      size: this.pageSize,
+      type: this.selectedType === 'ALL' ? undefined : this.selectedType,
+    })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId !== this.requestSequence) {
+            return;
+          }
+
+          if (isFirstPage) {
+            this.isLoading = false;
+          } else {
+            this.isLoadingMore = false;
+          }
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          if (requestId !== this.requestSequence) {
+            return;
+          }
+
+          const nextTransactions = response.data.content.map((transaction) =>
+            this.toHistoryTransaction(transaction)
+          );
+
+          this.transactions = isFirstPage
+            ? nextTransactions
+            : [...this.transactions, ...nextTransactions];
+          this.currentPage = response.data.page;
+          this.totalPages = response.data.totalPages;
+          this.totalElements = response.data.totalElements;
+          this.updateVisibleGroups();
+        },
+        error: () => {
+          if (requestId !== this.requestSequence) {
+            return;
+          }
+
+          if (isFirstPage) {
+            this.transactions = [];
+            this.visibleGroups = [];
+          }
+
+          this.errorMessage = 'Gagal memuat riwayat transaksi. Silakan coba lagi.';
+        },
+      });
+  }
+
+  private toHistoryTransaction(transaction: TransactionHistoryItem): HistoryTransaction {
+    return {
+      ...transaction,
+      title: this.createTitle(transaction),
+    };
+  }
+
+  private createTitle(transaction: TransactionHistoryItem): string {
+    if (transaction.type === 'TOPUP') {
+      return 'Top-up Saldo';
+    }
+
+    if (transaction.type === 'PAYMENT') {
+      return transaction.merchantName
+        ? `Pembayaran ${transaction.merchantName}`
+        : 'Pembayaran';
+    }
+
+    return 'Transfer Saldo';
+  }
+
+  private updateVisibleGroups(): void {
+    const keyword = this.searchTerm.trim().toLowerCase();
+    const filtered = this.transactions.filter((transaction) => {
+      const matchesType = this.selectedType === 'ALL' || transaction.type === this.selectedType;
+      const matchesKeyword = !keyword || this.matchesSearch(transaction, keyword);
+      return matchesType && matchesKeyword;
+    });
+
+    this.visibleGroups = this.groupTransactions(this.sortTransactions(filtered));
+  }
+
+  private sortTransactions(transactions: HistoryTransaction[]): HistoryTransaction[] {
+    return [...transactions].sort((left, right) => {
+      if (this.selectedSort === 'OLDEST') {
+        return this.timestamp(left.createdAt) - this.timestamp(right.createdAt);
+      }
+
+      return this.timestamp(right.createdAt) - this.timestamp(left.createdAt);
+    });
+  }
 
   private matchesSearch(transaction: HistoryTransaction, keyword: string): boolean {
     return [
@@ -192,6 +321,8 @@ export class HistoryComponent {
       transaction.referenceId,
       transaction.description,
       transaction.merchantName,
+      transaction.userName,
+      transaction.userEmail,
       this.statusLabel(transaction.status),
       this.typeLabel(transaction.type),
     ]
@@ -204,7 +335,9 @@ export class HistoryComponent {
 
     for (const transaction of transactions) {
       const label = this.groupLabel(transaction.createdAt);
-      groups.set(label, [...(groups.get(label) ?? []), transaction]);
+      const items = groups.get(label) ?? [];
+      items.push(transaction);
+      groups.set(label, items);
     }
 
     return Array.from(groups.entries()).map(([label, items]) => ({
@@ -240,12 +373,8 @@ export class HistoryComponent {
       && left.getDate() === right.getDate();
   }
 
-  private createDate(hour: number, minute: number, daysAgo = 0): string {
-    const date = new Date();
-    date.setDate(date.getDate() - daysAgo);
-    date.setHours(hour, minute, 0, 0);
-
-    return date.toISOString();
+  private timestamp(value: string): number {
+    return new Date(value).getTime();
   }
 
   private formatNumber(value: number): string {

@@ -46,14 +46,64 @@
           }
         </div>
 
-        <!-- Sort icon (static, no logic yet) -->
+        <!-- Sort menu -->
+        <div class="relative flex-shrink-0">
+          <button
+            type="button"
+            aria-label="Urutkan transaksi"
+            class="flex h-10 w-10 items-center justify-center rounded-full
+                   text-on-surface-variant transition-colors hover:bg-surface-container-low active:opacity-80"
+            [class.bg-surface-container-low]="isSortMenuOpen"
+            [attr.aria-expanded]="isSortMenuOpen"
+            (click)="toggleSortMenu()"
+          >
+            <span class="material-symbols-outlined text-[24px] leading-none">filter_list</span>
+          </button>
+
+          @if (isSortMenuOpen) {
+            <button
+              type="button"
+              aria-label="Tutup menu urutan"
+              class="fixed inset-0 z-40 cursor-default bg-transparent"
+              (click)="closeSortMenu()"
+            ></button>
+
+            <div
+              class="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-xl border border-outline-variant
+                     bg-surface-container-lowest py-[6px] text-on-surface shadow-lg"
+              role="menu"
+            >
+              @for (sort of sortOptions; track sort.value) {
+                <button
+                  type="button"
+                  class="flex min-h-11 w-full items-center gap-[12px] px-[14px] py-[10px] text-left
+                         text-[14px] font-medium leading-[20px] transition-colors hover:bg-surface-container-low"
+                  [class.text-primary]="isSelectedSort(sort.value)"
+                  [class.bg-primary-fixed]="isSelectedSort(sort.value)"
+                  (click)="selectSort(sort.value)"
+                  role="menuitem"
+                >
+                  <span class="material-symbols-outlined text-[20px] leading-none">{{ sort.icon }}</span>
+                  <span class="min-w-0 flex-1">{{ sort.label }}</span>
+                  @if (isSelectedSort(sort.value)) {
+                    <span class="material-symbols-outlined text-[18px] leading-none">check</span>
+                  }
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Refresh current history -->
         <button
           type="button"
-          aria-label="Urutkan transaksi"
+          aria-label="Muat ulang transaksi"
           class="flex-shrink-0 -mr-2 flex h-10 w-10 items-center justify-center rounded-full
                  text-on-surface-variant transition-colors hover:bg-surface-container-low active:opacity-80"
+          (click)="retryLoadTransactions()"
+          [disabled]="isLoading"
         >
-          <span class="material-symbols-outlined text-[24px] leading-none">filter_list</span>
+          <span class="material-symbols-outlined text-[24px] leading-none">refresh</span>
         </button>
 
       </div>
@@ -61,7 +111,41 @@
 
     <!-- ===== Transaction List ===== -->
     <section class="space-y-[32px] px-[16px] py-[12px]">
-      @if (visibleGroups.length === 0) {
+      @if (isLoading) {
+        <div class="space-y-[8px] pt-[20px]">
+          @for (row of loadingRows; track row) {
+            <div class="animate-pulse rounded-xl border border-outline-variant/50 bg-surface-container-lowest p-[16px]">
+              <div class="flex items-center gap-[16px]">
+                <div class="h-12 w-12 shrink-0 rounded-full bg-surface-container"></div>
+                <div class="min-w-0 flex-1 space-y-[8px]">
+                  <div class="h-4 w-2/3 rounded bg-surface-container"></div>
+                  <div class="h-3 w-full rounded bg-surface-container"></div>
+                </div>
+                <div class="h-4 w-20 rounded bg-surface-container"></div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else if (errorMessage) {
+        <div class="rounded-xl border border-[#ffb4ab] bg-error-container p-[24px] text-center mt-[32px]">
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full text-on-error-container">
+            <span class="material-symbols-outlined">wifi_off</span>
+          </div>
+          <h2 class="mt-[16px] text-[18px] leading-[28px] font-semibold text-on-error-container">Riwayat gagal dimuat</h2>
+          <p class="mt-[4px] text-[14px] leading-[20px] text-on-error-container">
+            {{ errorMessage }}
+          </p>
+          <button
+            type="button"
+            class="mt-[16px] inline-flex h-10 items-center gap-[8px] rounded-lg bg-primary px-[16px]
+                   text-[14px] font-semibold text-on-primary transition hover:opacity-90"
+            (click)="retryLoadTransactions()"
+          >
+            <span class="material-symbols-outlined text-[18px] leading-none">refresh</span>
+            Coba Lagi
+          </button>
+        </div>
+      } @else if (visibleGroups.length === 0) {
         <!-- Empty state -->
         <div class="rounded-xl border border-outline-variant bg-surface-container-lowest p-[24px] text-center mt-[32px]">
           <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-fixed text-primary">
@@ -133,6 +217,21 @@
             </div>
 
           </div>
+        }
+
+        @if (hasMoreTransactions) {
+          <button
+            type="button"
+            class="flex h-11 w-full items-center justify-center gap-[8px] rounded-lg border border-outline-variant
+                   bg-surface-container-lowest text-[14px] font-semibold text-primary transition hover:bg-surface-container-low"
+            (click)="loadMoreTransactions()"
+            [disabled]="isLoadingMore"
+          >
+            <span class="material-symbols-outlined text-[18px] leading-none">
+              {{ isLoadingMore ? 'progress_activity' : 'expand_more' }}
+            </span>
+            {{ isLoadingMore ? 'Memuat...' : 'Muat Lagi' }}
+          </button>
         }
       }
     </section>

@@ -174,10 +174,10 @@ class TransactionServiceTest {
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(transactionRepository.findByUserWithFilters(
+        when(transactionRepository.findByUserAndStatusAndType(
                 any(User.class),
-                any(),
-                any(),
+                any(TransactionStatus.class),
+                any(TransactionType.class),
                 any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of(transaction), pageable, 1));
 
@@ -221,7 +221,21 @@ class TransactionServiceTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("User not found");
 
-        verify(transactionRepository, never()).findByUserWithFilters(
+        verify(transactionRepository, never()).findByUser(
+                any(),
+                any(Pageable.class)
+        );
+        verify(transactionRepository, never()).findByUserAndStatus(
+                any(),
+                any(),
+                any(Pageable.class)
+        );
+        verify(transactionRepository, never()).findByUserAndType(
+                any(),
+                any(),
+                any(Pageable.class)
+        );
+        verify(transactionRepository, never()).findByUserAndStatusAndType(
                 any(),
                 any(),
                 any(),
