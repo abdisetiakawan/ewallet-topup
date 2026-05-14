@@ -7,6 +7,7 @@ import com.berijalan.ewallet.dto.response.ResAdminMerchantTaxDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.constant.TaxType;
+import com.berijalan.ewallet.entity.constant.TaxValueType;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
 import com.berijalan.ewallet.repository.MerchantRepository;
@@ -145,7 +146,7 @@ public class AdminMerchantService {
                 throw new BadRequestException("Tax expiry date must be after effective date");
             }
 
-            if (tax.valueType().name().equals("PERCENTAGE")
+            if (tax.valueType() == TaxValueType.PERCENTAGE
                     && tax.taxValue().compareTo(BigDecimal.valueOf(100)) > 0) {
                 throw new BadRequestException("Percentage tax value must not exceed 100");
             }
