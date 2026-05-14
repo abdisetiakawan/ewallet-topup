@@ -23,6 +23,8 @@ public class UserDetailsImpl implements UserDetails {
     private String email;
     private RoleName role;
 
+    private User user;
+
     @JsonIgnore
     private String password;
 
@@ -32,6 +34,7 @@ public class UserDetailsImpl implements UserDetails {
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
+                user,
                 user.getPassword()
         );
     }
