@@ -1,6 +1,5 @@
 package com.berijalan.ewallet.service;
 
-import com.berijalan.ewallet.dto.response.TaxSnapshotDto;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.constant.TaxValueType;
 import org.springframework.stereotype.Component;
@@ -15,12 +14,12 @@ public class TaxCalculator {
 
     public TaxCalculationResult calculate(long baseAmount, List<MerchantTax> taxes) {
         long totalTax = 0L;
-        List<TaxSnapshotDto> snapshots = new ArrayList<>();
+        List<TaxSnapshot> snapshots = new ArrayList<>();
 
         for (MerchantTax tax : taxes) {
             long calculatedTax = calculateTaxAmount(baseAmount, tax);
             totalTax += calculatedTax;
-            snapshots.add(new TaxSnapshotDto(
+            snapshots.add(new TaxSnapshot(
                     tax.getTaxName(),
                     tax.getTaxType().name(),
                     tax.getValueType().name(),
@@ -44,7 +43,7 @@ public class TaxCalculator {
 
     public record TaxCalculationResult(
             long totalTax,
-            List<TaxSnapshotDto> snapshots
+            List<TaxSnapshot> snapshots
     ) {
     }
 }

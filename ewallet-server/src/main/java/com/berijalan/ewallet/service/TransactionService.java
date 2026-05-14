@@ -125,16 +125,30 @@ public class TransactionService {
         return transaction;
     }
 
-    private String serializeTaxSnapshots(List<TaxSnapshotDto> taxSnapshots) {
+    private String serializeTaxSnapshots(List<TaxSnapshot> taxSnapshots) {
         if (taxSnapshots.isEmpty()) {
             return null;
         }
 
+        List<TaxSnapshotDto> snapshotDtos = taxSnapshots.stream()
+                .map(this::toTaxSnapshotDto)
+                .toList();
+
         try {
-            return objectMapper.writeValueAsString(taxSnapshots);
+            return objectMapper.writeValueAsString(snapshotDtos);
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Failed to serialize tax snapshot", ex);
         }
+    }
+
+    private TaxSnapshotDto toTaxSnapshotDto(TaxSnapshot taxSnapshot) {
+        return new TaxSnapshotDto(
+                taxSnapshot.taxName(),
+                taxSnapshot.taxType(),
+                taxSnapshot.valueType(),
+                taxSnapshot.taxValue(),
+                taxSnapshot.calculatedTax()
+        );
     }
 
     @Transactional(readOnly = true)
