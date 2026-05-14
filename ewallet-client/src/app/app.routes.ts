@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
 import { authGuard } from './core/guards/auth.guard';
+import { customerGuard } from './core/guards/customer.guard';
 import { guestGuard } from './core/guards/guest.guard';
 
 export const routes: Routes = [
@@ -24,7 +25,7 @@ export const routes: Routes = [
   },
   {
     path: 'topup',
-    canActivate: [authGuard],
+    canActivate: [customerGuard],
     loadComponent: () =>
       import('./features/topup/pages/pilih-ewallet/pilih-ewallet.component').then(
         (m) => m.PilihEwalletComponent
@@ -32,7 +33,7 @@ export const routes: Routes = [
   },
   {
     path: 'wallet/topup',
-    canActivate: [authGuard],
+    canActivate: [customerGuard],
     loadComponent: () =>
       import('./features/topup/pages/halaman-topup/halaman-topup.component').then(
         (m) => m.HalamanTopupComponent
@@ -40,7 +41,7 @@ export const routes: Routes = [
   },
   {
     path: 'payment/:merchantId',
-    canActivate: [authGuard],
+    canActivate: [customerGuard],
     loadComponent: () =>
       import('./features/topup/pages/detail-pembayaran/detail-pembayaran.component').then(
         (m) => m.DetailPembayaranComponent
@@ -64,7 +65,7 @@ export const routes: Routes = [
   },
   {
     path: 'account',
-    canActivate: [authGuard],
+    canActivate: [customerGuard],
     loadComponent: () =>
       import('./features/profile/pages/profile-page/profile-page.component').then(
         (m) => m.ProfilePageComponent
@@ -72,7 +73,7 @@ export const routes: Routes = [
   },
   {
     path: 'account/edit-profile',
-    canActivate: [authGuard],
+    canActivate: [customerGuard],
     loadComponent: () =>
       import('./features/profile/pages/edit-profile/edit-profile.component').then(
         (m) => m.EditProfileComponent
@@ -80,7 +81,7 @@ export const routes: Routes = [
   },
   {
     path: 'history',
-    canActivate: [authGuard],
+    canActivate: [customerGuard],
     loadComponent: () =>
       import('./features/history/pages/history/history.component').then(
         (m) => m.HistoryComponent

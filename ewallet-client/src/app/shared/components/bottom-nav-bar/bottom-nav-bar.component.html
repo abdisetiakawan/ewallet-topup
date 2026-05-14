@@ -1,3 +1,4 @@
+@if (!isAdmin()) {
 <nav class="fixed bottom-0 left-0 w-full flex justify-around items-center bg-surface-container-lowest py-sm px-md border-t border-outline-variant shadow-lg z-50"
      style="padding-bottom: max(8px, env(safe-area-inset-bottom))">
   <a class="flex flex-col items-center justify-center px-4 py-1 transition-transform duration-150 active:scale-90"
@@ -40,3 +41,4 @@
     <span class="text-[10px] tracking-wide font-medium">Account</span>
   </a>
 </nav>
+}

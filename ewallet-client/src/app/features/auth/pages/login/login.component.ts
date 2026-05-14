@@ -41,7 +41,8 @@ export class LoginComponent {
       password: this.password,
     }).subscribe({
       next: () => {
-        this.router.navigate(['/topup']);
+        const role = this.authService.getCurrentUser()?.role;
+        this.router.navigate([role === 'ADMIN' ? '/admin/merchants' : '/topup']);
       },
       error: (error) => {
         this.errorMessage = error.error?.message || 'Login gagal. Periksa email dan password.';

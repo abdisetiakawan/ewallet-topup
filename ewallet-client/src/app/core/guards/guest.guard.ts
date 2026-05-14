@@ -7,13 +7,19 @@ export const guestGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // If already logged in (token in memory), redirect to main page
+  const redirectAfterLogin = () => {
+    const role = authService.getCurrentUser()?.role;
+    return role === 'ADMIN'
+      ? router.createUrlTree(['/admin/merchants'])
+      : router.createUrlTree(['/topup']);
+  };
+
   if (authService.isLoggedIn()) {
-    return router.createUrlTree(['/topup']);
+    return redirectAfterLogin();
   }
 
   // Try silent refresh — if cookie is still valid, user is still logged in
   return authService.refresh().pipe(
-    map((success) => (success ? router.createUrlTree(['/topup']) : true))
+    map((success) => (success ? redirectAfterLogin() : true))
   );
 };
