@@ -16,11 +16,11 @@ import org.springframework.stereotype.Repository;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
     @EntityGraph(attributePaths = {"merchant", "user"})
-    @Query("SELECT t FROM Transaction t WHERE t.user = :user " +
+    @Query("SELECT t FROM Transaction t WHERE t.user.id = :userId " +
            "AND (:status IS NULL OR t.status = :status) " +
            "AND (:type IS NULL OR t.type = :type)")
-    Page<Transaction> findByUserWithFilters(
-            @Param("user") User user,
+    Page<Transaction> findByUserIdWithFilters(
+            @Param("userId") Long userId,
             @Param("status") TransactionStatus status,
             @Param("type") TransactionType type,
             Pageable pageable);
