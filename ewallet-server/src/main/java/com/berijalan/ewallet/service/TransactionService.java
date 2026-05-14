@@ -11,6 +11,7 @@ import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.Transaction;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
+import com.berijalan.ewallet.util.ReferenceIdGenerator;
 import com.berijalan.ewallet.entity.constant.TaxValueType;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
@@ -89,7 +90,7 @@ public class TransactionService {
             }
         }
 
-        String referenceId = generateUniqueReferenceId();
+        String referenceId = ReferenceIdGenerator.generate("PAY-");
         long balanceBefore = wallet.getBalance();
         long balanceAfter = balanceBefore - finalAmount;
         wallet.setBalance(balanceAfter);
@@ -152,12 +153,9 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public ResTransactionHistoryDto getTransactions(Long userId, ReqTransactionHistoryDto request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Transaction> transactionPage = transactionRepository.findByUserWithFilters(
-                user, request.status(), request.type(), pageable);
+        Page<Transaction> transactionPage = transactionRepository.findByUserIdWithFilters(
+                userId, request.status(), request.type(), pageable);
 
         List<ResTransactionItemDto> items = transactionPage.getContent().stream()
                 .map(tx -> new ResTransactionItemDto(
@@ -188,7 +186,4 @@ public class TransactionService {
         );
     }
 
-    private String generateUniqueReferenceId() {
-        return "PAY-" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
-    }
 }

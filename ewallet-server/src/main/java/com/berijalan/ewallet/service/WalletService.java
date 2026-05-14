@@ -13,7 +13,7 @@ import com.berijalan.ewallet.repository.TransactionRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
+import com.berijalan.ewallet.util.ReferenceIdGenerator;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -47,13 +47,12 @@ public class WalletService {
                 .orElseThrow(() -> new NotFoundException("Wallet not found"));
         User user = wallet.getUser();
 
-        String referenceId = generateUniqueReferenceId();
+        String referenceId = ReferenceIdGenerator.generate("TXN-");
 
         long balanceBefore = wallet.getBalance();
         long balanceAfter = balanceBefore + request.amount();
 
         wallet.setBalance(balanceAfter);
-        walletRepository.save(wallet);
         walletCacheService.putAfterCommit(userId, balanceAfter, LocalDateTime.now());
 
         Transaction transaction = new Transaction();
@@ -80,7 +79,4 @@ public class WalletService {
         );
     }
 
-    private String generateUniqueReferenceId() {
-        return "TXN-" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
-    }
 }
