@@ -153,8 +153,7 @@ public class TransactionService {
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Transaction> transactionPage = transactionRepository.findByUserWithFilters(
-                user, request.status(), request.type(), pageable);
+        Page<Transaction> transactionPage = findTransactions(user, request, pageable);
 
         List<ResTransactionItemDto> items = transactionPage.getContent().stream()
                 .map(tx -> new ResTransactionItemDto(
@@ -183,6 +182,27 @@ public class TransactionService {
                 transactionPage.getTotalElements(),
                 transactionPage.getTotalPages()
         );
+    }
+
+    private Page<Transaction> findTransactions(
+            User user,
+            ReqTransactionHistoryDto request,
+            Pageable pageable
+    ) {
+        if (request.status() != null && request.type() != null) {
+            return transactionRepository.findByUserAndStatusAndType(
+                    user, request.status(), request.type(), pageable);
+        }
+
+        if (request.status() != null) {
+            return transactionRepository.findByUserAndStatus(user, request.status(), pageable);
+        }
+
+        if (request.type() != null) {
+            return transactionRepository.findByUserAndType(user, request.type(), pageable);
+        }
+
+        return transactionRepository.findByUser(user, pageable);
     }
 
     private String generateUniqueReferenceId() {
