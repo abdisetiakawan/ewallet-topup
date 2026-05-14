@@ -20,6 +20,6 @@ public class MerchantService {
     @Cacheable(value = "merchants:active", key = "'all'")
     @Transactional(readOnly = true)
     public List<ResMerchantDto> getAllActiveMerchants() {
-        return merchantMapper.toActiveDtos(merchantRepository.findAll());
+        return merchantMapper.toActiveDtos(merchantRepository.findByIsActiveTrue());
     }
 }

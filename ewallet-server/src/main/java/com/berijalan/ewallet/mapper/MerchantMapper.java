@@ -13,7 +13,6 @@ public class MerchantMapper implements BaseMapper<Merchant, ResMerchantDto> {
 
     public List<ResMerchantDto> toActiveDtos(List<Merchant> merchants) {
         return merchants.stream()
-                .filter(merchant -> Boolean.TRUE.equals(merchant.getIsActive()))
                 .map(this::toDto)
                 .toList();
     }
