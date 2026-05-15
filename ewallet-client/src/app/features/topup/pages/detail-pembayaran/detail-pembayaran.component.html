@@ -111,4 +111,80 @@
     [disabled]="isSubmitting"
     variant="mobile"
     (pay)="onPay()" />
+
+  @if (showConfirmationModal) {
+    <div class="fixed inset-0 z-[70] flex items-end justify-center bg-inverse-surface/50 px-margin-mobile py-lg">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="paymentConfirmationTitle"
+        class="w-full max-w-[420px] bg-surface-container-lowest rounded-xl p-lg shadow-xl border border-outline-variant"
+      >
+        <div class="flex items-start justify-between gap-md">
+          <div class="flex items-start gap-md">
+            <div class="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-primary">payments</span>
+            </div>
+            <div>
+              <p class="text-label-md text-on-surface-variant uppercase tracking-wider">Konfirmasi Payment</p>
+              <h2 id="paymentConfirmationTitle" class="text-h3 text-on-surface mt-xs">Rp {{ format(totalPaymentAmount) }}</h2>
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Tutup modal"
+            class="p-xs rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors"
+            (click)="closeConfirmationModal()"
+          >
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="mt-lg space-y-sm">
+          <div class="flex justify-between gap-md text-body-sm">
+            <span class="text-on-surface-variant">Tujuan</span>
+            <span class="font-semibold text-on-surface text-right">{{ selectedWallet?.name }} - {{ recipientName }}</span>
+          </div>
+          <div class="flex justify-between gap-md text-body-sm">
+            <span class="text-on-surface-variant">Saldo saat ini</span>
+            <span class="font-semibold text-on-surface">Rp {{ format(accountBalance) }}</span>
+          </div>
+          <div class="flex justify-between gap-md text-body-sm">
+            <span class="text-on-surface-variant">Nominal top-up</span>
+            <span class="font-semibold text-on-surface">Rp {{ format(selectedAmount) }}</span>
+          </div>
+          <div class="flex justify-between gap-md text-body-sm">
+            <span class="text-on-surface-variant">{{ selectedWallet?.feeLabel || 'Biaya Admin' }}</span>
+            <span class="font-semibold text-on-surface">Rp {{ format(adminFee) }}</span>
+          </div>
+          <div class="flex justify-between gap-md text-body-sm pt-sm border-t border-outline-variant">
+            <span class="text-on-surface-variant">Total payment</span>
+            <span class="font-semibold text-primary">Rp {{ format(totalPaymentAmount) }}</span>
+          </div>
+          <div class="flex justify-between gap-md text-body-sm">
+            <span class="text-on-surface-variant">Saldo setelah payment</span>
+            <span class="font-semibold text-on-surface">Rp {{ format(balanceAfterPayment) }}</span>
+          </div>
+        </div>
+
+        <div class="mt-lg grid grid-cols-2 gap-sm">
+          <button
+            type="button"
+            class="h-12 rounded-xl border border-outline-variant text-on-surface font-semibold hover:bg-surface-container-low transition-colors"
+            (click)="closeConfirmationModal()"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            class="h-12 rounded-xl bg-primary text-on-primary font-semibold hover:bg-primary-container active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:opacity-50"
+            [disabled]="isSubmitting"
+            (click)="confirmPayment()"
+          >
+            {{ isSubmitting ? 'Memproses...' : 'Konfirmasi' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
 </div>

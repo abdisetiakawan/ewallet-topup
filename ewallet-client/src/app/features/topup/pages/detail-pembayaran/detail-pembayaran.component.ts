@@ -34,6 +34,7 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
 
   accountBalance = 0;
   isSubmitting = false;
+  showConfirmationModal = false;
   errorMessage: string | null = null;
   currentUser: UserSummary | null = null;
 
@@ -117,12 +118,37 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
     return this.currentUser?.email || 'Email akun tidak tersedia';
   }
 
+  get totalPaymentAmount(): number {
+    return this.selectedAmount + this.adminFee;
+  }
+
+  get balanceAfterPayment(): number {
+    return this.accountBalance - this.totalPaymentAmount;
+  }
+
   onAmountChange(amount: number): void {
     this.selectedAmount = amount;
     this.dismissErrorToast();
   }
 
   onPay(): void {
+    if (this.isSubmitting || this.selectedAmount < 10000 || !this.selectedWallet) {
+      return;
+    }
+
+    if (this.accountBalance < this.totalPaymentAmount) {
+      this.showErrorToast('Pembayaran gagal diproses. Saldo tidak cukup.');
+      return;
+    }
+
+    this.showConfirmationModal = true;
+  }
+
+  closeConfirmationModal(): void {
+    this.showConfirmationModal = false;
+  }
+
+  confirmPayment(): void {
     if (this.isSubmitting || this.selectedAmount < 10000 || !this.selectedWallet) {
       return;
     }
@@ -139,6 +165,7 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
     }, idempotencyKey).subscribe({
       next: (response) => {
         const finalAmount = response.data.amount;
+        this.showConfirmationModal = false;
 
         this.router.navigate(['/topup'], {
           state: {
@@ -153,6 +180,7 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.isSubmitting = false;
+        this.showConfirmationModal = false;
         this.showErrorToast('Pembayaran gagal diproses. Pastikan saldo cukup dan coba lagi.');
       },
       complete: () => {
