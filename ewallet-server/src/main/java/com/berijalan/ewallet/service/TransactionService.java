@@ -4,7 +4,6 @@ import com.berijalan.ewallet.dto.request.ReqPayDto;
 import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
-import com.berijalan.ewallet.dto.response.TaxSnapshotDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.Transaction;
@@ -130,25 +129,11 @@ public class TransactionService {
             return null;
         }
 
-        List<TaxSnapshotDto> snapshotDtos = taxSnapshots.stream()
-                .map(this::toTaxSnapshotDto)
-                .toList();
-
         try {
-            return objectMapper.writeValueAsString(snapshotDtos);
+            return objectMapper.writeValueAsString(taxSnapshots);
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Failed to serialize tax snapshot", ex);
         }
-    }
-
-    private TaxSnapshotDto toTaxSnapshotDto(TaxSnapshot taxSnapshot) {
-        return new TaxSnapshotDto(
-                taxSnapshot.taxName(),
-                taxSnapshot.taxType(),
-                taxSnapshot.valueType(),
-                taxSnapshot.taxValue(),
-                taxSnapshot.calculatedTax()
-        );
     }
 
     @Transactional(readOnly = true)
