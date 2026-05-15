@@ -9,12 +9,13 @@ import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import com.berijalan.ewallet.service.TransactionService;
+import com.berijalan.ewallet.service.WalletCacheService;
 import com.berijalan.ewallet.service.WalletService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = {
         "spring.data.redis.repositories.enabled=false",
+        "spring.jpa.hibernate.ddl-auto=validate",
         "spring.jpa.show-sql=false",
         "logging.level.org.hibernate.SQL=OFF"
 })
@@ -36,8 +38,11 @@ class WalletConcurrencyIntegrationTest {
 
     private static final long CONCURRENCY_TIMEOUT_SECONDS = 30L;
 
-    @MockBean(name = "redisTemplate")
+    @MockitoBean(name = "redisTemplate")
     private RedisTemplate<String, Object> redisTemplate;
+
+    @MockitoBean
+    private WalletCacheService walletCacheService;
 
     @Autowired
     private WalletService walletService;

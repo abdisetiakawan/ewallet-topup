@@ -3,15 +3,17 @@ package com.berijalan.ewallet.service;
 import com.berijalan.ewallet.dto.request.ReqAdminMerchantConfigDto;
 import com.berijalan.ewallet.dto.request.ReqAdminMerchantTaxDto;
 import com.berijalan.ewallet.dto.response.ResAdminMerchantDto;
-import com.berijalan.ewallet.dto.response.ResAdminMerchantTaxDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.constant.TaxType;
+import com.berijalan.ewallet.entity.constant.TaxValueType;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.mapper.AdminMerchantMapper;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.MerchantTaxRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,19 +33,21 @@ public class AdminMerchantService {
 
     private final MerchantRepository merchantRepository;
     private final MerchantTaxRepository merchantTaxRepository;
+    private final AdminMerchantMapper adminMerchantMapper;
 
     @Transactional(readOnly = true)
     public List<ResAdminMerchantDto> getAllMerchants() {
         return merchantRepository.findAll().stream()
-                .map(this::toDto)
+                .map(adminMerchantMapper::toDto)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ResAdminMerchantDto getMerchant(Long id) {
-        return toDto(findMerchant(id));
+        return adminMerchantMapper.toDto(findMerchant(id));
     }
 
+    @CacheEvict(value = "merchants:active", key = "'all'")
     @Transactional
     public ResAdminMerchantDto createMerchant(ReqAdminMerchantConfigDto request) {
         validateConfig(request);
@@ -55,9 +59,10 @@ public class AdminMerchantService {
 
         upsertTaxes(merchant, List.of(), normalizeTaxes(request));
 
-        return toDto(merchant, merchantTaxRepository.findByMerchantId(merchant.getId()));
+        return adminMerchantMapper.toDto(merchant, merchantTaxRepository.findByMerchantId(merchant.getId()));
     }
 
+    @CacheEvict(value = "merchants:active", key = "'all'")
     @Transactional
     public ResAdminMerchantDto updateMerchant(Long id, ReqAdminMerchantConfigDto request) {
         validateConfig(request);
@@ -69,7 +74,7 @@ public class AdminMerchantService {
         List<MerchantTax> existingTaxes = merchantTaxRepository.findByMerchantId(id);
         upsertTaxes(merchant, existingTaxes, normalizeTaxes(request));
 
-        return toDto(merchant, merchantTaxRepository.findByMerchantId(id));
+        return adminMerchantMapper.toDto(merchant, merchantTaxRepository.findByMerchantId(id));
     }
 
     private Merchant findMerchant(Long id) {
@@ -142,7 +147,7 @@ public class AdminMerchantService {
                 throw new BadRequestException("Tax expiry date must be after effective date");
             }
 
-            if (tax.valueType().name().equals("PERCENTAGE")
+            if (tax.valueType() == TaxValueType.PERCENTAGE
                     && tax.taxValue().compareTo(BigDecimal.valueOf(100)) > 0) {
                 throw new BadRequestException("Percentage tax value must not exceed 100");
             }
@@ -157,29 +162,4 @@ public class AdminMerchantService {
         return request.taxes() == null ? List.of() : request.taxes();
     }
 
-    private ResAdminMerchantDto toDto(Merchant merchant) {
-        return toDto(merchant, merchant.getTaxes());
-    }
-
-    private ResAdminMerchantDto toDto(Merchant merchant, List<MerchantTax> taxes) {
-        List<ResAdminMerchantTaxDto> taxDtos = taxes.stream()
-                .map(tax -> new ResAdminMerchantTaxDto(
-                        tax.getId(),
-                        tax.getTaxName(),
-                        tax.getTaxType().name(),
-                        tax.getValueType().name(),
-                        tax.getTaxValue(),
-                        tax.getIsActive(),
-                        tax.getEffectiveAt(),
-                        tax.getExpiredAt()
-                ))
-                .toList();
-
-        return new ResAdminMerchantDto(
-                merchant.getId(),
-                merchant.getName(),
-                merchant.getIsActive(),
-                taxDtos
-        );
-    }
 }
