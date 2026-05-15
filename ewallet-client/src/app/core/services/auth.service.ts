@@ -96,7 +96,22 @@ export class AuthService {
   }
 
   isLoggedIn(): boolean {
-    return !!this.accessToken;
+    return !!this.accessToken && !this.isAccessTokenExpired();
+  }
+
+  isAccessTokenExpired(): boolean {
+    if (!this.accessToken) {
+      return true;
+    }
+
+    const payload = this.decodeJwtPayload(this.accessToken);
+    const exp = payload?.exp;
+
+    if (typeof exp !== 'number') {
+      return true;
+    }
+
+    return Date.now() >= exp * 1000;
   }
 
   saveUser(user: UserSummary): void {
@@ -133,5 +148,31 @@ export class AuthService {
 
   private isBrowser(): boolean {
     return isPlatformBrowser(this.platformId);
+  }
+
+  private decodeJwtPayload(token: string): { exp?: number } | null {
+    const segments = token.split('.');
+
+    if (segments.length !== 3) {
+      return null;
+    }
+
+    try {
+      const payload = this.base64UrlDecode(segments[1]);
+      return JSON.parse(payload) as { exp?: number };
+    } catch {
+      return null;
+    }
+  }
+
+  private base64UrlDecode(value: string): string {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+
+    if (typeof atob === 'function') {
+      return atob(padded);
+    }
+
+    throw new Error('Base64 decoder is unavailable');
   }
 }

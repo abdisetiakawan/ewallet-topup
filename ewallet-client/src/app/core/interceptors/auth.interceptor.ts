@@ -14,6 +14,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   const token = authService.getAccessToken();
+
+  if (token && authService.isAccessTokenExpired()) {
+    return tokenRefresh.handleUnauthorized(req, next, authService);
+  }
+
   const authedReq = token ? addToken(req, token) : req;
 
   return next(authedReq).pipe(
