@@ -138,10 +138,28 @@ public class TransactionService {
     @Transactional(readOnly = true)
     public ResTransactionHistoryDto getTransactions(Long userId, ReqTransactionHistoryDto request) {
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Transaction> transactionPage = transactionRepository.findByUserIdWithFilters(
-                userId, request.status(), request.type(), pageable);
+        Page<Transaction> transactionPage = findTransactionPage(userId, request, pageable);
 
         return transactionMapper.toHistoryDto(transactionPage);
+    }
+
+    private Page<Transaction> findTransactionPage(Long userId, ReqTransactionHistoryDto request, Pageable pageable) {
+        TransactionStatus status = request.status();
+        TransactionType type = request.type();
+
+        if (status != null && type != null) {
+            return transactionRepository.findByUserIdAndStatusAndType(userId, status, type, pageable);
+        }
+
+        if (status != null) {
+            return transactionRepository.findByUserIdAndStatus(userId, status, pageable);
+        }
+
+        if (type != null) {
+            return transactionRepository.findByUserIdAndType(userId, type, pageable);
+        }
+
+        return transactionRepository.findByUserId(userId, pageable);
     }
 
 }
