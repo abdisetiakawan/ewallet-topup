@@ -15,6 +15,7 @@ import com.berijalan.ewallet.repository.WalletRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -27,6 +28,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,6 +56,7 @@ class WalletServiceTest {
         Long userId = 1L;
         Wallet wallet = createWallet(userId, 100_000L);
         ReqTopupDto request = new ReqTopupDto(50_000L);
+        LocalDateTime persistedUpdatedAt = LocalDateTime.of(2026, 5, 15, 8, 30);
 
         when(walletRepository.findByUserIdForUpdate(userId))
                 .thenReturn(Optional.of(wallet));
@@ -62,6 +65,7 @@ class WalletServiceTest {
                 .thenAnswer(invocation -> {
                     Transaction transaction = invocation.getArgument(0);
                     transaction.setId(10L);
+                    ReflectionTestUtils.setField(wallet, "updatedAt", persistedUpdatedAt);
                     return transaction;
                 });
 
@@ -88,6 +92,10 @@ class WalletServiceTest {
         assertThat(savedTransaction.getType()).isEqualTo(TransactionType.TOPUP);
         assertThat(savedTransaction.getStatus()).isEqualTo(TransactionStatus.SUCCESS);
         assertThat(savedTransaction.getReferenceId()).startsWith("TXN-");
+
+        InOrder inOrder = inOrder(transactionRepository, walletCacheService);
+        inOrder.verify(transactionRepository).saveAndFlush(any(Transaction.class));
+        inOrder.verify(walletCacheService).putAfterCommit(userId, 150_000L, persistedUpdatedAt);
     }
 
     @Test

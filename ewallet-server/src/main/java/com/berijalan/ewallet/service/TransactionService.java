@@ -29,7 +29,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -77,7 +76,6 @@ public class TransactionService {
         long balanceBefore = wallet.getBalance();
         long balanceAfter = balanceBefore - finalAmount;
         wallet.setBalance(balanceAfter);
-        walletCacheService.putAfterCommit(userId, balanceAfter, LocalDateTime.now());
 
         Transaction transaction = createPaymentTransaction(
                 user,
@@ -90,7 +88,8 @@ public class TransactionService {
                 serializeTaxSnapshots(taxCalculation.snapshots())
         );
 
-        transactionRepository.saveAndFlush(transaction);
+        transaction = transactionRepository.saveAndFlush(transaction);
+        walletCacheService.putAfterCommit(userId, balanceAfter, wallet.getUpdatedAt());
 
         log.info("Payment success. userId={}, merchant={}, baseAmount={}, tax={}, finalAmount={}, referenceId={}",
                 userId, merchant.getName(), baseAmount, totalTax, finalAmount, transaction.getReferenceId());

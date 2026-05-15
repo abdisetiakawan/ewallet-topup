@@ -16,8 +16,6 @@ import com.berijalan.ewallet.util.ReferenceIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,7 +55,6 @@ public class WalletService {
         long balanceAfter = balanceBefore + request.amount();
 
         wallet.setBalance(balanceAfter);
-        walletCacheService.putAfterCommit(userId, balanceAfter, LocalDateTime.now());
 
         Transaction transaction = new Transaction();
         transaction.setUser(user);
@@ -70,7 +67,8 @@ public class WalletService {
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setReferenceId(referenceId);
 
-        transactionRepository.saveAndFlush(transaction);
+        transaction = transactionRepository.saveAndFlush(transaction);
+        walletCacheService.putAfterCommit(userId, balanceAfter, wallet.getUpdatedAt());
 
         return walletMapper.toTopupDto(transaction);
     }

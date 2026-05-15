@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -31,8 +32,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -81,6 +85,7 @@ class TransactionServiceTest {
         Wallet wallet = createWallet(userId, 200_000L);
         Merchant merchant = createMerchant(1L, "Gopay");
         ReqPayDto request = new ReqPayDto("Gopay", 100_000L, "Top-up Gopay");
+        LocalDateTime persistedUpdatedAt = LocalDateTime.of(2026, 5, 15, 8, 45);
 
         List<MerchantTax> taxes = List.of(
                 createTax(merchant, "Admin Fee", TaxType.ADMIN_FEE, TaxValueType.FIXED, "1000.0000"),
@@ -93,6 +98,7 @@ class TransactionServiceTest {
         when(transactionRepository.saveAndFlush(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction transaction = invocation.getArgument(0);
             transaction.setId(20L);
+            ReflectionTestUtils.setField(wallet, "updatedAt", persistedUpdatedAt);
             return transaction;
         });
 
@@ -128,6 +134,10 @@ class TransactionServiceTest {
         assertThat(savedTransaction.getStatus()).isEqualTo(TransactionStatus.SUCCESS);
         assertThat(savedTransaction.getReferenceId()).startsWith("PAY-");
         assertThat(savedTransaction.getTaxSnapshot()).contains("Admin Fee", "Service Fee");
+
+        InOrder inOrder = inOrder(transactionRepository, walletCacheService);
+        inOrder.verify(transactionRepository).saveAndFlush(any(Transaction.class));
+        inOrder.verify(walletCacheService).putAfterCommit(userId, 97_500L, persistedUpdatedAt);
     }
 
     @Test
