@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -22,6 +23,7 @@ public class UserDetailsImpl implements UserDetails {
     private String name;
     private String email;
     private RoleName role;
+    private LocalDateTime createdAt;
 
     @JsonIgnore
     private String password;
@@ -32,6 +34,7 @@ public class UserDetailsImpl implements UserDetails {
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
+                user.getCreatedAt(),
                 user.getPassword()
         );
     }
@@ -48,7 +51,7 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public String getUsername() {
-        return String.valueOf(id);
+        return email;
     }
 
     @Override

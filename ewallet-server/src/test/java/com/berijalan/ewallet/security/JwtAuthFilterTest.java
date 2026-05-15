@@ -9,6 +9,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -17,7 +19,7 @@ import static org.mockito.Mockito.when;
 class JwtAuthFilterTest {
 
     private final JwtUtils jwtUtils = mock(JwtUtils.class);
-    private final UserDetailsServiceImpl userDetailsService = mock(UserDetailsServiceImpl.class);
+    private final SecurityUserDetailsService userDetailsService = mock(SecurityUserDetailsService.class);
     private final JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtUtils, userDetailsService);
 
     @AfterEach
@@ -35,8 +37,15 @@ class JwtAuthFilterTest {
 
         when(jwtUtils.validateJwtToken(token)).thenReturn(true);
         when(jwtUtils.getUserIdFromJwtToken(token)).thenReturn("42");
-        when(userDetailsService.loadUserById(42L))
-                .thenReturn(new UserDetailsImpl(42L, "Admin", "admin@example.com", RoleName.ADMIN, null));
+        when(userDetailsService.loadUserDetailsById(42L))
+                .thenReturn(new UserDetailsImpl(
+                        42L,
+                        "Admin",
+                        "admin@example.com",
+                        RoleName.ADMIN,
+                        LocalDateTime.of(2026, 1, 1, 0, 0),
+                        "password"
+                ));
 
         jwtAuthFilter.doFilter(request, response, filterChain);
 
@@ -46,7 +55,7 @@ class JwtAuthFilterTest {
 
         UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
         assertThat(principal.getId()).isEqualTo(42L);
-        assertThat(principal.getUsername()).isEqualTo("42");
+        assertThat(principal.getUsername()).isEqualTo("admin@example.com");
         assertThat(principal.getAuthorities())
                 .extracting("authority")
                 .containsExactly("ROLE_ADMIN");
