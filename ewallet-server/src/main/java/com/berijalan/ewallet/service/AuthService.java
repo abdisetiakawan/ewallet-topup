@@ -7,11 +7,12 @@ import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
 import com.berijalan.ewallet.exception.BadRequestException;
-import com.berijalan.ewallet.exception.NotFoundException;
 import com.berijalan.ewallet.exception.UnauthorizedException;
+import com.berijalan.ewallet.mapper.UserMapper;
 import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import com.berijalan.ewallet.security.JwtUtils;
+import com.berijalan.ewallet.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,6 +34,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final RefreshTokenService refreshTokenService;
+    private final UserMapper userMapper;
 
     @Transactional
     public ResUserSummaryDto register(ReqRegisterDto request) {
@@ -53,13 +55,7 @@ public class AuthService {
 
         walletRepository.save(wallet);
 
-        return new ResUserSummaryDto(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getCreatedAt(),
-                user.getRole().name()
-        );
+        return userMapper.toSummaryDto(user);
     }
 
     public LoginResult login(ReqLoginDto request) {
@@ -70,25 +66,11 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String accessToken = jwtUtils.generateJwtToken(authentication);
 
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        String refreshToken = refreshTokenService.create(user.getId());
+        String refreshToken = refreshTokenService.create(userDetails.getId());
 
-        ResUserSummaryDto userSummary = new ResUserSummaryDto(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getCreatedAt(),
-                user.getRole().name()
-        );
-
-        ResLoginDto loginDto = new ResLoginDto(
-                accessToken,
-                "Bearer",
-                jwtUtils.getAccessTokenTtlSeconds(),
-                userSummary
-        );
+        ResLoginDto loginDto = userMapper.toLoginDto(accessToken, jwtUtils.getAccessTokenTtlSeconds(), userDetails);
 
         return new LoginResult(loginDto, refreshToken);
     }

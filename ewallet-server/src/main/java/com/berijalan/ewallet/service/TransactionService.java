@@ -4,23 +4,21 @@ import com.berijalan.ewallet.dto.request.ReqPayDto;
 import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
-import com.berijalan.ewallet.dto.response.ResTransactionItemDto;
-import com.berijalan.ewallet.dto.response.TaxSnapshotDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.Transaction;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
-import com.berijalan.ewallet.entity.constant.TaxValueType;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.mapper.TransactionMapper;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.MerchantTaxRepository;
 import com.berijalan.ewallet.repository.TransactionRepository;
-import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
+import com.berijalan.ewallet.util.ReferenceIdGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -31,23 +29,21 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
 
-    private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final MerchantRepository merchantRepository;
     private final MerchantTaxRepository merchantTaxRepository;
     private final ObjectMapper objectMapper;
+    private final WalletCacheService walletCacheService;
+    private final TaxCalculator taxCalculator;
+    private final TransactionMapper transactionMapper;
 
     @Transactional
     public ResPaymentDto pay(ReqPayDto request, Long userId) {
@@ -65,11 +61,10 @@ public class TransactionService {
                     return new NotFoundException("Merchant not found");
                 });
 
-        long baseAmount = request.amount();
-        List<TaxSnapshotDto> taxSnapshots = new ArrayList<>();
-
         List<MerchantTax> activeTaxes = merchantTaxRepository.findByMerchantIdAndIsActiveTrue(merchant.getId());
-        long totalTax = calculateTax(baseAmount, activeTaxes, taxSnapshots);
+        long baseAmount = request.amount();
+        TaxCalculator.TaxCalculationResult taxCalculation = taxCalculator.calculate(baseAmount, activeTaxes);
+        long totalTax = taxCalculation.totalTax();
         long finalAmount = baseAmount + totalTax;
 
         if (wallet.getBalance() < finalAmount) {
@@ -78,24 +73,44 @@ public class TransactionService {
             throw new BadRequestException("Insufficient balance");
         }
 
-        String taxSnapshotJson = null;
-        if (!taxSnapshots.isEmpty()) {
-            try {
-                taxSnapshotJson = objectMapper.writeValueAsString(taxSnapshots);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to serialize tax snapshot", e);
-            }
-        }
-
-        String referenceId = generateUniqueReferenceId();
         long balanceBefore = wallet.getBalance();
         long balanceAfter = balanceBefore - finalAmount;
         wallet.setBalance(balanceAfter);
 
+        Transaction transaction = createPaymentTransaction(
+                user,
+                merchant,
+                request,
+                finalAmount,
+                totalTax,
+                balanceBefore,
+                balanceAfter,
+                serializeTaxSnapshots(taxCalculation.snapshots())
+        );
+
+        transaction = transactionRepository.saveAndFlush(transaction);
+        walletCacheService.putAfterCommit(userId, balanceAfter, wallet.getUpdatedAt());
+
+        log.info("Payment success. userId={}, merchant={}, baseAmount={}, tax={}, finalAmount={}, referenceId={}",
+                userId, merchant.getName(), baseAmount, totalTax, finalAmount, transaction.getReferenceId());
+
+        return transactionMapper.toPaymentDto(transaction);
+    }
+
+    private Transaction createPaymentTransaction(
+            User user,
+            Merchant merchant,
+            ReqPayDto request,
+            long finalAmount,
+            long totalTax,
+            long balanceBefore,
+            long balanceAfter,
+            String taxSnapshotJson
+    ) {
         Transaction transaction = new Transaction();
-        transaction.setReferenceId(referenceId);
+        transaction.setReferenceId(ReferenceIdGenerator.generate("PAY-"));
         transaction.setAmount(finalAmount);
-        transaction.setBaseAmount(baseAmount);
+        transaction.setBaseAmount(request.amount());
         transaction.setTaxAmount(totalTax);
         transaction.setTaxSnapshot(taxSnapshotJson);
         transaction.setBalanceBefore(balanceBefore);
@@ -105,107 +120,28 @@ public class TransactionService {
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setMerchant(merchant);
         transaction.setUser(user);
-
-        transactionRepository.saveAndFlush(transaction);
-
-        log.info("Payment success. userId={}, merchant={}, baseAmount={}, tax={}, finalAmount={}, referenceId={}",
-                userId, merchant.getName(), baseAmount, totalTax, finalAmount, referenceId);
-
-        return new ResPaymentDto(
-                transaction.getId().longValue(),
-                transaction.getReferenceId(),
-                transaction.getAmount(),
-                transaction.getBaseAmount(),
-                transaction.getTaxAmount(),
-                transaction.getBalanceBefore(),
-                transaction.getBalanceAfter(),
-                transaction.getDescription(),
-                merchant.getName(),
-                transaction.getType().name(),
-                transaction.getStatus().name()
-        );
+        return transaction;
     }
 
-    private long calculateTax(long baseAmount, List<MerchantTax> taxes, List<TaxSnapshotDto> snapshots) {
-        long totalTax = 0L;
-        for (MerchantTax tax : taxes) {
-            long calculatedTax = tax.getValueType() == TaxValueType.PERCENTAGE
-                    ? BigDecimal.valueOf(baseAmount)
-                        .multiply(tax.getTaxValue().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP))
-                        .setScale(0, RoundingMode.HALF_UP).longValue()
-                    : tax.getTaxValue().setScale(0, RoundingMode.HALF_UP).longValue();
-
-            totalTax += calculatedTax;
-            snapshots.add(new TaxSnapshotDto(
-                    tax.getTaxName(),
-                    tax.getTaxType().name(),
-                    tax.getValueType().name(),
-                    tax.getTaxValue(),
-                    calculatedTax
-            ));
+    private String serializeTaxSnapshots(List<TaxCalculator.TaxSnapshot> taxSnapshots) {
+        if (taxSnapshots.isEmpty()) {
+            return null;
         }
-        return totalTax;
+
+        try {
+            return objectMapper.writeValueAsString(taxSnapshots);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Failed to serialize tax snapshot", ex);
+        }
     }
 
     @Transactional(readOnly = true)
     public ResTransactionHistoryDto getTransactions(Long userId, ReqTransactionHistoryDto request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Transaction> transactionPage = findTransactions(user, request, pageable);
+        Page<Transaction> transactionPage = transactionRepository.findByUserIdWithFilters(
+                userId, request.status(), request.type(), pageable);
 
-        List<ResTransactionItemDto> items = transactionPage.getContent().stream()
-                .map(tx -> new ResTransactionItemDto(
-                        tx.getId().longValue(),
-                        tx.getUser().getId().longValue(),
-                        tx.getUser().getName(),
-                        tx.getUser().getEmail(),
-                        tx.getReferenceId(),
-                        tx.getAmount(),
-                        tx.getBaseAmount(),
-                        tx.getTaxAmount(),
-                        tx.getBalanceBefore(),
-                        tx.getBalanceAfter(),
-                        tx.getType().name(),
-                        tx.getStatus().name(),
-                        tx.getDescription(),
-                        tx.getMerchant() != null ? tx.getMerchant().getName() : null,
-                        tx.getCreatedAt()
-                ))
-                .toList();
-
-        return new ResTransactionHistoryDto(
-                items,
-                transactionPage.getNumber(),
-                transactionPage.getSize(),
-                transactionPage.getTotalElements(),
-                transactionPage.getTotalPages()
-        );
+        return transactionMapper.toHistoryDto(transactionPage);
     }
 
-    private Page<Transaction> findTransactions(
-            User user,
-            ReqTransactionHistoryDto request,
-            Pageable pageable
-    ) {
-        if (request.status() != null && request.type() != null) {
-            return transactionRepository.findByUserAndStatusAndType(
-                    user, request.status(), request.type(), pageable);
-        }
-
-        if (request.status() != null) {
-            return transactionRepository.findByUserAndStatus(user, request.status(), pageable);
-        }
-
-        if (request.type() != null) {
-            return transactionRepository.findByUserAndType(user, request.type(), pageable);
-        }
-
-        return transactionRepository.findByUser(user, pageable);
-    }
-
-    private String generateUniqueReferenceId() {
-        return "PAY-" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
-    }
 }

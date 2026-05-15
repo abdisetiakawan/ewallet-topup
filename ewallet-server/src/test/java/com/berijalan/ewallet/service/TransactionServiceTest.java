@@ -15,15 +15,16 @@ import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.mapper.TransactionMapper;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.MerchantTaxRepository;
 import com.berijalan.ewallet.repository.TransactionRepository;
-import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -31,23 +32,25 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
-
-    @Mock
-    private UserRepository userRepository;
 
     @Mock
     private WalletRepository walletRepository;
@@ -61,8 +64,17 @@ class TransactionServiceTest {
     @Mock
     private MerchantTaxRepository merchantTaxRepository;
 
+    @Mock
+    private WalletCacheService walletCacheService;
+
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
+
+    @Spy
+    private TaxCalculator taxCalculator = new TaxCalculator();
+
+    @Spy
+    private TransactionMapper transactionMapper = new TransactionMapper();
 
     @InjectMocks
     private TransactionService transactionService;
@@ -73,6 +85,7 @@ class TransactionServiceTest {
         Wallet wallet = createWallet(userId, 200_000L);
         Merchant merchant = createMerchant(1L, "Gopay");
         ReqPayDto request = new ReqPayDto("Gopay", 100_000L, "Top-up Gopay");
+        LocalDateTime persistedUpdatedAt = LocalDateTime.of(2026, 5, 15, 8, 45);
 
         List<MerchantTax> taxes = List.of(
                 createTax(merchant, "Admin Fee", TaxType.ADMIN_FEE, TaxValueType.FIXED, "1000.0000"),
@@ -85,6 +98,7 @@ class TransactionServiceTest {
         when(transactionRepository.saveAndFlush(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction transaction = invocation.getArgument(0);
             transaction.setId(20L);
+            ReflectionTestUtils.setField(wallet, "updatedAt", persistedUpdatedAt);
             return transaction;
         });
 
@@ -120,6 +134,10 @@ class TransactionServiceTest {
         assertThat(savedTransaction.getStatus()).isEqualTo(TransactionStatus.SUCCESS);
         assertThat(savedTransaction.getReferenceId()).startsWith("PAY-");
         assertThat(savedTransaction.getTaxSnapshot()).contains("Admin Fee", "Service Fee");
+
+        InOrder inOrder = inOrder(transactionRepository, walletCacheService);
+        inOrder.verify(transactionRepository).saveAndFlush(any(Transaction.class));
+        inOrder.verify(walletCacheService).putAfterCommit(userId, 97_500L, persistedUpdatedAt);
     }
 
     @Test
@@ -160,7 +178,7 @@ class TransactionServiceTest {
     }
 
     @Test
-    void getTransactions_whenUserExists_shouldReturnTransactionHistory() {
+    void getTransactions_whenRepositoryReturnsPage_shouldReturnTransactionHistory() {
         Long userId = 1L;
         User user = createUser(userId);
         Merchant merchant = createMerchant(1L, "Gopay");
@@ -173,11 +191,10 @@ class TransactionServiceTest {
         );
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(transactionRepository.findByUserAndStatusAndType(
-                any(User.class),
-                any(TransactionStatus.class),
-                any(TransactionType.class),
+        when(transactionRepository.findByUserIdWithFilters(
+                eq(userId),
+                eq(TransactionStatus.SUCCESS),
+                eq(TransactionType.PAYMENT),
                 any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of(transaction), pageable, 1));
 
@@ -206,41 +223,30 @@ class TransactionServiceTest {
     }
 
     @Test
-    void getTransactions_whenUserDoesNotExist_shouldThrowNotFoundException() {
-        Long userId = 404L;
+    void getTransactions_whenNoTransactions_shouldReturnEmptyPage() {
+        Long userId = 1L;
         ReqTransactionHistoryDto request = new ReqTransactionHistoryDto(
                 0,
                 10,
                 null,
                 null
         );
+        Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(transactionRepository.findByUserIdWithFilters(
+                eq(userId),
+                isNull(),
+                isNull(),
+                any(Pageable.class)
+        )).thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        assertThatThrownBy(() -> transactionService.getTransactions(userId, request))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessage("User not found");
+        ResTransactionHistoryDto response = transactionService.getTransactions(userId, request);
 
-        verify(transactionRepository, never()).findByUser(
-                any(),
-                any(Pageable.class)
-        );
-        verify(transactionRepository, never()).findByUserAndStatus(
-                any(),
-                any(),
-                any(Pageable.class)
-        );
-        verify(transactionRepository, never()).findByUserAndType(
-                any(),
-                any(),
-                any(Pageable.class)
-        );
-        verify(transactionRepository, never()).findByUserAndStatusAndType(
-                any(),
-                any(),
-                any(),
-                any(Pageable.class)
-        );
+        assertThat(response.content()).isEmpty();
+        assertThat(response.page()).isZero();
+        assertThat(response.size()).isEqualTo(10);
+        assertThat(response.totalElements()).isZero();
+        assertThat(response.totalPages()).isZero();
     }
 
     private User createUser(Long userId) {

@@ -1,7 +1,7 @@
 package com.berijalan.ewallet.config;
 
 import com.berijalan.ewallet.security.JwtAuthFilter;
-import com.berijalan.ewallet.security.UserDetailsServiceImpl;
+import com.berijalan.ewallet.security.SecurityUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final UserDetailsServiceImpl userDetailsService;
+    private final SecurityUserDetailsService userDetailsService;
     private final JwtAuthFilter jwtAuthFilter;
 
     @Bean

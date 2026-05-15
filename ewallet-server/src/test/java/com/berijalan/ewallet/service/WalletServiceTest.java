@@ -2,26 +2,33 @@ package com.berijalan.ewallet.service;
 
 import com.berijalan.ewallet.dto.request.ReqTopupDto;
 import com.berijalan.ewallet.dto.response.ResTopupDto;
+import com.berijalan.ewallet.dto.response.ResWalletBalanceDto;
 import com.berijalan.ewallet.entity.Transaction;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.mapper.WalletMapper;
 import com.berijalan.ewallet.repository.TransactionRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,6 +42,12 @@ class WalletServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private WalletCacheService walletCacheService;
+
+    @Spy
+    private WalletMapper walletMapper = new WalletMapper();
+
     @InjectMocks
     private WalletService walletService;
 
@@ -43,6 +56,7 @@ class WalletServiceTest {
         Long userId = 1L;
         Wallet wallet = createWallet(userId, 100_000L);
         ReqTopupDto request = new ReqTopupDto(50_000L);
+        LocalDateTime persistedUpdatedAt = LocalDateTime.of(2026, 5, 15, 8, 30);
 
         when(walletRepository.findByUserIdForUpdate(userId))
                 .thenReturn(Optional.of(wallet));
@@ -51,6 +65,7 @@ class WalletServiceTest {
                 .thenAnswer(invocation -> {
                     Transaction transaction = invocation.getArgument(0);
                     transaction.setId(10L);
+                    ReflectionTestUtils.setField(wallet, "updatedAt", persistedUpdatedAt);
                     return transaction;
                 });
 
@@ -77,6 +92,10 @@ class WalletServiceTest {
         assertThat(savedTransaction.getType()).isEqualTo(TransactionType.TOPUP);
         assertThat(savedTransaction.getStatus()).isEqualTo(TransactionStatus.SUCCESS);
         assertThat(savedTransaction.getReferenceId()).startsWith("TXN-");
+
+        InOrder inOrder = inOrder(transactionRepository, walletCacheService);
+        inOrder.verify(transactionRepository).saveAndFlush(any(Transaction.class));
+        inOrder.verify(walletCacheService).putAfterCommit(userId, 150_000L, persistedUpdatedAt);
     }
 
     @Test
@@ -93,6 +112,37 @@ class WalletServiceTest {
 
         verify(walletRepository, never()).save(any(Wallet.class));
         verify(transactionRepository, never()).saveAndFlush(any(Transaction.class));
+    }
+
+    @Test
+    void getBalance_whenCacheHit_shouldReturnMappedResponseWithoutQueryingDatabase() {
+        Long userId = 1L;
+        LocalDateTime updatedAt = LocalDateTime.of(2026, 5, 15, 6, 45);
+        when(walletCacheService.get(userId))
+                .thenReturn(new WalletCacheService.WalletBalanceCache(150_000L, updatedAt));
+
+        ResWalletBalanceDto response = walletService.getBalance(userId);
+
+        assertThat(response.balance()).isEqualTo(150_000L);
+        assertThat(response.updatedAt()).isEqualTo(updatedAt);
+        verify(walletRepository, never()).findByUserId(any(Long.class));
+    }
+
+    @Test
+    void getBalance_whenCacheMiss_shouldReadFromDatabaseAndPopulateCache() {
+        Long userId = 1L;
+        Wallet wallet = createWallet(userId, 100_000L);
+        LocalDateTime updatedAt = LocalDateTime.of(2026, 5, 15, 7, 0);
+        ReflectionTestUtils.setField(wallet, "updatedAt", updatedAt);
+
+        when(walletCacheService.get(userId)).thenReturn(null);
+        when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
+
+        ResWalletBalanceDto response = walletService.getBalance(userId);
+
+        assertThat(response.balance()).isEqualTo(100_000L);
+        assertThat(response.updatedAt()).isEqualTo(updatedAt);
+        verify(walletCacheService).put(userId, 100_000L, updatedAt);
     }
 
     private Wallet createWallet(Long userId, Long balance) {
