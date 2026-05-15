@@ -191,7 +191,7 @@ class TransactionServiceTest {
         );
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        when(transactionRepository.findByUserIdWithFilters(
+        when(transactionRepository.findByUserIdAndStatusAndType(
                 eq(userId),
                 eq(TransactionStatus.SUCCESS),
                 eq(TransactionType.PAYMENT),
@@ -233,10 +233,8 @@ class TransactionServiceTest {
         );
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        when(transactionRepository.findByUserIdWithFilters(
+        when(transactionRepository.findByUserId(
                 eq(userId),
-                isNull(),
-                isNull(),
                 any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
