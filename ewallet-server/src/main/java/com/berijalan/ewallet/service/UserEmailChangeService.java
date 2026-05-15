@@ -6,6 +6,7 @@ import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.ConflictException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.mapper.UserMapper;
 import com.berijalan.ewallet.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,14 +21,15 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class EmailChangeService {
+public class UserEmailChangeService {
 
     private static final String TOKEN_KEY_PREFIX = "email_change:token:";
     private static final String USER_KEY_PREFIX  = "email_change:user:";
 
     private final StringRedisTemplate redisTemplate;
     private final UserRepository userRepository;
-    private final EmailService emailService;
+    private final MailSenderService mailSenderService;
+    private final UserMapper userMapper;
 
     @Value("${app.email-change.ttl-minutes:15}")
     private int ttlMinutes;
@@ -45,7 +47,7 @@ public class EmailChangeService {
         redisTemplate.opsForValue().set(TOKEN_KEY_PREFIX + token, userId + ":" + newEmail, ttl);
         redisTemplate.opsForValue().set(USER_KEY_PREFIX + userId, token, ttl);
 
-        emailService.sendEmailChangeToken(newEmail, token, ttlMinutes);
+        mailSenderService.sendEmailChangeToken(newEmail, token, ttlMinutes);
 
         log.info("Email change requested for userId={} to newEmail={}", userId, newEmail);
         return new ResEmailChangeDto(newEmail, ttlMinutes);
@@ -86,13 +88,7 @@ public class EmailChangeService {
 
         log.info("Email changed successfully for userId={} to newEmail={}", userId, newEmail);
 
-        return new ResUserSummaryDto(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getCreatedAt(),
-                user.getRole().name()
-        );
+        return userMapper.toSummaryDto(user);
     }
 
     private void revokePendingRequest(Long userId) {
