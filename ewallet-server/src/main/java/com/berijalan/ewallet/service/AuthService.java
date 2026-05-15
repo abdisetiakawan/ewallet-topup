@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,7 +39,10 @@ public class AuthService {
 
     @Transactional
     public ResUserSummaryDto register(ReqRegisterDto request) {
+        log.info("Registration requested. email={}", request.email());
+
         if (userRepository.findByEmail(request.email()).isPresent()) {
+            log.warn("Registration rejected because email already exists. email={}", request.email());
             throw new BadRequestException("Email already exists");
         }
 
@@ -55,13 +59,23 @@ public class AuthService {
 
         walletRepository.save(wallet);
 
+        log.info("Registration success. userId={}, email={}", user.getId(), user.getEmail());
+
         return userMapper.toSummaryDto(user);
     }
 
     public LoginResult login(ReqLoginDto request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
-        );
+        log.info("Login requested. email={}", request.email());
+
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
+            );
+        } catch (AuthenticationException ex) {
+            log.warn("Login rejected because credentials are invalid. email={}", request.email());
+            throw ex;
+        }
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String accessToken = jwtUtils.generateJwtToken(authentication);
@@ -72,21 +86,28 @@ public class AuthService {
 
         ResLoginDto loginDto = userMapper.toLoginDto(accessToken, jwtUtils.getAccessTokenTtlSeconds(), userDetails);
 
+        log.info("Login success. userId={}, email={}", userDetails.getId(), userDetails.getEmail());
+
         return new LoginResult(loginDto, refreshToken);
     }
 
     public RefreshResult refresh(String refreshToken) {
+        log.debug("Access token refresh requested");
+
         Long userId = refreshTokenService.validateAndGetUserId(refreshToken);
         if (userId == null) {
+            log.warn("Access token refresh rejected because refresh token is invalid or expired");
             throw new UnauthorizedException("Invalid or expired refresh token");
         }
 
         String newAccessToken = jwtUtils.generateTokenForUserId(userId);
+        log.info("Access token refresh success. userId={}", userId);
         return new RefreshResult(newAccessToken, jwtUtils.getAccessTokenTtlSeconds());
     }
 
     public void logout(Long userId) {
         refreshTokenService.revoke(userId);
+        log.info("Logout success. userId={}", userId);
     }
 
     public record LoginResult(ResLoginDto loginDto, String refreshToken) {}
