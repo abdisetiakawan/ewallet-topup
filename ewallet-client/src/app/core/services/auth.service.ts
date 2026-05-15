@@ -124,7 +124,7 @@ export class AuthService {
     }
   }
 
-  private clearSession(): void {
+  clearSession(): void {
     this.accessToken = null;
     if (this.isBrowser()) {
       localStorage.removeItem('user');

@@ -9,9 +9,16 @@ export const guestGuard: CanActivateFn = () => {
 
   const redirectAfterLogin = () => {
     const role = authService.getCurrentUser()?.role;
-    return role === 'ADMIN'
-      ? router.createUrlTree(['/admin/merchants'])
-      : router.createUrlTree(['/topup']);
+    if (role === 'ADMIN') {
+      return router.createUrlTree(['/admin/merchants']);
+    }
+
+    if (role === 'CUSTOMER') {
+      return router.createUrlTree(['/topup']);
+    }
+
+    authService.clearSession();
+    return true;
   };
 
   if (authService.isLoggedIn()) {

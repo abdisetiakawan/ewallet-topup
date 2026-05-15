@@ -7,16 +7,28 @@ export const customerGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  const isCustomer = () => authService.getCurrentUser()?.role === 'CUSTOMER';
+  const routeForCurrentUser = () => {
+    const role = authService.getCurrentUser()?.role;
+    if (role === 'CUSTOMER') {
+      return true;
+    }
+
+    if (role === 'ADMIN') {
+      return router.createUrlTree(['/admin/merchants']);
+    }
+
+    authService.clearSession();
+    return router.createUrlTree(['/login']);
+  };
 
   if (authService.isLoggedIn()) {
-    return isCustomer() ? true : router.createUrlTree(['/admin/merchants']);
+    return routeForCurrentUser();
   }
 
   return authService.refresh().pipe(
     map((success) => {
       if (!success) return router.createUrlTree(['/login']);
-      return isCustomer() ? true : router.createUrlTree(['/admin/merchants']);
+      return routeForCurrentUser();
     })
   );
 };

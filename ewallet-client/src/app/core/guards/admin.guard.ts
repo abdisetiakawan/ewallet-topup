@@ -7,13 +7,25 @@ export const adminGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  const hasAdminRole = () => authService.getCurrentUser()?.role === 'ADMIN';
+  const routeForCurrentUser = () => {
+    const role = authService.getCurrentUser()?.role;
+    if (role === 'ADMIN') {
+      return true;
+    }
+
+    if (role === 'CUSTOMER') {
+      return router.createUrlTree(['/topup']);
+    }
+
+    authService.clearSession();
+    return router.createUrlTree(['/login']);
+  };
 
   if (authService.isLoggedIn()) {
-    return hasAdminRole() ? true : router.createUrlTree(['/topup']);
+    return routeForCurrentUser();
   }
 
   return authService.refresh().pipe(
-    map((success) => (success && hasAdminRole() ? true : router.createUrlTree(['/login'])))
+    map((success) => (success ? routeForCurrentUser() : router.createUrlTree(['/login'])))
   );
 };
