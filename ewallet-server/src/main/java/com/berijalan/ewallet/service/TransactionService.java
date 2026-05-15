@@ -48,7 +48,7 @@ public class TransactionService {
     private final TransactionMapper transactionMapper;
 
     @Transactional
-    @LoggableAction(action = "transaction.pay")
+    @LoggableAction(action = "transaction.pay", logSuccess = false)
     public ResPaymentDto pay(ReqPayDto request, Long userId) {
         validatePaymentAmount(request.amount());
 

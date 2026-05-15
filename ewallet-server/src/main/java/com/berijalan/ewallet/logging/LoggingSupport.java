@@ -22,6 +22,7 @@ public final class LoggingSupport {
     public static final String REQUEST_PATH = "requestPath";
     public static final String USER_ID = "userId";
     public static final String ANONYMOUS_USER = "anonymous";
+    public static final String REQUEST_ID_HEADER = "X-Request-Id";
 
     private LoggingSupport() {
     }
@@ -92,6 +93,19 @@ public final class LoggingSupport {
     }
 
     private static String resolveUserId(MethodSignature signature, Object[] args) {
+        for (Object arg : args) {
+            if (arg instanceof Authentication authentication) {
+                String userId = resolveUserId(authentication);
+                if (userId != null) {
+                    return userId;
+                }
+            }
+
+            if (arg instanceof UserDetailsImpl userDetails) {
+                return String.valueOf(userDetails.getId());
+            }
+        }
+
         String[] parameterNames = signature.getParameterNames();
         if (parameterNames == null) {
             return currentUserId();
@@ -104,6 +118,14 @@ public final class LoggingSupport {
         }
 
         return currentUserId();
+    }
+
+    private static String resolveUserId(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetailsImpl userDetails) {
+            return String.valueOf(userDetails.getId());
+        }
+        return null;
     }
 
     public static final class MdcScope implements AutoCloseable {

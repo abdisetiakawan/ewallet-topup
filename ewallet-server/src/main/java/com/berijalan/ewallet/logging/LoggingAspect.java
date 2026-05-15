@@ -40,16 +40,16 @@ public class LoggingAspect {
             } catch (Throwable ex) {
                 int status = LoggingSupport.resolveHttpStatus(ex);
                 LogLevel level = LoggingSupport.isExpectedException(ex) ? LogLevel.WARN : LogLevel.ERROR;
-                logAtLevel(logger, level,
+                logException(logger, level,
                         "HTTP {} {} handled by {} status={} userId={} durationMs={} error={}",
+                        ex,
                         mdcOrUnknown(LoggingSupport.HTTP_METHOD),
                         mdcOrUnknown(LoggingSupport.REQUEST_PATH),
                         handler,
                         status,
                         LoggingSupport.loggedUserId(),
                         elapsedMillis(startNanos),
-                        ex.getClass().getSimpleName(),
-                        ex);
+                        ex.getClass().getSimpleName());
                 throw ex;
             }
         }
@@ -66,23 +66,25 @@ public class LoggingAspect {
         try (LoggingSupport.MdcScope ignored = LoggingSupport.withUserId(signature, joinPoint.getArgs())) {
             try {
                 Object result = joinPoint.proceed();
-                logAtLevel(logger, loggableAction.level(),
-                        "Action '{}' completed at {} userId={} durationMs={}",
-                        loggableAction.action(),
-                        method,
-                        LoggingSupport.loggedUserId(),
-                        elapsedMillis(startNanos));
+                if (loggableAction.logSuccess()) {
+                    logAtLevel(logger, loggableAction.level(),
+                            "Action '{}' completed at {} userId={} durationMs={}",
+                            loggableAction.action(),
+                            method,
+                            LoggingSupport.loggedUserId(),
+                            elapsedMillis(startNanos));
+                }
                 return result;
             } catch (Throwable ex) {
                 LogLevel level = LoggingSupport.isExpectedException(ex) ? LogLevel.WARN : LogLevel.ERROR;
-                logAtLevel(logger, level,
+                logException(logger, level,
                         "Action '{}' failed at {} userId={} durationMs={} error={}",
+                        ex,
                         loggableAction.action(),
                         method,
                         LoggingSupport.loggedUserId(),
                         elapsedMillis(startNanos),
-                        ex.getClass().getSimpleName(),
-                        ex);
+                        ex.getClass().getSimpleName());
                 throw ex;
             }
         }
@@ -116,5 +118,27 @@ public class LoggingAspect {
             case WARN -> logger.warn(message, args);
             case ERROR -> logger.error(message, args);
         }
+    }
+
+    private void logException(Logger logger, LogLevel level, String message, Throwable ex, Object... args) {
+        if (LoggingSupport.isExpectedException(ex)) {
+            logAtLevel(logger, level, message + " message={}", appendArg(args, ex.getMessage()));
+            return;
+        }
+
+        Object[] stackTraceArgs = appendArg(args, ex);
+        switch (level) {
+            case DEBUG -> logger.debug(message, stackTraceArgs);
+            case INFO -> logger.info(message, stackTraceArgs);
+            case WARN -> logger.warn(message, stackTraceArgs);
+            case ERROR -> logger.error(message, stackTraceArgs);
+        }
+    }
+
+    private Object[] appendArg(Object[] args, Object extraArg) {
+        Object[] combined = new Object[args.length + 1];
+        System.arraycopy(args, 0, combined, 0, args.length);
+        combined[args.length] = extraArg;
+        return combined;
     }
 }

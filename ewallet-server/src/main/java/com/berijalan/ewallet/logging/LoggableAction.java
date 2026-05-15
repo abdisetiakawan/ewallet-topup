@@ -12,4 +12,6 @@ public @interface LoggableAction {
     String action();
 
     LogLevel level() default LogLevel.INFO;
+
+    boolean logSuccess() default true;
 }

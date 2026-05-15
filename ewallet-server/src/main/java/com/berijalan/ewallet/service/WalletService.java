@@ -47,7 +47,7 @@ public class WalletService {
     }
 
     @Transactional
-    @LoggableAction(action = "wallet.topup")
+    @LoggableAction(action = "wallet.topup", logSuccess = false)
     public ResTopupDto topup(ReqTopupDto request, Long userId) {
         validateTopupAmount(request.amount());
 
