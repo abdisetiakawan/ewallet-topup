@@ -1,6 +1,11 @@
 package com.berijalan.ewallet.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,9 +26,20 @@ public class RedisConfig {
     @Value("${app.cache.merchants.ttl-hours:1}")
     private long merchantsTtlHours;
 
+    private GenericJackson2JsonRedisSerializer buildSerializer() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.activateDefaultTyping(
+                BasicPolymorphicTypeValidator.builder().allowIfBaseType(Object.class).build(),
+                ObjectMapper.DefaultTyping.EVERYTHING,
+                JsonTypeInfo.As.PROPERTY
+        );
+        return new GenericJackson2JsonRedisSerializer(mapper);
+    }
+
     @Bean
-    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer();
+    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        GenericJackson2JsonRedisSerializer jsonSerializer = buildSerializer();
         RedisCacheConfiguration merchantsConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofHours(merchantsTtlHours))
                 .serializeKeysWith(RedisSerializationContext.SerializationPair
@@ -31,9 +47,10 @@ public class RedisConfig {
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(jsonSerializer));
 
-        return RedisCacheManager.builder(connectionFactory)
-                .withCacheConfiguration("merchants:active", merchantsConfig)
+        RedisCacheManager redisCacheManager = RedisCacheManager.builder(connectionFactory)
+                .cacheDefaults(merchantsConfig)
                 .build();
+        return new LoggingCacheManager(redisCacheManager);
     }
 
     @Bean
@@ -51,9 +68,9 @@ public class RedisConfig {
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         
-        // Use Jackson2 serializer for values
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+        GenericJackson2JsonRedisSerializer jsonSerializer = buildSerializer();
+        template.setValueSerializer(jsonSerializer);
+        template.setHashValueSerializer(jsonSerializer);
         
         template.afterPropertiesSet();
         return template;

@@ -6,7 +6,9 @@ import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class MerchantMapper implements BaseMapper<Merchant, ResMerchantDto> {
@@ -14,7 +16,7 @@ public class MerchantMapper implements BaseMapper<Merchant, ResMerchantDto> {
     public List<ResMerchantDto> toActiveDtos(List<Merchant> merchants) {
         return merchants.stream()
                 .map(this::toDto)
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     @Override
@@ -36,6 +38,6 @@ public class MerchantMapper implements BaseMapper<Merchant, ResMerchantDto> {
                         tax.getValueType().name(),
                         tax.getTaxValue()
                 ))
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 }
