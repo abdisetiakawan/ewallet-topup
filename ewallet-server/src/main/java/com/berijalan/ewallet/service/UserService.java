@@ -25,22 +25,17 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public ResUserSummaryDto getProfile(Long userId) {
-        log.debug("User profile requested. userId={}", userId);
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.warn("User profile request rejected because user was not found. userId={}", userId);
                     return new NotFoundException("User not found");
                 });
 
-        log.debug("User profile fetched. userId={}", userId);
         return userMapper.toSummaryDto(user);
     }
 
     @Transactional
     public ResUserSummaryDto updateProfile(Long userId, ReqUpdateProfileDto request) {
-        log.info("Profile update requested. userId={}", userId);
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.warn("Profile update rejected because user was not found. userId={}", userId);
@@ -56,8 +51,6 @@ public class UserService {
 
     @Transactional
     public void changePassword(Long userId, ReqChangePasswordDto request) {
-        log.info("Password change requested. userId={}", userId);
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.warn("Password change rejected because user was not found. userId={}", userId);

@@ -32,11 +32,8 @@ public class WalletService {
     private final WalletMapper walletMapper;
 
     public ResWalletBalanceDto getBalance(Long userId) {
-        log.debug("Wallet balance requested. userId={}", userId);
-
         WalletCacheService.WalletBalanceCache cached = walletCacheService.get(userId);
         if (cached != null) {
-            log.debug("Wallet balance served from cache. userId={}, balance={}", userId, cached.balance());
             return walletMapper.toBalanceDto(cached);
         }
 
@@ -48,14 +45,11 @@ public class WalletService {
 
         ResWalletBalanceDto result = walletMapper.toBalanceDto(wallet);
         walletCacheService.put(userId, wallet.getBalance(), wallet.getUpdatedAt());
-        log.debug("Wallet balance served from database. userId={}, balance={}", userId, wallet.getBalance());
         return result;
     }
 
     @Transactional
     public ResTopupDto topup(ReqTopupDto request, Long userId) {
-        log.info("Top-up requested. userId={}, amount={}", userId, request.amount());
-
         validateTopupAmount(request.amount(), userId);
 
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
@@ -115,8 +109,8 @@ public class WalletService {
         try {
             return Math.addExact(balanceBefore, amount);
         } catch (ArithmeticException ex) {
-            log.warn("Top-up rejected because wallet balance overflowed. userId={}, balanceBefore={}, amount={}",
-                    userId, balanceBefore, amount);
+            log.error("Top-up failed because wallet balance overflowed. userId={}, balanceBefore={}, amount={}",
+                    userId, balanceBefore, amount, ex);
             throw new BadRequestException("Wallet balance limit exceeded");
         }
     }

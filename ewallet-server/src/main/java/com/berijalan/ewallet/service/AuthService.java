@@ -39,8 +39,6 @@ public class AuthService {
 
     @Transactional
     public ResUserSummaryDto register(ReqRegisterDto request) {
-        log.info("Registration requested. email={}", request.email());
-
         if (userRepository.findByEmail(request.email()).isPresent()) {
             log.warn("Registration rejected because email already exists. email={}", request.email());
             throw new BadRequestException("Email already exists");
@@ -65,15 +63,13 @@ public class AuthService {
     }
 
     public LoginResult login(ReqLoginDto request) {
-        log.info("Login requested. email={}", request.email());
-
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.email(), request.password())
             );
         } catch (AuthenticationException ex) {
-            log.warn("Login rejected because credentials are invalid. email={}", request.email());
+            log.error("Login failed during authentication. email={}", request.email(), ex);
             throw ex;
         }
 
@@ -92,8 +88,6 @@ public class AuthService {
     }
 
     public RefreshResult refresh(String refreshToken) {
-        log.debug("Access token refresh requested");
-
         Long userId = refreshTokenService.validateAndGetUserId(refreshToken);
         if (userId == null) {
             log.warn("Access token refresh rejected because refresh token is invalid or expired");

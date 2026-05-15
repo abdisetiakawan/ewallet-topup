@@ -34,7 +34,6 @@ public class IdempotencyService {
         }
 
         String redisKey = buildRedisKey(userId, endpoint, idempotencyKey);
-        log.debug("Idempotency start requested. userId={}, endpoint={}, redisKey={}", userId, endpoint, redisKey);
 
         IdempotencyCacheEntry processingEntry = new IdempotencyCacheEntry(
                 IdempotencyStatus.PROCESSING,
@@ -47,14 +46,14 @@ public class IdempotencyService {
                 .setIfAbsent(redisKey, serialize(processingEntry), Duration.ofHours(ttlHours));
 
         if (Boolean.TRUE.equals(created)) {
-            log.debug("Idempotency processing entry created. userId={}, endpoint={}, redisKey={}, ttlHours={}",
+            log.info("Idempotency start success. userId={}, endpoint={}, redisKey={}, ttlHours={}",
                     userId, endpoint, redisKey, ttlHours);
             return IdempotencyResult.processing(redisKey);
         }
 
         String existingValue = redisTemplate.opsForValue().get(redisKey);
         if (existingValue == null) {
-            log.debug("Idempotency entry disappeared before read; retrying start. userId={}, endpoint={}, redisKey={}",
+            log.warn("Idempotency entry disappeared before read; retrying start. userId={}, endpoint={}, redisKey={}",
                     userId, endpoint, redisKey);
             return start(idempotencyKey, userId, endpoint, requestHash);
         }
@@ -72,7 +71,7 @@ public class IdempotencyService {
             throw new ConflictException("Request is still processing");
         }
 
-        log.info("Idempotency replay returned. userId={}, endpoint={}, redisKey={}, status={}, httpStatus={}",
+        log.info("Idempotency replay success. userId={}, endpoint={}, redisKey={}, status={}, httpStatus={}",
                 userId, endpoint, redisKey, existingEntry.status(), existingEntry.httpStatus());
 
         return IdempotencyResult.replay(
@@ -95,13 +94,18 @@ public class IdempotencyService {
         );
 
         redisTemplate.opsForValue().set(redisKey, serialize(entry), Duration.ofHours(ttlHours));
-        log.debug("Idempotency entry completed. redisKey={}, status={}, httpStatus={}, ttlHours={}",
-                redisKey, status, httpStatus, ttlHours);
+        if (status == IdempotencyStatus.COMPLETED) {
+            log.info("Idempotency complete success. redisKey={}, httpStatus={}, ttlHours={}",
+                    redisKey, httpStatus, ttlHours);
+        } else {
+            log.warn("Idempotency complete stored failed response. redisKey={}, httpStatus={}, ttlHours={}",
+                    redisKey, httpStatus, ttlHours);
+        }
     }
 
     public void clear(String redisKey) {
         redisTemplate.delete(redisKey);
-        log.debug("Idempotency entry cleared. redisKey={}", redisKey);
+        log.warn("Idempotency entry cleared. redisKey={}", redisKey);
     }
 
     private String buildRedisKey(Long userId, String endpoint, String idempotencyKey) {

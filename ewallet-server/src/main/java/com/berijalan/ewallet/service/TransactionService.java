@@ -48,9 +48,6 @@ public class TransactionService {
 
     @Transactional
     public ResPaymentDto pay(ReqPayDto request, Long userId) {
-        log.info("Payment requested. userId={}, merchant={}, amount={}",
-                userId, request.merchantName(), request.amount());
-
         validatePaymentAmount(request.amount(), userId, request.merchantName());
 
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
@@ -71,8 +68,6 @@ public class TransactionService {
         long baseAmount = request.amount();
         TaxCalculator.TaxCalculationResult taxCalculation = taxCalculator.calculate(baseAmount, activeTaxes);
         long totalTax = taxCalculation.totalTax();
-        log.debug("Payment tax calculated. userId={}, merchant={}, baseAmount={}, taxRuleCount={}, totalTax={}",
-                userId, merchant.getName(), baseAmount, activeTaxes.size(), totalTax);
 
         long finalAmount = safeAddPaymentAmount(baseAmount, totalTax, userId, merchant.getName());
         validateFinalPaymentAmount(finalAmount, userId, merchant.getName());
@@ -130,8 +125,8 @@ public class TransactionService {
         try {
             return Math.addExact(baseAmount, totalTax);
         } catch (ArithmeticException ex) {
-            log.warn("Payment rejected because final amount overflowed. userId={}, merchant={}, baseAmount={}, totalTax={}",
-                    userId, merchantName, baseAmount, totalTax);
+            log.error("Payment failed because final amount overflowed. userId={}, merchant={}, baseAmount={}, totalTax={}",
+                    userId, merchantName, baseAmount, totalTax, ex);
             throw new BadRequestException("Payment amount limit exceeded");
         }
     }
@@ -178,20 +173,15 @@ public class TransactionService {
         try {
             return objectMapper.writeValueAsString(taxSnapshots);
         } catch (JsonProcessingException ex) {
+            log.error("Failed to serialize payment tax snapshot", ex);
             throw new IllegalStateException("Failed to serialize tax snapshot", ex);
         }
     }
 
     @Transactional(readOnly = true)
     public ResTransactionHistoryDto getTransactions(Long userId, ReqTransactionHistoryDto request) {
-        log.debug("Transaction history requested. userId={}, status={}, type={}, page={}, size={}",
-                userId, request.status(), request.type(), request.page(), request.size());
-
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Transaction> transactionPage = findTransactionPage(userId, request, pageable);
-
-        log.debug("Transaction history fetched. userId={}, status={}, type={}, totalElements={}, totalPages={}",
-                userId, request.status(), request.type(), transactionPage.getTotalElements(), transactionPage.getTotalPages());
 
         return transactionMapper.toHistoryDto(transactionPage);
     }
