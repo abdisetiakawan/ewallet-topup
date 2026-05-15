@@ -75,6 +75,6 @@ public class UserController {
         Long userId = CurrentUser.id(authentication);
         userService.changePassword(userId, request);
 
-        return ResponseEntity.ok(ApiResponseFactory.success("Password berhasil diubah"));
+        return ResponseEntity.ok(ApiResponseFactory.success("Password changed successfully"));
     }
 }
