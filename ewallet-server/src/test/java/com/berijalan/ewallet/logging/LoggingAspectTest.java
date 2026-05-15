@@ -77,7 +77,12 @@ class LoggingAspectTest {
         assertThatThrownBy(() -> loggingAspect.logControllerInvocation(joinPoint))
                 .isInstanceOf(BadRequestException.class);
 
-        assertThat(output.getOut()).contains("WARN").contains("status=400 userId=7").contains("error=BadRequestException");
+        assertThat(output.getOut())
+                .contains("WARN")
+                .contains("status=400 userId=7")
+                .contains("error=BadRequestException")
+                .contains("message=bad request")
+                .doesNotContain("com.berijalan.ewallet.exception.BadRequestException: bad request");
     }
 
     @Test
@@ -103,6 +108,15 @@ class LoggingAspectTest {
 
         assertThat(output.getOut()).contains("Action 'sample.annotated' completed at SampleService.annotatedAction userId=55");
         assertThat(output.getOut()).doesNotContain("plainAction");
+    }
+
+    @Test
+    void shouldSkipServiceSuccessLogWhenDisabled(CapturedOutput output) {
+        SampleService proxy = proxiedService();
+
+        proxy.annotatedWithoutSuccessLog(77L);
+
+        assertThat(output.getOut()).doesNotContain("sample.no-success");
     }
 
     private void authenticate(Long userId) {
@@ -161,6 +175,11 @@ class LoggingAspectTest {
         @LoggableAction(action = "sample.annotated")
         List<String> annotatedAction() {
             return List.of("ok");
+        }
+
+        @LoggableAction(action = "sample.no-success", logSuccess = false)
+        List<String> annotatedWithoutSuccessLog(Long userId) {
+            return List.of("ok-" + userId);
         }
 
         List<String> plainAction() {
