@@ -1,5 +1,9 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import {
+  MAX_PAYMENT_AMOUNT,
+  MIN_TRANSACTION_AMOUNT,
+} from '../../../../core/constants/transaction-limits';
 
 @Component({
   selector: 'app-payment-summary',
@@ -22,7 +26,9 @@ export class PaymentSummaryComponent {
   }
 
   get isValid(): boolean {
-    return !this.disabled && this.amount >= 10000;
+    return !this.disabled
+      && this.amount >= MIN_TRANSACTION_AMOUNT
+      && this.total <= MAX_PAYMENT_AMOUNT;
   }
 
   format(value: number): string {

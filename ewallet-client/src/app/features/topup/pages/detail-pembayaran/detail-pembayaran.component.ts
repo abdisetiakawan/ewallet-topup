@@ -11,6 +11,10 @@ import { MerchantApiService } from '../../../../core/services/merchant-api.servi
 import { MerchantMapperService } from '../../../../core/services/merchant-mapper.service';
 import { UserSummary } from '../../../../core/models/auth.model';
 import { createIdempotencyKey } from '../../../../core/utils/idempotency-key.util';
+import {
+  MAX_PAYMENT_AMOUNT,
+  MIN_TRANSACTION_AMOUNT,
+} from '../../../../core/constants/transaction-limits';
 
 type WalletPaymentTarget = EWallet & {
   merchantName: string;
@@ -31,6 +35,8 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private errorToastTimer: ReturnType<typeof setTimeout> | null = null;
   readonly errorToastDurationMs = 4500;
+  readonly minPaymentAmount = MIN_TRANSACTION_AMOUNT;
+  readonly maxPaymentAmount = MAX_PAYMENT_AMOUNT;
 
   accountBalance = 0;
   isSubmitting = false;
@@ -126,13 +132,23 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
     return this.accountBalance - this.totalPaymentAmount;
   }
 
+  get isPaymentAmountValid(): boolean {
+    return this.selectedAmount >= this.minPaymentAmount
+      && this.totalPaymentAmount <= this.maxPaymentAmount;
+  }
+
   onAmountChange(amount: number): void {
     this.selectedAmount = amount;
     this.dismissErrorToast();
   }
 
   onPay(): void {
-    if (this.isSubmitting || this.selectedAmount < 10000 || !this.selectedWallet) {
+    if (this.isSubmitting || !this.selectedWallet) {
+      return;
+    }
+
+    if (!this.isPaymentAmountValid) {
+      this.showErrorToast(`Nominal payment harus Rp ${this.format(this.minPaymentAmount)} - Rp ${this.format(this.maxPaymentAmount)}.`);
       return;
     }
 
@@ -149,7 +165,7 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
   }
 
   confirmPayment(): void {
-    if (this.isSubmitting || this.selectedAmount < 10000 || !this.selectedWallet) {
+    if (this.isSubmitting || !this.selectedWallet || !this.isPaymentAmountValid) {
       return;
     }
 
@@ -217,4 +233,5 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
       this.errorToastTimer = null;
     }
   }
+
 }

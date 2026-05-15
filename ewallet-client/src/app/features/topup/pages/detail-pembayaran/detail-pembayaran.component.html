@@ -178,7 +178,7 @@
           <button
             type="button"
             class="h-12 rounded-xl bg-primary text-on-primary font-semibold hover:bg-primary-container active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:opacity-50"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting || !isPaymentAmountValid"
             (click)="confirmPayment()"
           >
             {{ isSubmitting ? 'Memproses...' : 'Konfirmasi' }}

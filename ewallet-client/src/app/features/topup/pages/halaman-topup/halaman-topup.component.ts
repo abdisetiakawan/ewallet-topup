@@ -5,6 +5,11 @@ import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WalletStoreService } from '../../../../core/services/wallet-store.service';
 import { createIdempotencyKey } from '../../../../core/utils/idempotency-key.util';
+import {
+  MAX_TOPUP_AMOUNT,
+  MIN_TRANSACTION_AMOUNT,
+  parseTransactionAmount,
+} from '../../../../core/constants/transaction-limits';
 
 interface TopupAmountOption {
   id: string;
@@ -22,6 +27,7 @@ interface TopupAmountOption {
 })
 export class HalamanTopupComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly amountFormatter = new Intl.NumberFormat('id-ID');
 
   balance = 0;
   selectedAmount = 100000;
@@ -29,6 +35,9 @@ export class HalamanTopupComponent implements OnInit {
   showConfirmationModal = false;
   isSubmitting = false;
   errorMessage: string | null = null;
+  isManualAmountOverLimit = false;
+  readonly minTopupAmount = MIN_TRANSACTION_AMOUNT;
+  readonly maxTopupAmount = MAX_TOPUP_AMOUNT;
 
   readonly amountOptions: TopupAmountOption[] = [
     { id: '50k', label: 'Rp 50rb', amount: 50000, badge: 'Hemat' },
@@ -57,19 +66,29 @@ export class HalamanTopupComponent implements OnInit {
   }
 
   get formattedBalance(): string {
-    return new Intl.NumberFormat('id-ID').format(this.balance);
+    return this.formatAmount(this.balance);
   }
 
   get formattedSelectedAmount(): string {
-    return new Intl.NumberFormat('id-ID').format(this.selectedAmount);
+    return this.formatAmount(this.selectedAmount);
   }
 
   get formattedBalanceAfterTopup(): string {
-    return new Intl.NumberFormat('id-ID').format(this.balance + this.selectedAmount);
+    return this.formatAmount(this.balance + this.selectedAmount);
   }
 
   get isValidAmount(): boolean {
-    return this.selectedAmount >= 10000;
+    return !this.isManualAmountOverLimit
+      && this.selectedAmount >= this.minTopupAmount
+      && this.selectedAmount <= this.maxTopupAmount;
+  }
+
+  get amountErrorMessage(): string {
+    if (this.selectedAmount > this.maxTopupAmount) {
+      return `Maksimal top-up Rp ${this.formatAmount(this.maxTopupAmount)}`;
+    }
+
+    return `Minimal top-up Rp ${this.formatAmount(this.minTopupAmount)}`;
   }
 
   isSelectedAmount(amount: number): boolean {
@@ -78,21 +97,21 @@ export class HalamanTopupComponent implements OnInit {
 
   selectAmount(amount: number): void {
     this.selectedAmount = amount;
-    this.customAmount = new Intl.NumberFormat('id-ID').format(amount);
+    this.customAmount = this.formatAmount(amount);
+    this.isManualAmountOverLimit = false;
   }
 
   onCustomAmountChange(value: string): void {
-    this.customAmount = value;
-    const amount = Number(value.replace(/\D/g, ''));
+    const parsedAmount = parseTransactionAmount(value, this.maxTopupAmount);
 
-    if (Number.isFinite(amount)) {
-      this.selectedAmount = amount;
-    }
+    this.selectedAmount = parsedAmount.amount;
+    this.customAmount = parsedAmount.displayValue;
+    this.isManualAmountOverLimit = parsedAmount.exceedsLimit;
   }
 
   formatCustomAmount(): void {
     if (this.selectedAmount > 0) {
-      this.customAmount = new Intl.NumberFormat('id-ID').format(this.selectedAmount);
+      this.customAmount = this.formatAmount(this.selectedAmount);
     }
   }
 
@@ -127,7 +146,7 @@ export class HalamanTopupComponent implements OnInit {
               icon: 'check_circle',
               title: 'Topup sukses',
               message: '',
-              amountLabel: `+ Rp ${new Intl.NumberFormat('id-ID').format(submittedAmount)}`,
+              amountLabel: `+ Rp ${this.formatAmount(submittedAmount)}`,
             },
           },
         });
@@ -144,5 +163,9 @@ export class HalamanTopupComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/topup']);
+  }
+
+  private formatAmount(amount: number): string {
+    return this.amountFormatter.format(amount);
   }
 }
