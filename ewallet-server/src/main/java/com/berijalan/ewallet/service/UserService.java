@@ -25,33 +25,52 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public ResUserSummaryDto getProfile(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        log.debug("User profile requested. userId={}", userId);
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.warn("User profile request rejected because user was not found. userId={}", userId);
+                    return new NotFoundException("User not found");
+                });
+
+        log.debug("User profile fetched. userId={}", userId);
         return userMapper.toSummaryDto(user);
     }
 
     @Transactional
     public ResUserSummaryDto updateProfile(Long userId, ReqUpdateProfileDto request) {
+        log.info("Profile update requested. userId={}", userId);
+
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> {
+                    log.warn("Profile update rejected because user was not found. userId={}", userId);
+                    return new NotFoundException("User not found");
+                });
 
         user.setName(request.name());
         userRepository.save(user);
 
+        log.info("Profile update success. userId={}", userId);
         return userMapper.toSummaryDto(user);
     }
 
     @Transactional
     public void changePassword(Long userId, ReqChangePasswordDto request) {
+        log.info("Password change requested. userId={}", userId);
+
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> {
+                    log.warn("Password change rejected because user was not found. userId={}", userId);
+                    return new NotFoundException("User not found");
+                });
 
         if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
+            log.warn("Password change rejected because old password does not match. userId={}", userId);
             throw new BadRequestException("Old password does not match");
         }
 
         if (request.oldPassword().equals(request.newPassword())) {
+            log.warn("Password change rejected because new password matches old password. userId={}", userId);
             throw new BadRequestException("New password cannot be the same as old password");
         }
 
