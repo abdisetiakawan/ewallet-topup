@@ -96,7 +96,7 @@
         />
       </div>
       @if (!isValidAmount) {
-        <p id="customAmountError" class="text-[12px] text-error mt-xs">Minimal top-up Rp 10.000</p>
+        <p id="customAmountError" class="text-[12px] text-error mt-xs">{{ amountErrorMessage }}</p>
       }
     </section>
 

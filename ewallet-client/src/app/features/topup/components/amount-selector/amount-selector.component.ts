@@ -2,6 +2,11 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AmountOption } from '../../../../core/models/topup.model';
+import {
+  MAX_PAYMENT_AMOUNT,
+  MIN_TRANSACTION_AMOUNT,
+  parseTransactionAmount,
+} from '../../../../core/constants/transaction-limits';
 
 @Component({
   selector: 'app-amount-selector',
@@ -15,6 +20,9 @@ export class AmountSelectorComponent {
   @Input() selectedAmount: number = 0;
   @Input() variant: 'desktop' | 'mobile' = 'desktop';
   @Output() amountChange = new EventEmitter<number>();
+  private readonly amountFormatter = new Intl.NumberFormat('id-ID');
+  readonly limitHint = `Minimal Rp ${this.formatAmount(MIN_TRANSACTION_AMOUNT)}, maksimal Rp ${this.formatAmount(MAX_PAYMENT_AMOUNT)}`;
+  manualAmountError: string | null = null;
 
   readonly presetAmounts: AmountOption[] = [
     { value: 50000, label: 'Rp 50.000' },
@@ -27,11 +35,20 @@ export class AmountSelectorComponent {
 
   selectPreset(amount: number): void {
     this.manualInput = '';
+    this.manualAmountError = null;
     this.amountChange.emit(amount);
   }
 
   onManualInput(value: string): void {
-    const numeric = parseInt(value.replace(/\D/g, ''), 10);
-    this.amountChange.emit(isNaN(numeric) ? 0 : numeric);
+    const parsedAmount = parseTransactionAmount(value, MAX_PAYMENT_AMOUNT);
+    this.manualInput = parsedAmount.displayValue;
+    this.manualAmountError = parsedAmount.exceedsLimit
+      ? `Maksimal payment Rp ${this.formatAmount(MAX_PAYMENT_AMOUNT)}`
+      : null;
+    this.amountChange.emit(parsedAmount.amount);
+  }
+
+  private formatAmount(amount: number): string {
+    return this.amountFormatter.format(amount);
   }
 }
