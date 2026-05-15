@@ -1,5 +1,6 @@
 package com.berijalan.ewallet.config;
 
+import com.berijalan.ewallet.common.web.ApiResponseFactory;
 import com.berijalan.ewallet.dto.response.BaseResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -7,7 +8,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -17,7 +17,6 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -35,12 +34,7 @@ public class IdempotencyHeaderFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         if (requiresIdempotencyKey(request) && isBlank(request.getHeader(IDEMPOTENCY_KEY_HEADER))) {
-            BaseResponse<Void> responseBody = new BaseResponse<>(
-                    getRequestId(),
-                    false,
-                    "Idempotency-Key header is required",
-                    null
-            );
+            BaseResponse<Void> responseBody = ApiResponseFactory.error("Idempotency-Key header is required");
 
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -68,10 +62,5 @@ public class IdempotencyHeaderFilter extends OncePerRequestFilter {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
-    }
-
-    private String getRequestId() {
-        String requestId = MDC.get(MdcFilter.REQUEST_ID);
-        return requestId != null ? requestId : "req-" + UUID.randomUUID();
     }
 }

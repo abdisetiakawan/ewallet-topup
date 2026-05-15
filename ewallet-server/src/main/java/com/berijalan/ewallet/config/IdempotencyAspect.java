@@ -1,8 +1,9 @@
 package com.berijalan.ewallet.config;
 
+import com.berijalan.ewallet.common.security.CurrentUser;
+import com.berijalan.ewallet.common.web.ApiResponseFactory;
 import com.berijalan.ewallet.dto.response.BaseResponse;
 import com.berijalan.ewallet.exception.BadRequestException;
-import com.berijalan.ewallet.security.UserDetailsImpl;
 import com.berijalan.ewallet.service.IdempotencyService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.slf4j.MDC;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -34,7 +34,7 @@ public class IdempotencyAspect {
     public Object guardFinancialRequest(ProceedingJoinPoint joinPoint) throws Throwable {
         HttpServletRequest httpRequest = currentHttpRequest();
         Authentication authentication = findArgument(joinPoint.getArgs(), Authentication.class);
-        Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+        Long userId = CurrentUser.id(authentication);
 
         Object requestBody = findRequestBody(joinPoint.getArgs());
         String requestHash = DigestUtils.md5DigestAsHex(
@@ -70,12 +70,7 @@ public class IdempotencyAspect {
         } catch (BadRequestException ex) {
             ResponseEntity<BaseResponse<Void>> response = ResponseEntity
                     .badRequest()
-                    .body(new BaseResponse<>(
-                            MDC.get(MdcFilter.REQUEST_ID),
-                            false,
-                            ex.getMessage(),
-                            null
-                    ));
+                    .body(ApiResponseFactory.error(ex.getMessage()));
 
             idempotencyService.complete(
                     result.redisKey(),
