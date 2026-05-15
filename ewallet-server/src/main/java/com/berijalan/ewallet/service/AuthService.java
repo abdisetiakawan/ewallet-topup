@@ -13,6 +13,7 @@ import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import com.berijalan.ewallet.security.JwtUtils;
 import com.berijalan.ewallet.security.UserDetailsImpl;
+import com.berijalan.ewallet.logging.LoggableAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -37,6 +38,7 @@ public class AuthService {
     private final UserMapper userMapper;
 
     @Transactional
+    @LoggableAction(action = "auth.register")
     public ResUserSummaryDto register(ReqRegisterDto request) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new BadRequestException("Email already exists");
@@ -58,6 +60,7 @@ public class AuthService {
         return userMapper.toSummaryDto(user);
     }
 
+    @LoggableAction(action = "auth.login")
     public LoginResult login(ReqLoginDto request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
@@ -75,6 +78,7 @@ public class AuthService {
         return new LoginResult(loginDto, refreshToken);
     }
 
+    @LoggableAction(action = "auth.refresh")
     public RefreshResult refresh(String refreshToken) {
         Long userId = refreshTokenService.validateAndGetUserId(refreshToken);
         if (userId == null) {
@@ -85,6 +89,7 @@ public class AuthService {
         return new RefreshResult(newAccessToken, jwtUtils.getAccessTokenTtlSeconds());
     }
 
+    @LoggableAction(action = "auth.logout")
     public void logout(Long userId) {
         refreshTokenService.revoke(userId);
     }

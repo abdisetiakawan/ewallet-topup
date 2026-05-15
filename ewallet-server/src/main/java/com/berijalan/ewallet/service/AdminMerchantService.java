@@ -9,6 +9,7 @@ import com.berijalan.ewallet.entity.constant.TaxType;
 import com.berijalan.ewallet.entity.constant.TaxValueType;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.logging.LoggableAction;
 import com.berijalan.ewallet.mapper.AdminMerchantMapper;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.MerchantTaxRepository;
@@ -49,6 +50,7 @@ public class AdminMerchantService {
 
     @CacheEvict(value = "merchants:active", key = "'all'")
     @Transactional
+    @LoggableAction(action = "admin.create-merchant")
     public ResAdminMerchantDto createMerchant(ReqAdminMerchantConfigDto request) {
         validateConfig(request);
 
@@ -64,6 +66,7 @@ public class AdminMerchantService {
 
     @CacheEvict(value = "merchants:active", key = "'all'")
     @Transactional
+    @LoggableAction(action = "admin.update-merchant")
     public ResAdminMerchantDto updateMerchant(Long id, ReqAdminMerchantConfigDto request) {
         validateConfig(request);
 

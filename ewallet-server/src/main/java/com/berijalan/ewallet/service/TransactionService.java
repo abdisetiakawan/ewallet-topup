@@ -20,6 +20,7 @@ import com.berijalan.ewallet.repository.MerchantTaxRepository;
 import com.berijalan.ewallet.repository.TransactionRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import com.berijalan.ewallet.util.ReferenceIdGenerator;
+import com.berijalan.ewallet.logging.LoggableAction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ public class TransactionService {
     private final TransactionMapper transactionMapper;
 
     @Transactional
+    @LoggableAction(action = "transaction.pay")
     public ResPaymentDto pay(ReqPayDto request, Long userId) {
         validatePaymentAmount(request.amount());
 
