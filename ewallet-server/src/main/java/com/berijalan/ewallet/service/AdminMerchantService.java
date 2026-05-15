@@ -13,6 +13,7 @@ import com.berijalan.ewallet.mapper.AdminMerchantMapper;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.MerchantTaxRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminMerchantService {
@@ -144,6 +146,8 @@ public class AdminMerchantService {
 
         for (ReqAdminMerchantTaxDto tax : taxes) {
             if (tax.expiredAt() != null && !tax.expiredAt().isAfter(tax.effectiveAt())) {
+                log.warn("Admin merchant config rejected because tax expiry is not after effective date. taxType={}, valueType={}",
+                        tax.taxType(), tax.valueType());
                 throw new BadRequestException("Tax expiry date must be after effective date");
             }
 

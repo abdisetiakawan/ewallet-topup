@@ -6,6 +6,7 @@ import com.berijalan.ewallet.exception.ConflictException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class IdempotencyService {
@@ -27,10 +29,12 @@ public class IdempotencyService {
 
     public IdempotencyResult start(String idempotencyKey, Long userId, String endpoint, String requestHash) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            log.warn("Idempotency start rejected because key is missing. userId={}, endpoint={}", userId, endpoint);
             throw new BadRequestException("Idempotency-Key header is required");
         }
 
         String redisKey = buildRedisKey(userId, endpoint, idempotencyKey);
+
         IdempotencyCacheEntry processingEntry = new IdempotencyCacheEntry(
                 IdempotencyStatus.PROCESSING,
                 requestHash,
@@ -42,22 +46,33 @@ public class IdempotencyService {
                 .setIfAbsent(redisKey, serialize(processingEntry), Duration.ofHours(ttlHours));
 
         if (Boolean.TRUE.equals(created)) {
+            log.info("Idempotency start success. userId={}, endpoint={}, redisKey={}, ttlHours={}",
+                    userId, endpoint, redisKey, ttlHours);
             return IdempotencyResult.processing(redisKey);
         }
 
         String existingValue = redisTemplate.opsForValue().get(redisKey);
         if (existingValue == null) {
+            log.warn("Idempotency entry disappeared before read; retrying start. userId={}, endpoint={}, redisKey={}",
+                    userId, endpoint, redisKey);
             return start(idempotencyKey, userId, endpoint, requestHash);
         }
 
         IdempotencyCacheEntry existingEntry = deserialize(existingValue);
         if (!Objects.equals(existingEntry.requestHash(), requestHash)) {
+            log.warn("Idempotency start rejected because request hash differs. userId={}, endpoint={}, redisKey={}, existingStatus={}",
+                    userId, endpoint, redisKey, existingEntry.status());
             throw new ConflictException("Idempotency-Key already used for different request");
         }
 
         if (existingEntry.status() == IdempotencyStatus.PROCESSING) {
+            log.warn("Idempotency start rejected because request is still processing. userId={}, endpoint={}, redisKey={}",
+                    userId, endpoint, redisKey);
             throw new ConflictException("Request is still processing");
         }
+
+        log.info("Idempotency replay success. userId={}, endpoint={}, redisKey={}, status={}, httpStatus={}",
+                userId, endpoint, redisKey, existingEntry.status(), existingEntry.httpStatus());
 
         return IdempotencyResult.replay(
                 redisKey,
@@ -79,10 +94,18 @@ public class IdempotencyService {
         );
 
         redisTemplate.opsForValue().set(redisKey, serialize(entry), Duration.ofHours(ttlHours));
+        if (status == IdempotencyStatus.COMPLETED) {
+            log.info("Idempotency complete success. redisKey={}, httpStatus={}, ttlHours={}",
+                    redisKey, httpStatus, ttlHours);
+        } else {
+            log.warn("Idempotency complete stored failed response. redisKey={}, httpStatus={}, ttlHours={}",
+                    redisKey, httpStatus, ttlHours);
+        }
     }
 
     public void clear(String redisKey) {
         redisTemplate.delete(redisKey);
+        log.warn("Idempotency entry cleared. redisKey={}", redisKey);
     }
 
     private String buildRedisKey(Long userId, String endpoint, String idempotencyKey) {
@@ -93,6 +116,8 @@ public class IdempotencyService {
         try {
             return objectMapper.writeValueAsString(entry);
         } catch (JsonProcessingException ex) {
+            log.error("Failed to serialize idempotency cache. status={}, httpStatus={}",
+                    entry.status(), entry.httpStatus(), ex);
             throw new IllegalStateException("Failed to serialize idempotency cache", ex);
         }
     }
@@ -101,6 +126,7 @@ public class IdempotencyService {
         try {
             return objectMapper.readValue(value, IdempotencyCacheEntry.class);
         } catch (JsonProcessingException ex) {
+            log.error("Failed to deserialize idempotency cache", ex);
             throw new IllegalStateException("Failed to deserialize idempotency cache", ex);
         }
     }

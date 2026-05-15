@@ -38,7 +38,10 @@ public class WalletService {
         }
 
         Wallet wallet = walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new NotFoundException("Wallet not found"));
+                .orElseThrow(() -> {
+                    log.warn("Wallet balance request rejected because wallet was not found. userId={}", userId);
+                    return new NotFoundException("Wallet not found");
+                });
 
         ResWalletBalanceDto result = walletMapper.toBalanceDto(wallet);
         walletCacheService.put(userId, wallet.getBalance(), wallet.getUpdatedAt());
@@ -47,16 +50,19 @@ public class WalletService {
 
     @Transactional
     public ResTopupDto topup(ReqTopupDto request, Long userId) {
-        validateTopupAmount(request.amount());
+        validateTopupAmount(request.amount(), userId);
 
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
-                .orElseThrow(() -> new NotFoundException("Wallet not found"));
+                .orElseThrow(() -> {
+                    log.warn("Top-up rejected because wallet was not found. userId={}", userId);
+                    return new NotFoundException("Wallet not found");
+                });
         User user = wallet.getUser();
 
         String referenceId = ReferenceIdGenerator.generate("TXN-");
 
         long balanceBefore = wallet.getBalance();
-        long balanceAfter = safeAddBalance(balanceBefore, request.amount());
+        long balanceAfter = safeAddBalance(balanceBefore, request.amount(), userId);
 
         wallet.setBalance(balanceAfter);
 
@@ -74,27 +80,37 @@ public class WalletService {
         transaction = transactionRepository.saveAndFlush(transaction);
         walletCacheService.putAfterCommit(userId, balanceAfter, wallet.getUpdatedAt());
 
+        log.info("Top-up success. userId={}, amount={}, balanceBefore={}, balanceAfter={}, referenceId={}",
+                userId, request.amount(), balanceBefore, balanceAfter, transaction.getReferenceId());
+
         return walletMapper.toTopupDto(transaction);
     }
 
-    private void validateTopupAmount(Long amount) {
+    private void validateTopupAmount(Long amount, Long userId) {
         if (amount == null) {
+            log.warn("Top-up rejected because amount is missing. userId={}", userId);
             throw new BadRequestException("Amount is required");
         }
 
         if (amount < TransactionAmountLimits.MIN_TRANSACTION_AMOUNT) {
+            log.warn("Top-up rejected because amount is below minimum. userId={}, amount={}, minimum={}",
+                    userId, amount, TransactionAmountLimits.MIN_TRANSACTION_AMOUNT);
             throw new BadRequestException("Minimum top-up amount is 10000");
         }
 
         if (amount > TransactionAmountLimits.MAX_TOPUP_AMOUNT) {
+            log.warn("Top-up rejected because amount exceeds maximum. userId={}, amount={}, maximum={}",
+                    userId, amount, TransactionAmountLimits.MAX_TOPUP_AMOUNT);
             throw new BadRequestException("Maximum top-up amount is 10000000");
         }
     }
 
-    private long safeAddBalance(long balanceBefore, long amount) {
+    private long safeAddBalance(long balanceBefore, long amount, Long userId) {
         try {
             return Math.addExact(balanceBefore, amount);
         } catch (ArithmeticException ex) {
+            log.error("Top-up failed because wallet balance overflowed. userId={}, balanceBefore={}, amount={}",
+                    userId, balanceBefore, amount, ex);
             throw new BadRequestException("Wallet balance limit exceeded");
         }
     }

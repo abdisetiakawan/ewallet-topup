@@ -48,7 +48,7 @@ public class TransactionService {
 
     @Transactional
     public ResPaymentDto pay(ReqPayDto request, Long userId) {
-        validatePaymentAmount(request.amount());
+        validatePaymentAmount(request.amount(), userId, request.merchantName());
 
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> {
@@ -68,8 +68,9 @@ public class TransactionService {
         long baseAmount = request.amount();
         TaxCalculator.TaxCalculationResult taxCalculation = taxCalculator.calculate(baseAmount, activeTaxes);
         long totalTax = taxCalculation.totalTax();
-        long finalAmount = safeAddPaymentAmount(baseAmount, totalTax);
-        validateFinalPaymentAmount(finalAmount);
+
+        long finalAmount = safeAddPaymentAmount(baseAmount, totalTax, userId, merchant.getName());
+        validateFinalPaymentAmount(finalAmount, userId, merchant.getName());
 
         if (wallet.getBalance() < finalAmount) {
             log.warn("Payment rejected because balance is insufficient. userId={}, merchant={}, baseAmount={}, tax={}, finalAmount={}, balance={}",
@@ -95,36 +96,45 @@ public class TransactionService {
         transaction = transactionRepository.saveAndFlush(transaction);
         walletCacheService.putAfterCommit(userId, balanceAfter, wallet.getUpdatedAt());
 
-        log.info("Payment success. userId={}, merchant={}, baseAmount={}, tax={}, finalAmount={}, referenceId={}",
-                userId, merchant.getName(), baseAmount, totalTax, finalAmount, transaction.getReferenceId());
+        log.info("Payment success. userId={}, merchant={}, baseAmount={}, tax={}, finalAmount={}, balanceBefore={}, balanceAfter={}, referenceId={}",
+                userId, merchant.getName(), baseAmount, totalTax, finalAmount, balanceBefore, balanceAfter, transaction.getReferenceId());
 
         return transactionMapper.toPaymentDto(transaction);
     }
 
-    private void validatePaymentAmount(Long amount) {
+    private void validatePaymentAmount(Long amount, Long userId, String merchantName) {
         if (amount == null) {
+            log.warn("Payment rejected because amount is missing. userId={}, merchant={}", userId, merchantName);
             throw new BadRequestException("Payment amount is required");
         }
 
         if (amount < TransactionAmountLimits.MIN_TRANSACTION_AMOUNT) {
+            log.warn("Payment rejected because amount is below minimum. userId={}, merchant={}, amount={}, minimum={}",
+                    userId, merchantName, amount, TransactionAmountLimits.MIN_TRANSACTION_AMOUNT);
             throw new BadRequestException("Minimum payment amount is 10000");
         }
 
         if (amount > TransactionAmountLimits.MAX_PAYMENT_AMOUNT) {
+            log.warn("Payment rejected because amount exceeds maximum. userId={}, merchant={}, amount={}, maximum={}",
+                    userId, merchantName, amount, TransactionAmountLimits.MAX_PAYMENT_AMOUNT);
             throw new BadRequestException("Maximum payment amount is 10000000");
         }
     }
 
-    private long safeAddPaymentAmount(long baseAmount, long totalTax) {
+    private long safeAddPaymentAmount(long baseAmount, long totalTax, Long userId, String merchantName) {
         try {
             return Math.addExact(baseAmount, totalTax);
         } catch (ArithmeticException ex) {
+            log.error("Payment failed because final amount overflowed. userId={}, merchant={}, baseAmount={}, totalTax={}",
+                    userId, merchantName, baseAmount, totalTax, ex);
             throw new BadRequestException("Payment amount limit exceeded");
         }
     }
 
-    private void validateFinalPaymentAmount(long finalAmount) {
+    private void validateFinalPaymentAmount(long finalAmount, Long userId, String merchantName) {
         if (finalAmount > TransactionAmountLimits.MAX_PAYMENT_AMOUNT) {
+            log.warn("Payment rejected because final amount exceeds maximum. userId={}, merchant={}, finalAmount={}, maximum={}",
+                    userId, merchantName, finalAmount, TransactionAmountLimits.MAX_PAYMENT_AMOUNT);
             throw new BadRequestException("Maximum payment amount is 10000000");
         }
     }
@@ -163,6 +173,7 @@ public class TransactionService {
         try {
             return objectMapper.writeValueAsString(taxSnapshots);
         } catch (JsonProcessingException ex) {
+            log.error("Failed to serialize payment tax snapshot", ex);
             throw new IllegalStateException("Failed to serialize tax snapshot", ex);
         }
     }
