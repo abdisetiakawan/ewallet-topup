@@ -8,6 +8,7 @@ import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
 import com.berijalan.ewallet.entity.constant.TransactionStatus;
 import com.berijalan.ewallet.entity.constant.TransactionType;
+import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
 import com.berijalan.ewallet.mapper.WalletMapper;
 import com.berijalan.ewallet.repository.TransactionRepository;
@@ -111,6 +112,19 @@ class WalletServiceTest {
                 .hasMessage("Wallet not found");
 
         verify(walletRepository, never()).save(any(Wallet.class));
+        verify(transactionRepository, never()).saveAndFlush(any(Transaction.class));
+    }
+
+    @Test
+    void topup_whenAmountExceedsLimit_shouldThrowBadRequestExceptionWithoutQueryingDatabase() {
+        Long userId = 1L;
+        ReqTopupDto request = new ReqTopupDto(10_000_001L);
+
+        assertThatThrownBy(() -> walletService.topup(request, userId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Maximum top-up amount is 10000000");
+
+        verify(walletRepository, never()).findByUserIdForUpdate(any(Long.class));
         verify(transactionRepository, never()).saveAndFlush(any(Transaction.class));
     }
 

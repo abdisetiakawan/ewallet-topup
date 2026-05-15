@@ -1,5 +1,6 @@
 package com.berijalan.ewallet.service;
 
+import com.berijalan.ewallet.common.TransactionAmountLimits;
 import com.berijalan.ewallet.dto.request.ReqPayDto;
 import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
@@ -47,6 +48,8 @@ public class TransactionService {
 
     @Transactional
     public ResPaymentDto pay(ReqPayDto request, Long userId) {
+        validatePaymentAmount(request.amount());
+
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> {
                     log.warn("Payment rejected because wallet was not found. userId={}", userId);
@@ -65,7 +68,8 @@ public class TransactionService {
         long baseAmount = request.amount();
         TaxCalculator.TaxCalculationResult taxCalculation = taxCalculator.calculate(baseAmount, activeTaxes);
         long totalTax = taxCalculation.totalTax();
-        long finalAmount = baseAmount + totalTax;
+        long finalAmount = safeAddPaymentAmount(baseAmount, totalTax);
+        validateFinalPaymentAmount(finalAmount);
 
         if (wallet.getBalance() < finalAmount) {
             log.warn("Payment rejected because balance is insufficient. userId={}, merchant={}, baseAmount={}, tax={}, finalAmount={}, balance={}",
@@ -95,6 +99,34 @@ public class TransactionService {
                 userId, merchant.getName(), baseAmount, totalTax, finalAmount, transaction.getReferenceId());
 
         return transactionMapper.toPaymentDto(transaction);
+    }
+
+    private void validatePaymentAmount(Long amount) {
+        if (amount == null) {
+            throw new BadRequestException("Payment amount is required");
+        }
+
+        if (amount < TransactionAmountLimits.MIN_TRANSACTION_AMOUNT) {
+            throw new BadRequestException("Minimum payment amount is 10000");
+        }
+
+        if (amount > TransactionAmountLimits.MAX_PAYMENT_AMOUNT) {
+            throw new BadRequestException("Maximum payment amount is 10000000");
+        }
+    }
+
+    private long safeAddPaymentAmount(long baseAmount, long totalTax) {
+        try {
+            return Math.addExact(baseAmount, totalTax);
+        } catch (ArithmeticException ex) {
+            throw new BadRequestException("Payment amount limit exceeded");
+        }
+    }
+
+    private void validateFinalPaymentAmount(long finalAmount) {
+        if (finalAmount > TransactionAmountLimits.MAX_PAYMENT_AMOUNT) {
+            throw new BadRequestException("Maximum payment amount is 10000000");
+        }
     }
 
     private Transaction createPaymentTransaction(

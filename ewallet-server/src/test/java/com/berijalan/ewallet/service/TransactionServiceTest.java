@@ -178,6 +178,19 @@ class TransactionServiceTest {
     }
 
     @Test
+    void pay_whenAmountExceedsLimit_shouldThrowBadRequestExceptionWithoutQueryingDatabase() {
+        Long userId = 1L;
+        ReqPayDto request = new ReqPayDto("Gopay", 10_000_001L, "Top-up Gopay");
+
+        assertThatThrownBy(() -> transactionService.pay(request, userId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Maximum payment amount is 10000000");
+
+        verify(walletRepository, never()).findByUserIdForUpdate(any(Long.class));
+        verify(transactionRepository, never()).saveAndFlush(any(Transaction.class));
+    }
+
+    @Test
     void getTransactions_whenRepositoryReturnsPage_shouldReturnTransactionHistory() {
         Long userId = 1L;
         User user = createUser(userId);
