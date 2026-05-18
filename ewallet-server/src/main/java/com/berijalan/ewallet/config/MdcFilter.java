@@ -27,8 +27,9 @@ public class MdcFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         try {
+            // WHY: Request ID di MDC menyatukan log aplikasi dengan response envelope untuk troubleshooting.
             String requestId = resolveRequestId(request);
-            MDC.put(LoggingSupport.REQUEST_ID, requestId);
+            MDC.put(REQUEST_ID, requestId);
             MDC.put(LoggingSupport.HTTP_METHOD, request.getMethod());
             MDC.put(LoggingSupport.REQUEST_PATH, request.getRequestURI());
             response.setHeader(LoggingSupport.REQUEST_ID_HEADER, requestId);

@@ -29,6 +29,7 @@ public class RedisConfig {
     private GenericJackson2JsonRedisSerializer buildSerializer() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
+        // WHY: Cache menyimpan beberapa tipe DTO, sehingga type metadata diperlukan saat value dibaca kembali.
         mapper.activateDefaultTyping(
                 BasicPolymorphicTypeValidator.builder().allowIfBaseType(Object.class).build(),
                 ObjectMapper.DefaultTyping.EVERYTHING,
@@ -37,9 +38,16 @@ public class RedisConfig {
         return new GenericJackson2JsonRedisSerializer(mapper);
     }
 
+    /**
+     * Menyediakan cache manager Redis untuk data read-heavy seperti daftar merchant aktif.
+     *
+     * @param connectionFactory koneksi Redis yang dipakai Spring Cache.
+     * @return cache manager dengan logging hit/miss.
+     */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         GenericJackson2JsonRedisSerializer jsonSerializer = buildSerializer();
+        // WHY: TTL merchant menyeimbangkan performa daftar merchant dengan risiko data pajak yang stale.
         RedisCacheConfiguration merchantsConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofHours(merchantsTtlHours))
                 .serializeKeysWith(RedisSerializationContext.SerializationPair
@@ -53,18 +61,24 @@ public class RedisConfig {
         return new LoggingCacheManager(redisCacheManager);
     }
 
+    /**
+     * Menyediakan RedisTemplate utama untuk cache wallet, idempotency, refresh token, dan email change token.
+     *
+     * @param connectionFactory koneksi Redis aplikasi.
+     * @return RedisTemplate dengan serializer JSON yang mendukung Java time.
+     */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         try (var conn = connectionFactory.getConnection()) {
             conn.ping();
         } catch (Exception e) {
+            // WHY: Redis menyimpan idempotency dan token, jadi aplikasi lebih aman gagal start daripada berjalan parsial.
             throw new IllegalStateException("Failed to connect to Redis. Redis connection is mandatory.", e);
         }
 
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-        
-        // Use String serializer for keys
+
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         

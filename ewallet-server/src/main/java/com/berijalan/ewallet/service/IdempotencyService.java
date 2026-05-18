@@ -27,6 +27,15 @@ public class IdempotencyService {
     @Value("${app.idempotency.ttl-hours:24}")
     private long ttlHours;
 
+    /**
+     * Memulai guard idempotency untuk request finansial.
+     *
+     * @param idempotencyKey kunci unik dari header request.
+     * @param userId ID customer pemilik request.
+     * @param endpoint method dan URI endpoint.
+     * @param requestHash hash body request untuk mendeteksi reuse key dengan payload berbeda.
+     * @return status proses baru atau replay response yang sudah selesai.
+     */
     public IdempotencyResult start(String idempotencyKey, Long userId, String endpoint, String requestHash) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             log.warn("Idempotency start rejected because key is missing. userId={}, endpoint={}", userId, endpoint);
@@ -42,6 +51,7 @@ public class IdempotencyService {
                 null
         );
 
+        // WHY: setIfAbsent membuat hanya satu request dengan key yang sama boleh masuk ke proses finansial.
         Boolean created = redisTemplate.opsForValue()
                 .setIfAbsent(redisKey, serialize(processingEntry), Duration.ofHours(ttlHours));
 
@@ -53,6 +63,7 @@ public class IdempotencyService {
 
         String existingValue = redisTemplate.opsForValue().get(redisKey);
         if (existingValue == null) {
+            // WHY: Key bisa kedaluwarsa di antara setIfAbsent dan read; retry memulai guard baru secara aman.
             log.warn("Idempotency entry disappeared before read; retrying start. userId={}, endpoint={}, redisKey={}",
                     userId, endpoint, redisKey);
             return start(idempotencyKey, userId, endpoint, requestHash);
@@ -81,6 +92,14 @@ public class IdempotencyService {
         );
     }
 
+    /**
+     * Menyimpan response akhir agar retry dengan key yang sama bisa mendapatkan replay yang konsisten.
+     *
+     * @param redisKey key Redis guard idempotency.
+     * @param requestHash hash body request asli.
+     * @param httpStatus status HTTP response.
+     * @param responseBody body response yang akan direplay.
+     */
     public void complete(String redisKey, String requestHash, int httpStatus, String responseBody) {
         IdempotencyStatus status = httpStatus >= 200 && httpStatus < 300
                 ? IdempotencyStatus.COMPLETED
@@ -103,12 +122,18 @@ public class IdempotencyService {
         }
     }
 
+    /**
+     * Menghapus guard idempotency saat terjadi error tak terduga agar request dapat dicoba ulang.
+     *
+     * @param redisKey key Redis guard idempotency.
+     */
     public void clear(String redisKey) {
         redisTemplate.delete(redisKey);
         log.warn("Idempotency entry cleared. redisKey={}", redisKey);
     }
 
     private String buildRedisKey(Long userId, String endpoint, String idempotencyKey) {
+        // WHY: Scope key per user dan endpoint mencegah tabrakan antar operasi yang memakai nilai header sama.
         return KEY_PREFIX + ":" + userId + ":" + endpoint + ":" + idempotencyKey;
     }
 

@@ -23,13 +23,13 @@ public class RefreshTokenService {
     private long ttlDays;
 
     /**
-     * Creates a refresh token for a user.
-     * Stores two Redis entries:
-     *   - token → userId (for lookup during refresh)
-     *   - userId → token (for revocation during logout)
+     * Membuat refresh token baru dan mencabut token lama milik user.
+     *
+     * @param userId ID user pemilik sesi.
+     * @return refresh token baru untuk cookie HTTP-only.
      */
     public String create(Long userId) {
-        // Revoke existing token first (single-session policy)
+        // WHY: Single-session policy mencegah refresh token lama tetap hidup setelah login baru.
         revoke(userId);
 
         String token = UUID.randomUUID().toString();
@@ -42,8 +42,10 @@ public class RefreshTokenService {
     }
 
     /**
-     * Validates the refresh token and returns the associated userId.
-     * Returns null if the token is invalid or expired.
+     * Memvalidasi refresh token dan mengembalikan userId pemilik token.
+     *
+     * @param token refresh token dari cookie.
+     * @return userId jika token aktif, atau null jika token tidak valid.
      */
     public Long validateAndGetUserId(String token) {
         if (token == null || token.isBlank()) {
@@ -58,7 +60,7 @@ public class RefreshTokenService {
         try {
             long userId = Long.parseLong(userIdStr);
 
-            // Cross-check that the user's active token matches
+            // WHY: Pemeriksaan user key memastikan token lama tidak bisa dipakai setelah sesi dicabut.
             String activeToken = redisTemplate.opsForValue().get(buildUserKey(userId));
             if (!token.equals(activeToken)) {
                 return null;
@@ -66,13 +68,15 @@ public class RefreshTokenService {
 
             return userId;
         } catch (NumberFormatException e) {
-            log.warn("Corrupted userId value in Redis for token lookup: '{}' — treating as invalid token", userIdStr);
+            log.warn("Corrupted userId value in Redis for token lookup: '{}' - treating as invalid token", userIdStr);
             return null;
         }
     }
 
     /**
-     * Revokes the refresh token for a user.
+     * Mencabut refresh token aktif milik user.
+     *
+     * @param userId ID user yang sesinya dicabut.
      */
     public void revoke(Long userId) {
         String existingToken = redisTemplate.opsForValue().get(buildUserKey(userId));

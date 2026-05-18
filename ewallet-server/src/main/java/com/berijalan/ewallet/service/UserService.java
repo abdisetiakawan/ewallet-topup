@@ -24,6 +24,13 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
 
+    /**
+     * Mengambil profil customer yang sedang login.
+     *
+     * @param userId ID customer dari JWT.
+     * @return ringkasan profil customer.
+     * @throws NotFoundException jika user tidak ditemukan.
+     */
     @Transactional(readOnly = true)
     public ResUserSummaryDto getProfile(Long userId) {
         User user = userRepository.findById(userId)
@@ -35,6 +42,14 @@ public class UserService {
         return userMapper.toSummaryDto(user);
     }
 
+    /**
+     * Memperbarui nama profil customer.
+     *
+     * @param userId ID customer dari JWT.
+     * @param request data profil baru.
+     * @return profil setelah diperbarui.
+     * @throws NotFoundException jika user tidak ditemukan.
+     */
     @Transactional
     public ResUserSummaryDto updateProfile(Long userId, ReqUpdateProfileDto request) {
         User user = userRepository.findById(userId)
@@ -50,6 +65,14 @@ public class UserService {
         return userMapper.toSummaryDto(user);
     }
 
+    /**
+     * Mengubah password customer setelah password lama berhasil diverifikasi.
+     *
+     * @param userId ID customer dari JWT.
+     * @param request password lama dan password baru.
+     * @throws BadRequestException jika password lama salah atau password baru sama dengan password lama.
+     * @throws NotFoundException jika user tidak ditemukan.
+     */
     @Transactional
     @LoggableAction(action = "user.change-password")
     public void changePassword(Long userId, ReqChangePasswordDto request) {
@@ -69,6 +92,7 @@ public class UserService {
             throw new BadRequestException("New password cannot be the same as old password");
         }
 
+        // WHY: Password hanya dibandingkan dalam bentuk plaintext request, lalu disimpan ulang dalam bentuk hash.
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
 

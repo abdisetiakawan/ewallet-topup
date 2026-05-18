@@ -28,6 +28,12 @@ public class UserDetailsImpl implements UserDetails {
     @JsonIgnore
     private String password;
 
+    /**
+     * Membentuk principal Spring Security dari entity user.
+     *
+     * @param user entity user dari database.
+     * @return principal dengan role yang siap dipakai authorization.
+     */
     public static UserDetailsImpl build(User user) {
         return new UserDetailsImpl(
                 user.getId(),
@@ -41,6 +47,7 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        // WHY: SecurityConfig menggunakan hasRole, sehingga authority harus memakai prefix ROLE_.
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 

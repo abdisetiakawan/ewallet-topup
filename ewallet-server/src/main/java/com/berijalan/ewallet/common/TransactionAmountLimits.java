@@ -1,5 +1,8 @@
 package com.berijalan.ewallet.common;
 
+/**
+ * Batas nominal transaksi yang dipakai konsisten oleh validasi DTO dan service.
+ */
 public final class TransactionAmountLimits {
 
     public static final long MIN_TRANSACTION_AMOUNT = 10_000L;

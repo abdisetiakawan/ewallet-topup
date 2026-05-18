@@ -17,6 +17,13 @@ public class MailSenderService {
     @Value("${app.mail.from}")
     private String from;
 
+    /**
+     * Mengirim token verifikasi perubahan email ke alamat baru.
+     *
+     * @param toEmail email baru tujuan verifikasi.
+     * @param token token yang harus dikonfirmasi customer.
+     * @param ttlMinutes masa berlaku token dalam menit.
+     */
     public void sendEmailChangeToken(String toEmail, String token, int ttlMinutes) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);

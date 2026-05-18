@@ -13,6 +13,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Representasi saldo customer yang menjadi sumber kebenaran untuk top-up dan pembayaran.
+ */
 @Entity
 @Table(name = "mst_wallets")
 @Getter @Setter @NoArgsConstructor
@@ -26,6 +29,9 @@ public class Wallet extends BaseEntity {
     @JoinColumn(name = "user_id", unique = true, nullable = false)
     private User user;
 
+    /**
+     * Saldo disimpan sebagai integer minor unit agar operasi finansial tidak terkena pembulatan floating point.
+     */
     @Column(nullable = false)
     private Long balance;
 }

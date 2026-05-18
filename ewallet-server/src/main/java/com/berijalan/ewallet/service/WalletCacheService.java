@@ -25,6 +25,12 @@ public class WalletCacheService {
     @Value("${app.cache.wallet.ttl-minutes:30}")
     private long ttlMinutes;
 
+    /**
+     * Membaca cache saldo wallet dengan fallback ke database saat Redis gagal atau data tidak tersedia.
+     *
+     * @param userId ID customer pemilik saldo.
+     * @return data saldo dari cache, atau null agar caller mengambil data dari database.
+     */
     public WalletBalanceCache get(Long userId) {
         try {
             Object raw = redisTemplate.opsForValue().get(buildKey(userId));
@@ -40,8 +46,16 @@ public class WalletCacheService {
         }
     }
 
+    /**
+     * Menulis saldo wallet ke cache Redis.
+     *
+     * @param userId ID customer pemilik saldo.
+     * @param balance saldo terakhir yang akan disimpan.
+     * @param updatedAt waktu update saldo dari database.
+     */
     public void put(Long userId, Long balance, LocalDateTime updatedAt) {
         try {
+            // WHY: TTL membatasi risiko saldo stale jika update cache gagal pada transaksi berikutnya.
             redisTemplate.opsForValue().set(
                     buildKey(userId),
                     new WalletBalanceCache(balance, updatedAt),
@@ -54,9 +68,11 @@ public class WalletCacheService {
     }
 
     /**
-     * Schedules a cache update to fire after the current DB transaction commits.
-     * If no transaction is active, writes to cache immediately.
-     * Prevents caching a value that may be rolled back.
+     * Menjadwalkan update cache setelah transaksi database berhasil commit.
+     *
+     * @param userId ID customer pemilik saldo.
+     * @param balance saldo yang sudah dipersist.
+     * @param updatedAt waktu update dari entity yang sudah disimpan.
      */
     public void putAfterCommit(Long userId, Long balance, LocalDateTime updatedAt) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {

@@ -38,6 +38,13 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final UserMapper userMapper;
 
+    /**
+     * Mendaftarkan customer baru dan membuat wallet awal dalam transaksi yang sama.
+     *
+     * @param request data registrasi customer.
+     * @return ringkasan customer yang berhasil dibuat.
+     * @throws BadRequestException jika email sudah digunakan.
+     */
     @Transactional
     @LoggableAction(action = "auth.register")
     public ResUserSummaryDto register(ReqRegisterDto request) {
@@ -53,6 +60,7 @@ public class AuthService {
 
         userRepository.save(user);
 
+        // WHY: Setiap customer harus langsung memiliki wallet agar endpoint finansial tidak perlu membuatnya lazily.
         Wallet wallet = new Wallet();
         wallet.setUser(user);
         wallet.setBalance(0L);
@@ -64,6 +72,12 @@ public class AuthService {
         return userMapper.toSummaryDto(user);
     }
 
+    /**
+     * Mengautentikasi kredensial dan membuat access token serta refresh token sesi.
+     *
+     * @param request email dan password pengguna.
+     * @return access token untuk response API dan refresh token untuk cookie.
+     */
     @LoggableAction(action = "auth.login")
     public LoginResult login(ReqLoginDto request) {
         Authentication authentication;
@@ -81,6 +95,7 @@ public class AuthService {
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
+        // WHY: RefreshTokenService menerapkan single-session policy sebelum token baru diterbitkan.
         String refreshToken = refreshTokenService.create(userDetails.getId());
 
         ResLoginDto loginDto = userMapper.toLoginDto(accessToken, jwtUtils.getAccessTokenTtlSeconds(), userDetails);
@@ -90,6 +105,13 @@ public class AuthService {
         return new LoginResult(loginDto, refreshToken);
     }
 
+    /**
+     * Menerbitkan access token baru dari refresh token yang masih aktif.
+     *
+     * @param refreshToken token dari cookie HTTP-only.
+     * @return access token baru beserta masa berlakunya.
+     * @throws UnauthorizedException jika refresh token tidak valid atau kedaluwarsa.
+     */
     @LoggableAction(action = "auth.refresh")
     public RefreshResult refresh(String refreshToken) {
         Long userId = refreshTokenService.validateAndGetUserId(refreshToken);
@@ -103,6 +125,11 @@ public class AuthService {
         return new RefreshResult(newAccessToken, jwtUtils.getAccessTokenTtlSeconds());
     }
 
+    /**
+     * Mencabut refresh token aktif milik user.
+     *
+     * @param userId ID user yang sedang logout.
+     */
     @LoggableAction(action = "auth.logout")
     public void logout(Long userId) {
         refreshTokenService.revoke(userId);

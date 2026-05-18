@@ -12,6 +12,13 @@ import java.util.List;
 @Component
 public class TaxCalculator {
 
+    /**
+     * Menghitung total pajak aktif merchant dan snapshot detail pajak untuk audit transaksi.
+     *
+     * @param baseAmount nominal pembayaran sebelum pajak.
+     * @param taxes daftar pajak aktif merchant.
+     * @return total pajak dan snapshot setiap pajak yang dihitung.
+     */
     public TaxCalculationResult calculate(long baseAmount, List<MerchantTax> taxes) {
         long totalTax = 0L;
         List<TaxSnapshot> snapshots = new ArrayList<>();
@@ -33,6 +40,7 @@ public class TaxCalculator {
 
     private long calculateTaxAmount(long baseAmount, MerchantTax tax) {
         if (tax.getValueType() == TaxValueType.PERCENTAGE) {
+            // WHY: Nilai persentase disimpan 4 desimal, lalu nominal rupiah dibulatkan ke satuan terdekat.
             return BigDecimal.valueOf(baseAmount)
                     .multiply(tax.getTaxValue().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP))
                     .setScale(0, RoundingMode.HALF_UP)
