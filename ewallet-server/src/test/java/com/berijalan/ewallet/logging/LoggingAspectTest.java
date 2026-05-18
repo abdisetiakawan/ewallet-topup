@@ -15,6 +15,7 @@ import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -83,6 +84,23 @@ class LoggingAspectTest {
                 .contains("error=BadRequestException")
                 .contains("message=bad request")
                 .doesNotContain("com.berijalan.ewallet.exception.BadRequestException: bad request");
+    }
+
+    @Test
+    void shouldLogWarnForAuthenticationException(CapturedOutput output) throws Throwable {
+        putRequestContext("req-127", "POST", "/api/auth/login");
+        mockJoinPoint(new SampleController(), "login");
+        when(joinPoint.proceed()).thenThrow(new BadCredentialsException("Bad credentials"));
+
+        assertThatThrownBy(() -> loggingAspect.logControllerInvocation(joinPoint))
+                .isInstanceOf(BadCredentialsException.class);
+
+        assertThat(output.getOut())
+                .contains("WARN")
+                .contains("status=401")
+                .contains("error=BadCredentialsException")
+                .contains("message=Bad credentials")
+                .doesNotContain("ERROR");
     }
 
     @Test

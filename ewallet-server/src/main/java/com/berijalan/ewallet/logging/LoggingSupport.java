@@ -9,6 +9,7 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -57,6 +58,7 @@ public final class LoggingSupport {
     public static boolean isExpectedException(Throwable throwable) {
         return throwable instanceof BadRequestException
                 || throwable instanceof UnauthorizedException
+                || throwable instanceof AuthenticationException
                 || throwable instanceof AccessDeniedException
                 || throwable instanceof NotFoundException
                 || throwable instanceof ConflictException
@@ -73,7 +75,8 @@ public final class LoggingSupport {
             return HttpStatus.BAD_REQUEST.value();
         }
 
-        if (throwable instanceof UnauthorizedException) {
+        if (throwable instanceof UnauthorizedException
+                || throwable instanceof AuthenticationException) {
             return HttpStatus.UNAUTHORIZED.value();
         }
 
