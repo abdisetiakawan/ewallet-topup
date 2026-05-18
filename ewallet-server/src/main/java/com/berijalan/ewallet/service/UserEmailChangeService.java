@@ -6,6 +6,7 @@ import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.ConflictException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.logging.LoggableAction;
 import com.berijalan.ewallet.mapper.UserMapper;
 import com.berijalan.ewallet.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class UserEmailChangeService {
      * @return email tujuan dan masa berlaku token.
      * @throws ConflictException jika email baru sudah digunakan.
      */
+    @LoggableAction(action = "user.request-email-change")
     public ResEmailChangeDto requestEmailChange(Long userId, String newEmail) {
         if (userRepository.findByEmail(newEmail).isPresent()) {
             throw new ConflictException("Email is already in use");
@@ -73,6 +75,7 @@ public class UserEmailChangeService {
      * @throws NotFoundException jika user tidak ditemukan.
      */
     @Transactional
+    @LoggableAction(action = "user.confirm-email-change")
     public ResUserSummaryDto confirmEmailChange(Long userId, String token) {
         String value = redisTemplate.opsForValue().get(TOKEN_KEY_PREFIX + token);
         if (value == null) {

@@ -6,6 +6,7 @@ import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.logging.LoggableAction;
 import com.berijalan.ewallet.mapper.UserMapper;
 import com.berijalan.ewallet.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +34,10 @@ public class UserService {
     @Transactional(readOnly = true)
     public ResUserSummaryDto getProfile(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> {
+                    log.warn("User profile request rejected because user was not found. userId={}", userId);
+                    return new NotFoundException("User not found");
+                });
 
         return userMapper.toSummaryDto(user);
     }
@@ -49,11 +53,15 @@ public class UserService {
     @Transactional
     public ResUserSummaryDto updateProfile(Long userId, ReqUpdateProfileDto request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> {
+                    log.warn("Profile update rejected because user was not found. userId={}", userId);
+                    return new NotFoundException("User not found");
+                });
 
         user.setName(request.name());
         userRepository.save(user);
 
+        log.info("Profile update success. userId={}", userId);
         return userMapper.toSummaryDto(user);
     }
 
@@ -66,15 +74,21 @@ public class UserService {
      * @throws NotFoundException jika user tidak ditemukan.
      */
     @Transactional
+    @LoggableAction(action = "user.change-password")
     public void changePassword(Long userId, ReqChangePasswordDto request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> {
+                    log.warn("Password change rejected because user was not found. userId={}", userId);
+                    return new NotFoundException("User not found");
+                });
 
         if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
+            log.warn("Password change rejected because old password does not match. userId={}", userId);
             throw new BadRequestException("Old password does not match");
         }
 
         if (request.oldPassword().equals(request.newPassword())) {
+            log.warn("Password change rejected because new password matches old password. userId={}", userId);
             throw new BadRequestException("New password cannot be the same as old password");
         }
 

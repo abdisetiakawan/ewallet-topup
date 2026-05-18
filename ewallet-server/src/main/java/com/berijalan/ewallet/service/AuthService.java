@@ -13,10 +13,12 @@ import com.berijalan.ewallet.repository.UserRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import com.berijalan.ewallet.security.JwtUtils;
 import com.berijalan.ewallet.security.UserDetailsImpl;
+import com.berijalan.ewallet.logging.LoggableAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,8 +46,10 @@ public class AuthService {
      * @throws BadRequestException jika email sudah digunakan.
      */
     @Transactional
+    @LoggableAction(action = "auth.register")
     public ResUserSummaryDto register(ReqRegisterDto request) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
+            log.warn("Registration rejected because email already exists. email={}", request.email());
             throw new BadRequestException("Email already exists");
         }
 
@@ -63,6 +67,8 @@ public class AuthService {
 
         walletRepository.save(wallet);
 
+        log.info("Registration success. userId={}, email={}", user.getId(), user.getEmail());
+
         return userMapper.toSummaryDto(user);
     }
 
@@ -72,10 +78,17 @@ public class AuthService {
      * @param request email dan password pengguna.
      * @return access token untuk response API dan refresh token untuk cookie.
      */
+    @LoggableAction(action = "auth.login")
     public LoginResult login(ReqLoginDto request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
-        );
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
+            );
+        } catch (AuthenticationException ex) {
+            log.error("Login failed during authentication. email={}", request.email(), ex);
+            throw ex;
+        }
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String accessToken = jwtUtils.generateJwtToken(authentication);
@@ -87,6 +100,8 @@ public class AuthService {
 
         ResLoginDto loginDto = userMapper.toLoginDto(accessToken, jwtUtils.getAccessTokenTtlSeconds(), userDetails);
 
+        log.info("Login success. userId={}, email={}", userDetails.getId(), userDetails.getEmail());
+
         return new LoginResult(loginDto, refreshToken);
     }
 
@@ -97,13 +112,16 @@ public class AuthService {
      * @return access token baru beserta masa berlakunya.
      * @throws UnauthorizedException jika refresh token tidak valid atau kedaluwarsa.
      */
+    @LoggableAction(action = "auth.refresh")
     public RefreshResult refresh(String refreshToken) {
         Long userId = refreshTokenService.validateAndGetUserId(refreshToken);
         if (userId == null) {
+            log.warn("Access token refresh rejected because refresh token is invalid or expired");
             throw new UnauthorizedException("Invalid or expired refresh token");
         }
 
         String newAccessToken = jwtUtils.generateTokenForUserId(userId);
+        log.info("Access token refresh success. userId={}", userId);
         return new RefreshResult(newAccessToken, jwtUtils.getAccessTokenTtlSeconds());
     }
 
@@ -112,8 +130,10 @@ public class AuthService {
      *
      * @param userId ID user yang sedang logout.
      */
+    @LoggableAction(action = "auth.logout")
     public void logout(Long userId) {
         refreshTokenService.revoke(userId);
+        log.info("Logout success. userId={}", userId);
     }
 
     public record LoginResult(ResLoginDto loginDto, String refreshToken) {}

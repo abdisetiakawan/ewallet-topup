@@ -9,10 +9,12 @@ import com.berijalan.ewallet.entity.constant.TaxType;
 import com.berijalan.ewallet.entity.constant.TaxValueType;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.logging.LoggableAction;
 import com.berijalan.ewallet.mapper.AdminMerchantMapper;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import com.berijalan.ewallet.repository.MerchantTaxRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminMerchantService {
@@ -69,6 +72,7 @@ public class AdminMerchantService {
     // WHY: Perubahan merchant harus langsung menghapus cache daftar merchant aktif yang dipakai customer.
     @CacheEvict(value = "merchants:active", key = "'all'")
     @Transactional
+    @LoggableAction(action = "admin.create-merchant")
     public ResAdminMerchantDto createMerchant(ReqAdminMerchantConfigDto request) {
         validateConfig(request);
 
@@ -94,6 +98,7 @@ public class AdminMerchantService {
     // WHY: Perubahan status atau pajak merchant memengaruhi daftar merchant dan biaya pembayaran customer.
     @CacheEvict(value = "merchants:active", key = "'all'")
     @Transactional
+    @LoggableAction(action = "admin.update-merchant")
     public ResAdminMerchantDto updateMerchant(Long id, ReqAdminMerchantConfigDto request) {
         validateConfig(request);
 
@@ -175,6 +180,8 @@ public class AdminMerchantService {
 
         for (ReqAdminMerchantTaxDto tax : taxes) {
             if (tax.expiredAt() != null && !tax.expiredAt().isAfter(tax.effectiveAt())) {
+                log.warn("Admin merchant config rejected because tax expiry is not after effective date. taxType={}, valueType={}",
+                        tax.taxType(), tax.valueType());
                 throw new BadRequestException("Tax expiry date must be after effective date");
             }
 
