@@ -11,6 +11,11 @@ import com.berijalan.ewallet.exception.UnauthorizedException;
 import com.berijalan.ewallet.security.UserDetailsImpl;
 import com.berijalan.ewallet.service.AuthService;
 import com.berijalan.ewallet.service.RefreshTokenService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +30,7 @@ import java.time.Duration;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Autentikasi", description = "Registrasi, login, refresh token, dan logout pengguna.")
 public class AuthController {
 
     private final AuthService authService;
@@ -33,16 +39,37 @@ public class AuthController {
     @Value("${app.jwt.refresh-token.ttl-days:7}")
     private long refreshTokenTtlDays;
 
-    /** Controls the Secure flag on the refresh token cookie. Set true in production (HTTPS). */
+    /**
+     * WHY: Cookie refresh token harus secure di produksi, tetapi development lokal biasanya belum memakai HTTPS.
+     */
     @Value("${app.cookie.secure:false}")
     private boolean cookieSecure;
 
+    @Operation(
+            summary = "Registrasi pengguna",
+            description = "Membuat akun customer baru dan wallet awal dengan saldo nol."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Registrasi berhasil"),
+            @ApiResponse(responseCode = "400", description = "Payload tidak valid atau email sudah terdaftar"),
+            @ApiResponse(responseCode = "500", description = "Kesalahan internal server")
+    })
     @PostMapping("/register")
     public ResponseEntity<BaseResponse<ResUserSummaryDto>> register(@Valid @RequestBody ReqRegisterDto request) {
         ResUserSummaryDto data = authService.register(request);
         return ResponseEntity.ok(ApiResponseFactory.success("Registration successful", data));
     }
 
+    @Operation(
+            summary = "Login pengguna",
+            description = "Menghasilkan access token JWT dan menyimpan refresh token di cookie HTTP-only."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Login berhasil"),
+            @ApiResponse(responseCode = "400", description = "Payload login tidak valid"),
+            @ApiResponse(responseCode = "401", description = "Email atau password tidak valid"),
+            @ApiResponse(responseCode = "500", description = "Kesalahan internal server")
+    })
     @PostMapping("/login")
     public ResponseEntity<BaseResponse<ResLoginDto>> login(@Valid @RequestBody ReqLoginDto request) {
         AuthService.LoginResult result = authService.login(request);
@@ -54,8 +81,18 @@ public class AuthController {
                 .body(ApiResponseFactory.success("Login successful", result.loginDto()));
     }
 
+    @Operation(
+            summary = "Refresh access token",
+            description = "Menerbitkan access token baru dari refresh token yang masih aktif di cookie."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Token berhasil diperbarui"),
+            @ApiResponse(responseCode = "401", description = "Refresh token tidak ada, tidak valid, atau kedaluwarsa"),
+            @ApiResponse(responseCode = "500", description = "Kesalahan internal server")
+    })
     @PostMapping("/refresh")
     public ResponseEntity<BaseResponse<ResRefreshTokenDto>> refresh(
+            @Parameter(description = "Refresh token HTTP-only yang dikirim melalui cookie login.")
             @CookieValue(name = "refreshToken", required = false) String refreshToken) {
 
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -68,9 +105,20 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponseFactory.success("Token refreshed", data));
     }
 
+    @Operation(
+            summary = "Logout pengguna",
+            description = "Mencabut refresh token aktif dan menghapus cookie refresh token dari browser."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Logout berhasil"),
+            @ApiResponse(responseCode = "401", description = "Refresh token tidak valid saat access token tidak tersedia"),
+            @ApiResponse(responseCode = "500", description = "Kesalahan internal server")
+    })
     @PostMapping("/logout")
     public ResponseEntity<BaseResponse<Void>> logout(
+            @Parameter(hidden = true)
             @AuthenticationPrincipal UserDetailsImpl user,
+            @Parameter(description = "Refresh token opsional untuk logout saat access token sudah kedaluwarsa.")
             @CookieValue(name = "refreshToken", required = false) String refreshToken) {
 
         Long userId = null;
@@ -78,7 +126,7 @@ public class AuthController {
         if (user != null) {
             userId = user.getId();
         } else if (refreshToken != null && !refreshToken.isBlank()) {
-            // Fallback: access token may be expired, extract userId from the refresh token in Redis
+            // WHY: Logout tetap harus bisa membersihkan sesi saat access token sudah kedaluwarsa.
             userId = refreshTokenService.validateAndGetUserId(refreshToken);
         }
 
