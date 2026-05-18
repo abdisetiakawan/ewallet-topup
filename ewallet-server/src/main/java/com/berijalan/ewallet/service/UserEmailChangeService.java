@@ -34,11 +34,20 @@ public class UserEmailChangeService {
     @Value("${app.email-change.ttl-minutes:15}")
     private int ttlMinutes;
 
+    /**
+     * Membuat token verifikasi untuk email baru customer.
+     *
+     * @param userId ID customer dari JWT.
+     * @param newEmail email baru yang akan diverifikasi.
+     * @return email tujuan dan masa berlaku token.
+     * @throws ConflictException jika email baru sudah digunakan.
+     */
     public ResEmailChangeDto requestEmailChange(Long userId, String newEmail) {
         if (userRepository.findByEmail(newEmail).isPresent()) {
             throw new ConflictException("Email is already in use");
         }
 
+        // WHY: Hanya satu token aktif per user agar konfirmasi lama tidak menimpa permintaan terbaru.
         revokePendingRequest(userId);
 
         String token = UUID.randomUUID().toString();
@@ -53,6 +62,16 @@ public class UserEmailChangeService {
         return new ResEmailChangeDto(newEmail, ttlMinutes);
     }
 
+    /**
+     * Mengonfirmasi token email change dan menyimpan email baru secara transaksional.
+     *
+     * @param userId ID customer dari JWT.
+     * @param token token verifikasi dari email baru.
+     * @return profil setelah email berhasil diganti.
+     * @throws BadRequestException jika token salah, kedaluwarsa, atau bukan milik user.
+     * @throws ConflictException jika email baru sudah dipakai sebelum token dikonfirmasi.
+     * @throws NotFoundException jika user tidak ditemukan.
+     */
     @Transactional
     public ResUserSummaryDto confirmEmailChange(Long userId, String token) {
         String value = redisTemplate.opsForValue().get(TOKEN_KEY_PREFIX + token);
@@ -73,6 +92,7 @@ public class UserEmailChangeService {
             throw new BadRequestException("Invalid or expired token");
         }
 
+        // WHY: Email bisa didaftarkan user lain saat token masih berlaku, jadi perlu dicek ulang sebelum commit.
         if (userRepository.findByEmail(newEmail).isPresent()) {
             throw new ConflictException("Email is already in use");
         }

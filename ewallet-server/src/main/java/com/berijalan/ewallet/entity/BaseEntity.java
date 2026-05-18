@@ -13,10 +13,16 @@ import lombok.Getter;
 @Getter
 public abstract class BaseEntity {
 
+    /**
+     * Timestamp audit dibuat oleh Hibernate agar semua entity memakai sumber waktu persistensi yang konsisten.
+     */
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * Timestamp audit update terakhir, ikut dipakai cache wallet untuk memberi metadata freshness kepada client.
+     */
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

@@ -15,6 +15,7 @@ public class MdcFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         try {
+            // WHY: Request ID di MDC menyatukan log aplikasi dengan response envelope untuk troubleshooting.
             String requestId = "req-" + UUID.randomUUID().toString();
             MDC.put(REQUEST_ID, requestId);
             chain.doFilter(request, response);

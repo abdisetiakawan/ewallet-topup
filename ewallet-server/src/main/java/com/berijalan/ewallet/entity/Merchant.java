@@ -15,6 +15,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Merchant tujuan pembayaran customer.
+ */
 @Entity
 @Table(name = "mst_merchants")
 @Getter @Setter @NoArgsConstructor
@@ -27,6 +30,9 @@ public class Merchant extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
+    /**
+     * Merchant nonaktif tetap disimpan untuk audit transaksi lama, tetapi tidak muncul pada daftar customer.
+     */
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 

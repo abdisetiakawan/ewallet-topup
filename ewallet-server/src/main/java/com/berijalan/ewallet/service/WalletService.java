@@ -31,6 +31,13 @@ public class WalletService {
     private final WalletCacheService walletCacheService;
     private final WalletMapper walletMapper;
 
+    /**
+     * Mengambil saldo wallet yang terlihat oleh customer.
+     *
+     * @param userId ID customer pemilik wallet.
+     * @return saldo wallet beserta waktu update terakhir.
+     * @throws NotFoundException jika customer belum memiliki wallet.
+     */
     public ResWalletBalanceDto getBalance(Long userId) {
         WalletCacheService.WalletBalanceCache cached = walletCacheService.get(userId);
         if (cached != null) {
@@ -45,10 +52,20 @@ public class WalletService {
         return result;
     }
 
+    /**
+     * Menambah saldo wallet dan membuat catatan transaksi top-up dalam satu transaksi database.
+     *
+     * @param request nominal top-up yang sudah melewati validasi request.
+     * @param userId ID customer pemilik wallet.
+     * @return detail transaksi top-up yang berhasil dibuat.
+     * @throws BadRequestException jika nominal top-up melanggar batas transaksi.
+     * @throws NotFoundException jika wallet customer tidak ditemukan.
+     */
     @Transactional
     public ResTopupDto topup(ReqTopupDto request, Long userId) {
         validateTopupAmount(request.amount());
 
+        // WHY: Saldo dikunci agar top-up dan pembayaran paralel tidak saling menimpa nilai balance.
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new NotFoundException("Wallet not found"));
         User user = wallet.getUser();
@@ -72,6 +89,7 @@ public class WalletService {
         transaction.setReferenceId(referenceId);
 
         transaction = transactionRepository.saveAndFlush(transaction);
+        // WHY: Cache baru aman diperbarui setelah transaksi commit agar nilai rollback tidak terbaca customer.
         walletCacheService.putAfterCommit(userId, balanceAfter, wallet.getUpdatedAt());
 
         return walletMapper.toTopupDto(transaction);

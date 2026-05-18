@@ -8,6 +8,9 @@ import org.springframework.cache.CacheManager;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 
+/**
+ * Wrapper CacheManager untuk mencatat hit, miss, put, evict, dan clear tanpa mengubah implementasi Redis cache.
+ */
 @RequiredArgsConstructor
 public class LoggingCacheManager implements CacheManager {
 

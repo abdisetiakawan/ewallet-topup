@@ -32,6 +32,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 Long userId = Long.parseLong(jwtUtils.getUserIdFromJwtToken(jwt));
 
+                // WHY: JWT hanya menyimpan userId; role terbaru tetap dibaca dari database pada setiap request.
                 UserDetails userDetails = securityUserDetailsService.loadUserDetailsById(userId);
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(

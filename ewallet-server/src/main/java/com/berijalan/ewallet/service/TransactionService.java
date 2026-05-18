@@ -46,10 +46,20 @@ public class TransactionService {
     private final TaxCalculator taxCalculator;
     private final TransactionMapper transactionMapper;
 
+    /**
+     * Memproses pembayaran merchant dengan pemotongan saldo, perhitungan pajak aktif, dan audit balance.
+     *
+     * @param request detail merchant, nominal dasar, dan deskripsi pembayaran.
+     * @param userId ID customer pemilik wallet.
+     * @return detail pembayaran yang berhasil dibuat.
+     * @throws BadRequestException jika amount tidak valid atau saldo tidak mencukupi.
+     * @throws NotFoundException jika wallet atau merchant tidak ditemukan.
+     */
     @Transactional
     public ResPaymentDto pay(ReqPayDto request, Long userId) {
         validatePaymentAmount(request.amount());
 
+        // WHY: Pembayaran harus serial per wallet agar dua request paralel tidak menghasilkan saldo negatif.
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> {
                     log.warn("Payment rejected because wallet was not found. userId={}", userId);
@@ -68,6 +78,7 @@ public class TransactionService {
         long baseAmount = request.amount();
         TaxCalculator.TaxCalculationResult taxCalculation = taxCalculator.calculate(baseAmount, activeTaxes);
         long totalTax = taxCalculation.totalTax();
+        // WHY: Batas maksimum diterapkan pada nominal final karena pajak ikut dipotong dari saldo customer.
         long finalAmount = safeAddPaymentAmount(baseAmount, totalTax);
         validateFinalPaymentAmount(finalAmount);
 
@@ -89,10 +100,12 @@ public class TransactionService {
                 totalTax,
                 balanceBefore,
                 balanceAfter,
+                // WHY: Snapshot pajak mempertahankan audit transaksi saat konfigurasi pajak merchant berubah.
                 serializeTaxSnapshots(taxCalculation.snapshots())
         );
 
         transaction = transactionRepository.saveAndFlush(transaction);
+        // WHY: Cache saldo diperbarui setelah commit agar pembacaan berikutnya tidak melihat nilai yang rollback.
         walletCacheService.putAfterCommit(userId, balanceAfter, wallet.getUpdatedAt());
 
         log.info("Payment success. userId={}, merchant={}, baseAmount={}, tax={}, finalAmount={}, referenceId={}",
@@ -167,6 +180,13 @@ public class TransactionService {
         }
     }
 
+    /**
+     * Mengambil riwayat transaksi customer dengan filter opsional.
+     *
+     * @param userId ID customer pemilik transaksi.
+     * @param request filter status, tipe, dan pagination.
+     * @return halaman riwayat transaksi yang sudah dipetakan untuk API.
+     */
     @Transactional(readOnly = true)
     public ResTransactionHistoryDto getTransactions(Long userId, ReqTransactionHistoryDto request) {
         Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));

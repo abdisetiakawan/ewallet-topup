@@ -14,6 +14,7 @@ public class CorsConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // WHY: Origin lokal ini mendukung pengembangan backend dan Angular client tanpa membuka wildcard credentialed CORS.
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:8080",
                 "http://localhost:4200"

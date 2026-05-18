@@ -12,6 +12,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
+    /**
+     * EntityGraph memuat merchant dan user bersama transaksi agar riwayat tidak memicu N+1 query saat mapping DTO.
+     */
     @EntityGraph(attributePaths = {"merchant", "user"})
     Page<Transaction> findByUserId(Long userId, Pageable pageable);
 

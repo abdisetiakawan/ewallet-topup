@@ -16,6 +16,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Akun aplikasi yang dapat berperan sebagai CUSTOMER atau ADMIN.
+ */
 @Entity
 @Table(name = "mst_users", indexes = {
     @Index(name = "idx_users_email", columnList = "email", unique = true)
@@ -37,6 +40,9 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String password;
 
+    /**
+     * Default CUSTOMER menjaga registrasi publik tidak dapat membuat akun admin.
+     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private RoleName role = RoleName.CUSTOMER;

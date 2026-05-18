@@ -18,6 +18,12 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
 
     Optional<Wallet> findByUserId(Long userId);
 
+    /**
+     * Mengambil wallet dengan lock pessimistic untuk serialisasi perubahan saldo.
+     *
+     * @param userId ID customer pemilik wallet.
+     * @return wallet beserta user jika ditemukan.
+     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {"user"})
     @Query("select w from Wallet w where w.user.id = :userId")

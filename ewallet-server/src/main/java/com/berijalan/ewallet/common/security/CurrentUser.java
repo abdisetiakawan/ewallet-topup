@@ -13,6 +13,13 @@ public final class CurrentUser {
         return principal(authentication).getId();
     }
 
+    /**
+     * Mengambil principal aplikasi dari Spring Security context.
+     *
+     * @param authentication autentikasi request saat ini.
+     * @return principal user aplikasi.
+     * @throws UnauthorizedException jika request belum terautentikasi.
+     */
     public static UserDetailsImpl principal(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl principal)) {
             throw new UnauthorizedException("Unauthorized");

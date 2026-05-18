@@ -40,6 +40,7 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
+        // WHY: Validation error memakai map field-message agar client bisa menampilkan error per input.
         return error(HttpStatus.BAD_REQUEST, "Validation Error", errors);
     }
 
@@ -84,6 +85,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseResponse<Void>> handleGlobalException(Exception ex) {
+        // WHY: Detail exception tidak dikirim ke client agar informasi internal tidak bocor.
         log.error("Internal Server Error", ex);
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
     }

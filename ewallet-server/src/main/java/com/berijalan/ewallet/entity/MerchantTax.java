@@ -24,6 +24,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Konfigurasi pajak merchant yang dihitung saat customer melakukan pembayaran.
+ */
 @Entity
 @Table(name = "mst_merchant_taxes")
 @Getter @Setter @NoArgsConstructor
@@ -40,6 +43,9 @@ public class MerchantTax extends BaseEntity {
     @Column(name = "tax_name", nullable = false, length = 100)
     private String taxName;
 
+    /**
+     * Kategori bisnis pajak. Service admin memastikan hanya satu pajak aktif per kategori.
+     */
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "tax_type", columnDefinition = "tax_type_enum", nullable = false)
@@ -53,12 +59,21 @@ public class MerchantTax extends BaseEntity {
     @Column(name = "tax_value", nullable = false, precision = 10, scale = 4)
     private BigDecimal taxValue;
 
+    /**
+     * Pajak nonaktif tetap dipertahankan agar perubahan konfigurasi tidak menghapus histori audit.
+     */
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    /**
+     * Mencatat waktu mulai berlaku pajak sebagai metadata audit konfigurasi biaya.
+     */
     @Column(name = "effective_at", nullable = false)
     private LocalDateTime effectiveAt;
 
+    /**
+     * Kosong berarti pajak belum memiliki tanggal akhir berlaku.
+     */
     @Column(name = "expired_at")
     private LocalDateTime expiredAt;
 }

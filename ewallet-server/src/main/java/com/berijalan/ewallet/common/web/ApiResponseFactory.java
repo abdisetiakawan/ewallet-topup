@@ -29,6 +29,7 @@ public final class ApiResponseFactory {
 
     public static String requestId() {
         String requestId = MDC.get(MdcFilter.REQUEST_ID);
+        // WHY: Nilai cadangan menjaga response tetap punya correlation ID meski dipanggil di luar servlet filter.
         return requestId != null ? requestId : "req-" + UUID.randomUUID();
     }
 }

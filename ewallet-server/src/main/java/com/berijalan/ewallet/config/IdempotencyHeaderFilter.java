@@ -27,6 +27,15 @@ public class IdempotencyHeaderFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
     private final RequestMappingHandlerMapping requestMappingHandlerMapping;
 
+    /**
+     * Menolak request finansial tanpa Idempotency-Key sebelum masuk ke controller.
+     *
+     * @param request HTTP request.
+     * @param response HTTP response.
+     * @param filterChain filter berikutnya.
+     * @throws ServletException jika handler endpoint gagal di-resolve.
+     * @throws IOException jika response error gagal ditulis.
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -34,6 +43,7 @@ public class IdempotencyHeaderFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         if (requiresIdempotencyKey(request) && isBlank(request.getHeader(IDEMPOTENCY_KEY_HEADER))) {
+            // WHY: Validasi di filter memberi error konsisten sebelum aspect membuat state PROCESSING di Redis.
             BaseResponse<Void> responseBody = ApiResponseFactory.error("Idempotency-Key header is required");
 
             response.setStatus(HttpStatus.BAD_REQUEST.value());
@@ -47,6 +57,7 @@ public class IdempotencyHeaderFilter extends OncePerRequestFilter {
 
     private boolean requiresIdempotencyKey(HttpServletRequest request) throws ServletException {
         try {
+            // WHY: Requirement mengikuti anotasi endpoint agar daftar endpoint idempoten tetap satu sumber.
             HandlerExecutionChain handlerExecutionChain = requestMappingHandlerMapping.getHandler(request);
 
             if (handlerExecutionChain == null

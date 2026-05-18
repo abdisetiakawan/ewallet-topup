@@ -35,6 +35,11 @@ public class AdminMerchantService {
     private final MerchantTaxRepository merchantTaxRepository;
     private final AdminMerchantMapper adminMerchantMapper;
 
+    /**
+     * Mengambil seluruh merchant untuk kebutuhan administrasi, termasuk yang tidak aktif.
+     *
+     * @return daftar merchant dan konfigurasi pajaknya.
+     */
     @Transactional(readOnly = true)
     public List<ResAdminMerchantDto> getAllMerchants() {
         return merchantRepository.findAll().stream()
@@ -42,11 +47,26 @@ public class AdminMerchantService {
                 .toList();
     }
 
+    /**
+     * Mengambil detail merchant untuk layar administrasi.
+     *
+     * @param id ID merchant.
+     * @return detail merchant dan konfigurasi pajaknya.
+     * @throws NotFoundException jika merchant tidak ditemukan.
+     */
     @Transactional(readOnly = true)
     public ResAdminMerchantDto getMerchant(Long id) {
         return adminMerchantMapper.toDto(findMerchant(id));
     }
 
+    /**
+     * Membuat merchant baru beserta konfigurasi pajaknya.
+     *
+     * @param request konfigurasi merchant dan pajak.
+     * @return merchant yang berhasil dibuat.
+     * @throws BadRequestException jika konfigurasi pajak tidak valid.
+     */
+    // WHY: Perubahan merchant harus langsung menghapus cache daftar merchant aktif yang dipakai customer.
     @CacheEvict(value = "merchants:active", key = "'all'")
     @Transactional
     public ResAdminMerchantDto createMerchant(ReqAdminMerchantConfigDto request) {
@@ -62,6 +82,16 @@ public class AdminMerchantService {
         return adminMerchantMapper.toDto(merchant, merchantTaxRepository.findByMerchantId(merchant.getId()));
     }
 
+    /**
+     * Memperbarui merchant dan melakukan upsert daftar pajak dalam satu transaksi.
+     *
+     * @param id ID merchant yang diperbarui.
+     * @param request konfigurasi merchant dan pajak terbaru.
+     * @return merchant setelah update.
+     * @throws BadRequestException jika pajak tidak valid atau tidak dimiliki merchant tersebut.
+     * @throws NotFoundException jika merchant tidak ditemukan.
+     */
+    // WHY: Perubahan status atau pajak merchant memengaruhi daftar merchant dan biaya pembayaran customer.
     @CacheEvict(value = "merchants:active", key = "'all'")
     @Transactional
     public ResAdminMerchantDto updateMerchant(Long id, ReqAdminMerchantConfigDto request) {
@@ -87,6 +117,7 @@ public class AdminMerchantService {
             List<MerchantTax> existingTaxes,
             List<ReqAdminMerchantTaxDto> requestedTaxes
     ) {
+        // WHY: Daftar request dianggap sebagai state final agar pajak yang dihapus admin tidak tetap aktif diam-diam.
         Map<Long, MerchantTax> existingById = existingTaxes.stream()
                 .filter(tax -> tax.getId() != null)
                 .collect(Collectors.toMap(MerchantTax::getId, Function.identity()));
@@ -152,6 +183,7 @@ public class AdminMerchantService {
                 throw new BadRequestException("Percentage tax value must not exceed 100");
             }
 
+            // WHY: Satu tipe pajak aktif menjaga perhitungan pembayaran deterministik dan mudah diaudit.
             if (tax.isActive() && !activeTypes.add(tax.taxType())) {
                 throw new BadRequestException("Only one active tax is allowed for each tax type");
             }

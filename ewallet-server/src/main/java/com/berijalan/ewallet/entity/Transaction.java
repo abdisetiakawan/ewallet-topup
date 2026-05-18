@@ -22,6 +22,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Catatan transaksi wallet yang menyimpan nominal, audit saldo, dan snapshot biaya saat transaksi terjadi.
+ */
 @Entity
 @Table(name = "trx_transactions", indexes = {
     @Index(name = "idx_transactions_user_id", columnList = "user_id"),
@@ -48,25 +51,43 @@ public class Transaction extends BaseEntity {
     @Column(nullable = false)
     private Long amount;
 
+    /**
+     * Nominal transaksi sebelum pajak agar audit dapat membedakan harga dasar dan biaya tambahan merchant.
+     */
     @Column(name = "base_amount", nullable = false)
     private Long baseAmount;
 
+    /**
+     * Total pajak yang dihitung pada saat transaksi dibuat.
+     */
     @Column(name = "tax_amount", nullable = false)
     private Long taxAmount = 0L;
 
+    /**
+     * Snapshot JSON menjaga audit pembayaran tetap benar walau konfigurasi pajak merchant berubah setelah transaksi.
+     */
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "tax_snapshot", columnDefinition = "jsonb")
     private String taxSnapshot;
 
+    /**
+     * Saldo sebelum transaksi untuk rekonsiliasi dan investigasi anomali saldo.
+     */
     @Column(name = "balance_before", nullable = false)
     private Long balanceBefore = 0L;
 
+    /**
+     * Saldo setelah transaksi untuk rekonsiliasi dan response API tanpa menghitung ulang.
+     */
     @Column(name = "balance_after", nullable = false)
     private Long balanceAfter = 0L;
 
     @Column(length = 255)
     private String description;
 
+    /**
+     * Menggunakan enum PostgreSQL agar nilai transaksi di database tetap sejalan dengan domain aplikasi.
+     */
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(columnDefinition = "transaction_type", nullable = false)
@@ -77,6 +98,9 @@ public class Transaction extends BaseEntity {
     @Column(columnDefinition = "transaction_status", nullable = false)
     private TransactionStatus status;
 
+    /**
+     * ID referensi eksternal yang aman ditampilkan ke client tanpa membuka ID database berurutan.
+     */
     @Column(name = "reference_id", nullable = false, unique = true)
     private String referenceId;
 }

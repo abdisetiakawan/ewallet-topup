@@ -12,6 +12,9 @@ import java.util.Optional;
 public interface MerchantRepository extends JpaRepository<Merchant, Long> {
     Optional<Merchant> findByName(String name);
 
+    /**
+     * Memuat taxes bersama merchant aktif agar daftar merchant customer dapat dicache tanpa lazy-loading tambahan.
+     */
     @EntityGraph(attributePaths = {"taxes"})
     List<Merchant> findByIsActiveTrue();
 }

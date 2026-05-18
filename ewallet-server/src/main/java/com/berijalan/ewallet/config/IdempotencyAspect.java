@@ -30,6 +30,13 @@ public class IdempotencyAspect {
     private final IdempotencyService idempotencyService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Menjaga endpoint finansial agar retry dengan Idempotency-Key yang sama tidak mengeksekusi mutasi ulang.
+     *
+     * @param joinPoint method controller yang diberi {@link IdempotencyGuarded}.
+     * @return response baru atau replay response yang sudah tersimpan.
+     * @throws Throwable jika eksekusi endpoint gagal di luar error bisnis yang dapat direplay.
+     */
     @Around("@annotation(com.berijalan.ewallet.config.IdempotencyGuarded)")
     public Object guardFinancialRequest(ProceedingJoinPoint joinPoint) throws Throwable {
         HttpServletRequest httpRequest = currentHttpRequest();
@@ -37,6 +44,7 @@ public class IdempotencyAspect {
         Long userId = CurrentUser.id(authentication);
 
         Object requestBody = findRequestBody(joinPoint.getArgs());
+        // WHY: Hash body mencegah client memakai Idempotency-Key yang sama untuk mutasi finansial berbeda.
         String requestHash = DigestUtils.md5DigestAsHex(
                 objectMapper.writeValueAsString(requestBody).getBytes(StandardCharsets.UTF_8)
         );
@@ -51,6 +59,7 @@ public class IdempotencyAspect {
         );
 
         if (result.replay()) {
+            // WHY: Response replay mempertahankan kontrak idempotency tanpa memotong saldo atau top-up ulang.
             JsonNode responseBody = objectMapper.readTree(result.responseBody());
             return ResponseEntity
                     .status(result.httpStatus())
@@ -68,6 +77,7 @@ public class IdempotencyAspect {
             );
             return response;
         } catch (BadRequestException ex) {
+            // WHY: Error bisnis 400 direplay agar retry request invalid tidak terus menyentuh service finansial.
             ResponseEntity<BaseResponse<Void>> response = ResponseEntity
                     .badRequest()
                     .body(ApiResponseFactory.error(ex.getMessage()));
@@ -81,6 +91,7 @@ public class IdempotencyAspect {
 
             return response;
         } catch (Throwable ex) {
+            // WHY: Error tak terduga tidak dicache agar client dapat retry setelah akar masalah selesai.
             idempotencyService.clear(result.redisKey());
             throw ex;
         }

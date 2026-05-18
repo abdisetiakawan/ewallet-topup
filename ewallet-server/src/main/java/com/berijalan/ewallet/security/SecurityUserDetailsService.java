@@ -14,6 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class SecurityUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
+    /**
+     * Memuat user untuk autentikasi login berbasis email.
+     *
+     * @param email email login.
+     * @return principal Spring Security.
+     * @throws UsernameNotFoundException jika email tidak terdaftar.
+     */
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -23,6 +30,13 @@ public class SecurityUserDetailsService implements UserDetailsService {
         return UserDetailsImpl.build(user);
     }
 
+    /**
+     * Memuat user untuk request JWT setelah subject userId dibaca dari token.
+     *
+     * @param id ID user dari subject JWT.
+     * @return principal Spring Security.
+     * @throws UsernameNotFoundException jika user tidak ditemukan.
+     */
     @Transactional(readOnly = true)
     public UserDetails loadUserDetailsById(Long id) throws UsernameNotFoundException {
         User user = userRepository.findById(id)
