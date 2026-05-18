@@ -6,6 +6,7 @@ import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
+import com.berijalan.ewallet.logging.LoggableAction;
 import com.berijalan.ewallet.mapper.UserMapper;
 import com.berijalan.ewallet.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,7 @@ public class UserService {
     }
 
     @Transactional
+    @LoggableAction(action = "user.change-password")
     public void changePassword(Long userId, ReqChangePasswordDto request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {

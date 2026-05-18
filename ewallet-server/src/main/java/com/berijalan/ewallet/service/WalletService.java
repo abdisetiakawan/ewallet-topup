@@ -15,6 +15,7 @@ import com.berijalan.ewallet.mapper.WalletMapper;
 import com.berijalan.ewallet.repository.TransactionRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import com.berijalan.ewallet.util.ReferenceIdGenerator;
+import com.berijalan.ewallet.logging.LoggableAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -49,6 +50,7 @@ public class WalletService {
     }
 
     @Transactional
+    @LoggableAction(action = "wallet.topup", logSuccess = false)
     public ResTopupDto topup(ReqTopupDto request, Long userId) {
         validateTopupAmount(request.amount(), userId);
 
