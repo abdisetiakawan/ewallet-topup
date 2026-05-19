@@ -29,7 +29,6 @@ public class MerchantService {
     public List<ResMerchantDto> getAllActiveMerchants() {
         // WHY: Daftar merchant aktif jarang berubah dan dievict saat admin mengubah konfigurasi merchant.
         List<ResMerchantDto> merchants = merchantMapper.toActiveDtos(merchantRepository.findByIsActiveTrue());
-        log.debug("Fetched {} active merchant(s) from DB", merchants.size());
         return merchants;
     }
 }
