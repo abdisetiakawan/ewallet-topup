@@ -8,6 +8,7 @@ import com.berijalan.ewallet.dto.request.ReqPayDto;
 import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.BaseResponse;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
+import com.berijalan.ewallet.dto.response.ResTransactionDetailDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
 import com.berijalan.ewallet.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -88,5 +90,27 @@ public class TransactionController {
         ResTransactionHistoryDto data = transactionService.getTransactions(userId, request);
 
         return ResponseEntity.ok(ApiResponseFactory.success("Transaction history retrieved successfully", data));
+    }
+
+    @Operation(
+            summary = "Melihat detail transaksi",
+            description = "Mengambil detail transaksi customer beserta snapshot pajak pembayaran untuk transaksi miliknya."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Detail transaksi berhasil dikembalikan"),
+            @ApiResponse(responseCode = "401", description = "Access token tidak valid atau tidak ada"),
+            @ApiResponse(responseCode = "403", description = "Role pengguna tidak diizinkan mengakses transaksi"),
+            @ApiResponse(responseCode = "404", description = "Transaksi tidak ditemukan atau bukan milik customer"),
+            @ApiResponse(responseCode = "500", description = "Kesalahan internal server")
+    })
+    @GetMapping("/{transactionId}")
+    public ResponseEntity<BaseResponse<ResTransactionDetailDto>> getTransaction(
+            @PathVariable Long transactionId,
+            @Parameter(hidden = true)
+            Authentication authentication) {
+        Long userId = CurrentUser.id(authentication);
+        ResTransactionDetailDto data = transactionService.getTransaction(userId, transactionId);
+
+        return ResponseEntity.ok(ApiResponseFactory.success("Transaction detail retrieved successfully", data));
     }
 }

@@ -3,6 +3,7 @@ package com.berijalan.ewallet.service;
 import com.berijalan.ewallet.dto.request.ReqPayDto;
 import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
+import com.berijalan.ewallet.dto.response.ResTransactionDetailDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
@@ -258,6 +259,60 @@ class TransactionServiceTest {
         assertThat(response.size()).isEqualTo(10);
         assertThat(response.totalElements()).isZero();
         assertThat(response.totalPages()).isZero();
+    }
+
+    @Test
+    void getTransaction_whenOwnedPaymentExists_shouldReturnDetailAndTaxSnapshots() {
+        Long userId = 1L;
+        User user = createUser(userId);
+        Transaction transaction = createPaymentTransaction(user, createMerchant(1L, "Gopay"));
+        transaction.setTaxSnapshot("""
+                [{
+                  "taxName": "Service Fee",
+                  "taxType": "SERVICE_FEE",
+                  "valueType": "PERCENTAGE",
+                  "taxValue": 1.5000,
+                  "calculatedTax": 1500
+                }]
+                """);
+
+        when(transactionRepository.findByIdAndUserId(100L, userId)).thenReturn(Optional.of(transaction));
+
+        ResTransactionDetailDto response = transactionService.getTransaction(userId, 100L);
+
+        assertThat(response.transactionId()).isEqualTo(100L);
+        assertThat(response.referenceId()).isEqualTo("PAY-TEST");
+        assertThat(response.merchantName()).isEqualTo("Gopay");
+        assertThat(response.taxDetails()).hasSize(1);
+        assertThat(response.taxDetails().get(0).taxName()).isEqualTo("Service Fee");
+        assertThat(response.taxDetails().get(0).taxCategory()).isEqualTo("SERVICE_FEE");
+        assertThat(response.taxDetails().get(0).valueType()).isEqualTo("PERCENTAGE");
+        assertThat(response.taxDetails().get(0).calculatedAmount()).isEqualTo(1_500L);
+    }
+
+    @Test
+    void getTransaction_whenOwnedTopupHasNoTaxSnapshot_shouldReturnEmptyTaxDetails() {
+        Long userId = 1L;
+        Transaction transaction = createPaymentTransaction(createUser(userId), createMerchant(1L, "Gopay"));
+        transaction.setType(TransactionType.TOPUP);
+        transaction.setMerchant(null);
+        transaction.setTaxAmount(0L);
+
+        when(transactionRepository.findByIdAndUserId(100L, userId)).thenReturn(Optional.of(transaction));
+
+        ResTransactionDetailDto response = transactionService.getTransaction(userId, 100L);
+
+        assertThat(response.merchantName()).isNull();
+        assertThat(response.taxDetails()).isEmpty();
+    }
+
+    @Test
+    void getTransaction_whenTransactionIsMissingOrNotOwned_shouldThrowNotFoundException() {
+        when(transactionRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> transactionService.getTransaction(1L, 100L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Transaction not found");
     }
 
     private User createUser(Long userId) {

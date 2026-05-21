@@ -1,8 +1,10 @@
 package com.berijalan.ewallet.mapper;
 
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
+import com.berijalan.ewallet.dto.response.ResTransactionDetailDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.ResTransactionItemDto;
+import com.berijalan.ewallet.dto.response.TaxSnapshotDto;
 import com.berijalan.ewallet.entity.Transaction;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
@@ -44,6 +46,24 @@ public class TransactionMapper implements BaseMapper<Transaction, ResPaymentDto>
                 transactionPage.getSize(),
                 transactionPage.getTotalElements(),
                 transactionPage.getTotalPages()
+        );
+    }
+
+    public ResTransactionDetailDto toDetailDto(Transaction transaction, List<TaxSnapshotDto> taxDetails) {
+        return new ResTransactionDetailDto(
+                transaction.getId().longValue(),
+                transaction.getReferenceId(),
+                transaction.getAmount(),
+                transaction.getBaseAmount(),
+                transaction.getTaxAmount(),
+                transaction.getBalanceBefore(),
+                transaction.getBalanceAfter(),
+                transaction.getType().name(),
+                transaction.getStatus().name(),
+                transaction.getDescription(),
+                transaction.getMerchant() != null ? transaction.getMerchant().getName() : null,
+                taxDetails,
+                transaction.getCreatedAt()
         );
     }
 

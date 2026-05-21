@@ -4,7 +4,9 @@ import com.berijalan.ewallet.common.TransactionAmountLimits;
 import com.berijalan.ewallet.dto.request.ReqPayDto;
 import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
+import com.berijalan.ewallet.dto.response.ResTransactionDetailDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
+import com.berijalan.ewallet.dto.response.TaxSnapshotDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.Transaction;
@@ -21,6 +23,7 @@ import com.berijalan.ewallet.repository.TransactionRepository;
 import com.berijalan.ewallet.repository.WalletRepository;
 import com.berijalan.ewallet.util.ReferenceIdGenerator;
 import com.berijalan.ewallet.logging.LoggableAction;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +34,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Slf4j
@@ -208,6 +212,22 @@ public class TransactionService {
         return transactionMapper.toHistoryDto(transactionPage);
     }
 
+    /**
+     * Mengambil detail transaksi yang hanya boleh dibaca pemiliknya.
+     *
+     * @param userId ID customer pemilik transaksi.
+     * @param transactionId ID transaksi yang diminta.
+     * @return detail transaksi beserta snapshot pajak pembayaran.
+     * @throws NotFoundException jika transaksi tidak ditemukan atau bukan milik customer.
+     */
+    @Transactional(readOnly = true)
+    public ResTransactionDetailDto getTransaction(Long userId, Long transactionId) {
+        Transaction transaction = transactionRepository.findByIdAndUserId(transactionId, userId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        return transactionMapper.toDetailDto(transaction, deserializeTaxSnapshots(transaction.getTaxSnapshot()));
+    }
+
     private Page<Transaction> findTransactionPage(Long userId, ReqTransactionHistoryDto request, Pageable pageable) {
         TransactionStatus status = request.status();
         TransactionType type = request.type();
@@ -225,6 +245,39 @@ public class TransactionService {
         }
 
         return transactionRepository.findByUserId(userId, pageable);
+    }
+
+    private List<TaxSnapshotDto> deserializeTaxSnapshots(String taxSnapshotJson) {
+        if (taxSnapshotJson == null || taxSnapshotJson.isBlank()) {
+            return List.of();
+        }
+
+        try {
+            List<StoredTaxSnapshot> snapshots = objectMapper.readValue(
+                    taxSnapshotJson,
+                    new TypeReference<List<StoredTaxSnapshot>>() {
+                    }
+            );
+
+            return snapshots.stream()
+                    .map(StoredTaxSnapshot::toDto)
+                    .toList();
+        } catch (JsonProcessingException ex) {
+            log.error("Failed to deserialize transaction tax snapshot", ex);
+            throw new IllegalStateException("Failed to deserialize tax snapshot", ex);
+        }
+    }
+
+    private record StoredTaxSnapshot(
+            String taxName,
+            String taxType,
+            String valueType,
+            BigDecimal taxValue,
+            Long calculatedTax
+    ) {
+        private TaxSnapshotDto toDto() {
+            return new TaxSnapshotDto(taxName, taxType, valueType, taxValue, calculatedTax);
+        }
     }
 
 }
