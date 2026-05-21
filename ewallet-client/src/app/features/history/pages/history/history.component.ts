@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import {
   TransactionHistoryItem,
@@ -37,7 +38,7 @@ interface HistoryGroup {
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, BottomNavBarComponent, TopAppBarComponent],
+  imports: [CommonModule, RouterLink, BottomNavBarComponent, TopAppBarComponent],
   templateUrl: './history.component.html',
   styleUrl: './history.component.css',
 })

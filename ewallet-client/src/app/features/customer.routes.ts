@@ -51,6 +51,13 @@ export const CUSTOMER_ROUTES: Routes = [
       ),
   },
   {
+    path: 'history/:transactionId',
+    loadComponent: () =>
+      import('./history/pages/transaction-detail/transaction-detail.component').then(
+        (m) => m.TransactionDetailComponent
+      ),
+  },
+  {
     path: 'history',
     loadComponent: () =>
       import('./history/pages/history/history.component').then((m) => m.HistoryComponent),

@@ -5,6 +5,7 @@ import { BaseResponse } from '../models/api.model';
 import {
   PaymentRequest,
   PaymentResponse,
+  TransactionDetail,
   TransactionHistoryQuery,
   TransactionHistoryResponse,
 } from '../models/transaction.model';
@@ -34,6 +35,10 @@ export class TransactionApiService {
     }
 
     return this.http.get<BaseResponse<TransactionHistoryResponse>>(this.apiUrl, { params });
+  }
+
+  getTransaction(transactionId: number): Observable<BaseResponse<TransactionDetail>> {
+    return this.http.get<BaseResponse<TransactionDetail>>(`${this.apiUrl}/${transactionId}`);
   }
 
   pay(

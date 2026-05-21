@@ -1,0 +1,218 @@
+<div class="min-h-screen bg-background pb-24 text-on-background">
+  <header class="sticky top-0 z-50 border-b border-outline-variant bg-surface">
+    <div class="mx-auto flex h-16 w-full max-w-lg items-center gap-[8px] px-[16px]">
+      <button
+        type="button"
+        aria-label="Kembali ke riwayat transaksi"
+        class="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant
+               transition-colors hover:bg-surface-container-low focus-visible:outline-none
+               focus-visible:ring-2 focus-visible:ring-primary"
+        (click)="goBack()"
+      >
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <h1 class="min-w-0 text-[20px] font-semibold leading-[28px] text-on-surface">
+        Detail Transaksi
+      </h1>
+    </div>
+  </header>
+
+  <main class="mx-auto w-full max-w-lg space-y-[24px] px-[16px] py-[20px]">
+    @if (isLoading) {
+      <section class="animate-pulse space-y-[16px] rounded-xl border border-outline-variant bg-surface-container-lowest p-[20px]">
+        <div class="flex items-center gap-[16px]">
+          <div class="h-12 w-12 rounded-full bg-surface-container"></div>
+          <div class="flex-1 space-y-[8px]">
+            <div class="h-4 w-2/3 rounded bg-surface-container"></div>
+            <div class="h-3 w-1/2 rounded bg-surface-container"></div>
+          </div>
+        </div>
+        <div class="h-10 rounded bg-surface-container"></div>
+        <div class="grid grid-cols-2 gap-[12px]">
+          <div class="h-16 rounded bg-surface-container"></div>
+          <div class="h-16 rounded bg-surface-container"></div>
+        </div>
+      </section>
+    } @else if (errorMessage) {
+      <section
+        class="rounded-xl border p-[24px] text-center"
+        [class.border-outline-variant]="!isNotFound"
+        [class.bg-surface-container-lowest]="!isNotFound"
+        [class.border-error]="isNotFound"
+        [class.bg-error-container]="isNotFound"
+      >
+        <div
+          class="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
+          [class.bg-primary-fixed]="!isNotFound"
+          [class.text-primary]="!isNotFound"
+          [class.bg-surface]="isNotFound"
+          [class.text-on-error-container]="isNotFound"
+        >
+          <span class="material-symbols-outlined">{{ isNotFound ? 'receipt_long' : 'wifi_off' }}</span>
+        </div>
+        <h2
+          class="mt-[16px] text-[18px] font-semibold leading-[28px]"
+          [class.text-on-surface]="!isNotFound"
+          [class.text-on-error-container]="isNotFound"
+        >
+          {{ isNotFound ? 'Detail tidak tersedia' : 'Detail gagal dimuat' }}
+        </h2>
+        <p
+          class="mt-[4px] text-[14px] leading-[20px]"
+          [class.text-on-surface-variant]="!isNotFound"
+          [class.text-on-error-container]="isNotFound"
+        >
+          {{ errorMessage }}
+        </p>
+        <div class="mt-[16px] flex justify-center gap-[8px]">
+          <button
+            type="button"
+            class="inline-flex h-10 items-center gap-[6px] rounded-lg border border-outline-variant px-[14px]
+                   text-[14px] font-semibold text-on-surface transition hover:bg-surface-container-low"
+            (click)="goBack()"
+          >
+            <span class="material-symbols-outlined text-[18px] leading-none">arrow_back</span>
+            Riwayat
+          </button>
+          @if (!isNotFound) {
+            <button
+              type="button"
+              class="inline-flex h-10 items-center gap-[6px] rounded-lg bg-primary px-[14px]
+                     text-[14px] font-semibold text-on-primary transition hover:opacity-90"
+              (click)="retry()"
+            >
+              <span class="material-symbols-outlined text-[18px] leading-none">refresh</span>
+              Coba Lagi
+            </button>
+          }
+        </div>
+      </section>
+    } @else {
+      @if (transaction; as transaction) {
+      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-[20px]">
+        <div class="flex items-start gap-[16px]">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-primary">
+            <span class="material-symbols-outlined text-[24px] leading-none">{{ iconFor(transaction.type) }}</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-[8px]">
+              <h2 class="min-w-0 text-[20px] font-semibold leading-[28px] text-on-surface">
+                {{ titleFor(transaction) }}
+              </h2>
+              <span class="rounded-full px-[10px] py-[4px] text-[12px] font-semibold leading-[16px]" [ngClass]="statusClass(transaction.status)">
+                {{ statusLabel(transaction.status) }}
+              </span>
+            </div>
+            <p class="mt-[4px] text-[14px] leading-[20px] text-on-surface-variant">
+              {{ typeLabel(transaction.type) }} - {{ timestampLabel(transaction.createdAt) }}
+            </p>
+          </div>
+        </div>
+
+        <p class="mt-[20px] text-[30px] font-bold leading-[38px]" [class.text-tertiary]="transaction.type === 'TOPUP'" [class.text-on-surface]="transaction.type !== 'TOPUP'">
+          {{ amountLabel(transaction) }}
+        </p>
+        <div class="mt-[16px] rounded-lg bg-surface-container-low px-[12px] py-[10px]">
+          <p class="text-[12px] font-semibold uppercase leading-[16px] text-outline">Reference ID</p>
+          <p class="mt-[4px] break-all text-[14px] font-medium leading-[20px] text-on-surface">
+            {{ transaction.referenceId }}
+          </p>
+        </div>
+      </section>
+
+      <section class="space-y-[10px]">
+        <h2 class="text-[14px] font-semibold uppercase leading-[20px] text-on-surface-variant">Rincian Nominal</h2>
+        <div class="divide-y divide-outline-variant overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
+          <div class="flex items-start justify-between gap-[16px] px-[16px] py-[14px]">
+            <span class="text-[14px] leading-[20px] text-on-surface-variant">Nominal dasar</span>
+            <span class="text-right text-[14px] font-semibold leading-[20px] text-on-surface">{{ currencyLabel(transaction.baseAmount) }}</span>
+          </div>
+          <div class="flex items-start justify-between gap-[16px] px-[16px] py-[14px]">
+            <span class="text-[14px] leading-[20px] text-on-surface-variant">Total biaya</span>
+            <span class="text-right text-[14px] font-semibold leading-[20px] text-on-surface">{{ currencyLabel(transaction.taxAmount) }}</span>
+          </div>
+          <div class="flex items-start justify-between gap-[16px] px-[16px] py-[14px]">
+            <span class="text-[14px] leading-[20px] text-on-surface-variant">Nominal final</span>
+            <span class="text-right text-[14px] font-semibold leading-[20px] text-primary">{{ currencyLabel(transaction.amount) }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="space-y-[10px]">
+        <h2 class="text-[14px] font-semibold uppercase leading-[20px] text-on-surface-variant">Informasi Transaksi</h2>
+        <div class="divide-y divide-outline-variant overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
+          <div class="flex items-start justify-between gap-[16px] px-[16px] py-[14px]">
+            <span class="text-[14px] leading-[20px] text-on-surface-variant">Merchant</span>
+            <span class="max-w-[65%] text-right text-[14px] font-semibold leading-[20px] text-on-surface">
+              {{ transaction.merchantName || '-' }}
+            </span>
+          </div>
+          <div class="flex items-start justify-between gap-[16px] px-[16px] py-[14px]">
+            <span class="text-[14px] leading-[20px] text-on-surface-variant">Deskripsi</span>
+            <span class="max-w-[65%] break-words text-right text-[14px] font-semibold leading-[20px] text-on-surface">
+              {{ transaction.description || '-' }}
+            </span>
+          </div>
+          <div class="flex items-start justify-between gap-[16px] px-[16px] py-[14px]">
+            <span class="text-[14px] leading-[20px] text-on-surface-variant">Dibuat</span>
+            <span class="max-w-[65%] text-right text-[14px] font-semibold leading-[20px] text-on-surface">
+              {{ timestampLabel(transaction.createdAt) }}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="space-y-[10px]">
+        <h2 class="text-[14px] font-semibold uppercase leading-[20px] text-on-surface-variant">Audit Saldo</h2>
+        <div class="grid grid-cols-2 gap-[10px]">
+          <div class="rounded-xl border border-outline-variant bg-surface-container-lowest p-[16px]">
+            <p class="text-[12px] font-semibold uppercase leading-[16px] text-outline">Sebelum</p>
+            <p class="mt-[8px] break-words text-[16px] font-semibold leading-[24px] text-on-surface">
+              {{ currencyLabel(transaction.balanceBefore) }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-outline-variant bg-surface-container-lowest p-[16px]">
+            <p class="text-[12px] font-semibold uppercase leading-[16px] text-outline">Sesudah</p>
+            <p class="mt-[8px] break-words text-[16px] font-semibold leading-[24px] text-on-surface">
+              {{ currencyLabel(transaction.balanceAfter) }}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="space-y-[10px]">
+        <h2 class="text-[14px] font-semibold uppercase leading-[20px] text-on-surface-variant">Rincian Biaya</h2>
+        @if (transaction.taxDetails.length > 0) {
+          <div class="space-y-[8px]">
+            @for (tax of transaction.taxDetails; track tax.taxName + tax.taxCategory) {
+              <article class="rounded-xl border border-outline-variant bg-surface-container-lowest px-[16px] py-[14px]">
+                <div class="flex items-start justify-between gap-[16px]">
+                  <div class="min-w-0">
+                    <h3 class="break-words text-[14px] font-semibold leading-[20px] text-on-surface">
+                      {{ tax.taxName }}
+                    </h3>
+                    <p class="mt-[2px] text-[12px] leading-[16px] text-outline">
+                      {{ tax.taxCategory }} - {{ taxValueLabel(tax) }}
+                    </p>
+                  </div>
+                  <p class="shrink-0 text-right text-[14px] font-semibold leading-[20px] text-on-surface">
+                    {{ currencyLabel(tax.calculatedAmount) }}
+                  </p>
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="rounded-xl border border-outline-variant bg-surface-container-lowest px-[16px] py-[14px]">
+            <p class="text-[14px] leading-[20px] text-on-surface-variant">
+              Tidak ada biaya tambahan pada transaksi ini.
+            </p>
+          </div>
+        }
+      </section>
+      }
+    }
+  </main>
+
+  <app-bottom-nav-bar [activeNav]="'history'" />
+</div>

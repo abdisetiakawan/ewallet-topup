@@ -53,3 +53,27 @@ export interface TransactionHistoryResponse {
   totalElements: number;
   totalPages: number;
 }
+
+export interface TransactionTaxDetail {
+  taxName: string;
+  taxCategory: string;
+  valueType: string;
+  taxValue: number;
+  calculatedAmount: number;
+}
+
+export interface TransactionDetail {
+  transactionId: number;
+  referenceId: string;
+  amount: number;
+  baseAmount: number;
+  taxAmount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  type: TransactionType;
+  status: TransactionStatus;
+  description: string | null;
+  merchantName: string | null;
+  taxDetails: TransactionTaxDetail[];
+  createdAt: string;
+}

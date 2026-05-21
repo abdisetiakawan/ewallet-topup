@@ -168,10 +168,15 @@
             <!-- Transaction Items -->
             <div class="space-y-[8px]">
               @for (transaction of group.transactions; track transaction.transactionId) {
-                <article
-                  class="flex items-center gap-[16px] rounded-xl border border-outline-variant/50
-                         bg-surface-container-lowest p-[16px] transition-shadow hover:shadow-sm"
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-[16px] rounded-xl border border-outline-variant/50
+                         bg-surface-container-lowest p-[16px] text-left transition hover:border-primary/40
+                         hover:bg-surface-container-low hover:shadow-sm focus-visible:outline-none
+                         focus-visible:ring-2 focus-visible:ring-primary"
                   [class.opacity-60]="transaction.status === 'FAILED'"
+                  [routerLink]="['/history', transaction.transactionId]"
+                  [attr.aria-label]="'Lihat detail ' + titleFor(transaction)"
                 >
                   <!-- Icon -->
                   <div
@@ -212,7 +217,10 @@
                       <p class="mt-[4px] text-[11px] text-outline">Pajak {{ taxLabel(transaction.taxAmount) }}</p>
                     }
                   </div>
-                </article>
+                  <span class="material-symbols-outlined shrink-0 text-[20px] leading-none text-outline">
+                    chevron_right
+                  </span>
+                </button>
               }
             </div>
 
