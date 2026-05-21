@@ -541,11 +541,62 @@ components:
       allOf:
         - $ref: '#/components/schemas/TransactionItem'
         - type: object
+          required:
+            - baseAmount
+            - taxAmount
+            - balanceBefore
+            - balanceAfter
+            - taxDetails
           properties:
-            newBalance:
+            baseAmount:
               type: integer
               format: int64
-              example: 125000
+              example: 100000
+            taxAmount:
+              type: integer
+              format: int64
+              example: 2500
+            balanceBefore:
+              type: integer
+              format: int64
+              example: 200000
+            balanceAfter:
+              type: integer
+              format: int64
+              example: 97500
+            description:
+              type: string
+              nullable: true
+              example: Top-up Gopay
+            taxDetails:
+              type: array
+              items:
+                $ref: '#/components/schemas/TransactionTaxDetail'
+    TransactionTaxDetail:
+      type: object
+      required:
+        - taxName
+        - taxCategory
+        - valueType
+        - taxValue
+        - calculatedAmount
+      properties:
+        taxName:
+          type: string
+          example: Service Fee
+        taxCategory:
+          type: string
+          example: SERVICE_FEE
+        valueType:
+          type: string
+          example: PERCENTAGE
+        taxValue:
+          type: number
+          example: 1.5000
+        calculatedAmount:
+          type: integer
+          format: int64
+          example: 1500
     TransactionType:
       type: string
       enum:
