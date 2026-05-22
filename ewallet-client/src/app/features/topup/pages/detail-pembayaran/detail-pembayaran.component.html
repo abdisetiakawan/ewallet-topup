@@ -90,14 +90,43 @@
           <span>Nominal Top-up</span>
           <span class="font-medium text-on-background">Rp {{ format(selectedAmount) }}</span>
         </div>
-        <div class="flex justify-between items-center text-body-sm text-on-surface-variant">
-          <span>{{ selectedWallet?.feeLabel || 'Biaya Admin' }}</span>
-          <span class="font-medium text-on-background">Rp {{ format(adminFee) }}</span>
-        </div>
-        <div class="border-t border-outline-variant mt-sm pt-sm flex justify-between items-center text-body-md font-semibold text-on-background">
-          <span>Total</span>
-          <span class="text-primary">Rp {{ format(selectedAmount + adminFee) }}</span>
-        </div>
+        @if (isLoadingPaymentQuote) {
+          <div aria-live="polite" class="rounded-lg bg-surface-container-low p-sm text-body-sm text-on-surface-variant">
+            Menghitung rincian pajak terbaru...
+          </div>
+        } @else if (paymentQuoteErrorMessage) {
+          <div role="alert" class="rounded-lg border border-error/20 bg-error-container p-sm text-body-sm text-on-error-container">
+            {{ paymentQuoteErrorMessage }}
+          </div>
+        } @else if (hasCurrentPaymentQuote) {
+          @for (tax of taxDetails; track tax.taxName + tax.taxCategory) {
+            <div class="flex justify-between items-start gap-md text-body-sm text-on-surface-variant">
+              <span>
+                {{ tax.taxName }}
+                <span class="block text-[12px] text-outline">{{ taxValueLabel(tax) }}</span>
+              </span>
+              <span class="font-medium text-on-background">Rp {{ format(tax.calculatedAmount) }}</span>
+            </div>
+          }
+          @if (taxDetails.length === 0) {
+            <div class="flex justify-between items-center text-body-sm text-on-surface-variant">
+              <span>Pajak</span>
+              <span class="font-medium text-on-background">Rp 0</span>
+            </div>
+          }
+          <div class="flex justify-between items-center text-body-sm text-on-surface-variant">
+            <span>Total Pajak</span>
+            <span class="font-medium text-on-background">Rp {{ format(adminFee) }}</span>
+          </div>
+          <div class="border-t border-outline-variant mt-sm pt-sm flex justify-between items-center text-body-md font-semibold text-on-background">
+            <span>Total</span>
+            <span class="text-primary">Rp {{ format(totalPaymentAmount) }}</span>
+          </div>
+        } @else {
+          <div class="rounded-lg bg-surface-container-low p-sm text-body-sm text-on-surface-variant">
+            Pilih nominal valid untuk melihat rincian pajak.
+          </div>
+        }
       </div>
     </section>
 
@@ -107,8 +136,9 @@
   <app-payment-summary
     [amount]="selectedAmount"
     [adminFee]="adminFee"
-    [feeLabel]="selectedWallet?.feeLabel || 'Biaya Admin'"
-    [disabled]="isSubmitting"
+    feeLabel="Total Pajak"
+    [disabled]="isSubmitting || isLoadingPaymentQuote || !!paymentQuoteErrorMessage"
+    [previewReady]="hasCurrentPaymentQuote"
     variant="mobile"
     (pay)="onPay()" />
 
@@ -153,8 +183,14 @@
             <span class="text-on-surface-variant">Nominal top-up</span>
             <span class="font-semibold text-on-surface">Rp {{ format(selectedAmount) }}</span>
           </div>
+          @for (tax of taxDetails; track tax.taxName + tax.taxCategory) {
+            <div class="flex justify-between gap-md text-body-sm">
+              <span class="text-on-surface-variant">{{ tax.taxName }} ({{ taxValueLabel(tax) }})</span>
+              <span class="font-semibold text-on-surface">Rp {{ format(tax.calculatedAmount) }}</span>
+            </div>
+          }
           <div class="flex justify-between gap-md text-body-sm">
-            <span class="text-on-surface-variant">{{ selectedWallet?.feeLabel || 'Biaya Admin' }}</span>
+            <span class="text-on-surface-variant">Total pajak</span>
             <span class="font-semibold text-on-surface">Rp {{ format(adminFee) }}</span>
           </div>
           <div class="flex justify-between gap-md text-body-sm pt-sm border-t border-outline-variant">

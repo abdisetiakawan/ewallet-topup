@@ -10,7 +10,10 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { MerchantApiService } from '../../../../core/services/merchant-api.service';
 import { MerchantMapperService } from '../../../../core/services/merchant-mapper.service';
 import { UserSummary } from '../../../../core/models/auth.model';
+import { PaymentQuoteRequest, PaymentQuoteResponse, PaymentTaxDetail } from '../../../../core/models/transaction.model';
+import { TransactionApiService } from '../../../../core/services/transaction-api.service';
 import { createIdempotencyKey } from '../../../../core/utils/idempotency-key.util';
+import { EMPTY, Subject, catchError, switchMap, timer } from 'rxjs';
 import {
   MAX_PAYMENT_AMOUNT,
   MIN_TRANSACTION_AMOUNT,
@@ -33,6 +36,7 @@ type WalletPaymentTarget = EWallet & {
 })
 export class DetailPembayaranComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly paymentQuoteRequests = new Subject<PaymentQuoteRequest | null>();
   private errorToastTimer: ReturnType<typeof setTimeout> | null = null;
   readonly errorToastDurationMs = 4500;
   readonly minPaymentAmount = MIN_TRANSACTION_AMOUNT;
@@ -43,6 +47,9 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
   showConfirmationModal = false;
   errorMessage: string | null = null;
   currentUser: UserSummary | null = null;
+  paymentQuote: PaymentQuoteResponse | null = null;
+  isLoadingPaymentQuote = false;
+  paymentQuoteErrorMessage: string | null = null;
 
   selectedWallet: WalletPaymentTarget | null = null;
   selectedAmount: number = 0;
@@ -53,11 +60,13 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
     private walletStore: WalletStoreService,
     private authService: AuthService,
     private merchantApi: MerchantApiService,
-    private merchantMapper: MerchantMapperService
+    private merchantMapper: MerchantMapperService,
+    private transactionApi: TransactionApiService
   ) {}
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
+    this.setupPaymentQuotePreview();
 
     this.walletStore.balance$
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -76,6 +85,7 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
 
     if (state && state.wallet && state.wallet.id === walletId) {
       this.selectedWallet = { ...state.wallet, merchantName: state.wallet.name };
+      this.requestPaymentQuote();
     } else {
       this.fetchMerchant(walletId);
     }
@@ -101,6 +111,7 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
           ...this.merchantMapper.mapToEWallet(merchant),
           merchantName: merchant.name,
         };
+        this.requestPaymentQuote();
       },
       error: () => {
         this.router.navigate(['/topup']);
@@ -109,11 +120,15 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
   }
 
   get adminFee(): number {
-    if (!this.selectedWallet) return 0;
-    if (this.selectedWallet.feeType === 'PERCENTAGE') {
-      return Math.round((this.selectedAmount * this.selectedWallet.feeValue) / 100);
-    }
-    return this.selectedWallet.feeValue;
+    return this.currentPaymentQuote?.taxAmount ?? 0;
+  }
+
+  get taxDetails(): PaymentTaxDetail[] {
+    return this.currentPaymentQuote?.taxDetails ?? [];
+  }
+
+  get hasCurrentPaymentQuote(): boolean {
+    return this.currentPaymentQuote !== null;
   }
 
   get recipientName(): string {
@@ -125,7 +140,7 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
   }
 
   get totalPaymentAmount(): number {
-    return this.selectedAmount + this.adminFee;
+    return this.currentPaymentQuote?.amount ?? this.selectedAmount;
   }
 
   get balanceAfterPayment(): number {
@@ -134,12 +149,14 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
 
   get isPaymentAmountValid(): boolean {
     return this.selectedAmount >= this.minPaymentAmount
+      && this.hasCurrentPaymentQuote
       && this.totalPaymentAmount <= this.maxPaymentAmount;
   }
 
   onAmountChange(amount: number): void {
     this.selectedAmount = amount;
     this.dismissErrorToast();
+    this.requestPaymentQuote();
   }
 
   onPay(): void {
@@ -216,6 +233,77 @@ export class DetailPembayaranComponent implements OnInit, OnDestroy {
 
   format(value: number): string {
     return new Intl.NumberFormat('id-ID').format(value);
+  }
+
+  taxValueLabel(tax: PaymentTaxDetail): string {
+    if (tax.valueType === 'PERCENTAGE') {
+      return `${tax.taxValue}%`;
+    }
+
+    return `Rp ${this.format(tax.taxValue)}`;
+  }
+
+  private get currentPaymentQuote(): PaymentQuoteResponse | null {
+    if (!this.paymentQuote || !this.selectedWallet) {
+      return null;
+    }
+
+    if (this.paymentQuote.merchantName !== this.selectedWallet.merchantName) {
+      return null;
+    }
+
+    return this.paymentQuote.baseAmount === this.selectedAmount ? this.paymentQuote : null;
+  }
+
+  private setupPaymentQuotePreview(): void {
+    this.paymentQuoteRequests
+      .pipe(
+        switchMap((request) => {
+          if (!request) {
+            return EMPTY;
+          }
+
+          this.isLoadingPaymentQuote = true;
+          this.paymentQuoteErrorMessage = null;
+
+          return timer(250).pipe(
+            switchMap(() => this.transactionApi.quotePayment(request)),
+            catchError(() => {
+              this.paymentQuote = null;
+              this.isLoadingPaymentQuote = false;
+              this.paymentQuoteErrorMessage = 'Gagal menghitung rincian pajak terbaru.';
+              return EMPTY;
+            })
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((response) => {
+        this.paymentQuote = response.data;
+        this.isLoadingPaymentQuote = false;
+        this.paymentQuoteErrorMessage = null;
+      });
+  }
+
+  private requestPaymentQuote(): void {
+    this.paymentQuote = null;
+    this.paymentQuoteErrorMessage = null;
+
+    if (!this.selectedWallet || !this.isAmountEligibleForQuote) {
+      this.isLoadingPaymentQuote = false;
+      this.paymentQuoteRequests.next(null);
+      return;
+    }
+
+    this.paymentQuoteRequests.next({
+      merchantName: this.selectedWallet.merchantName,
+      amount: this.selectedAmount,
+    });
+  }
+
+  private get isAmountEligibleForQuote(): boolean {
+    return this.selectedAmount >= this.minPaymentAmount
+      && this.selectedAmount <= this.maxPaymentAmount;
   }
 
   private showErrorToast(message: string): void {

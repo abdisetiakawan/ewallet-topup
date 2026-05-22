@@ -3,9 +3,8 @@ import { MerchantDto } from '../models/merchant.model';
 import { EWallet } from '../models/ewallet.model';
 
 /**
- * Single source of truth untuk mapping MerchantDto → EWallet.
- * Menyatukan uiMetadata dan tax calculation logic yang sebelumnya
- * terduplikasi di PilihEwalletComponent dan DetailPembayaranComponent.
+ * Single source of truth untuk mapping MerchantDto -> EWallet UI metadata.
+ * Perhitungan payment memakai quote server agar rincian multi-pajak tetap sinkron.
  */
 @Injectable({
   providedIn: 'root',
@@ -28,17 +27,13 @@ export class MerchantMapperService {
   mapToEWallet(merchant: MerchantDto): EWallet {
     const lowerName = merchant.name.toLowerCase();
     const meta = this.UI_METADATA[lowerName] ?? {};
-    const { feeValue, feeType, feeLabel } = this.resolveFee(merchant);
-
     return {
       id: meta.id ?? lowerName,
       name: merchant.name,
       icon: meta.icon ?? this.DEFAULT_META.icon,
       iconBgColor: meta.iconBgColor ?? this.DEFAULT_META.iconBgColor,
       iconTextColor: meta.iconTextColor ?? this.DEFAULT_META.iconTextColor,
-      feeValue,
-      feeType,
-      feeLabel,
+      feeLabel: this.resolveFeeLabel(merchant),
       featured: meta.featured,
     };
   }
@@ -47,35 +42,11 @@ export class MerchantMapperService {
     return merchants.map((merchant) => this.mapToEWallet(merchant));
   }
 
-  private resolveFee(merchant: MerchantDto): {
-    feeValue: number;
-    feeType: 'FIXED' | 'PERCENTAGE';
-    feeLabel: string;
-  } {
-    let totalFixed = 0;
-    let totalPercentage = 0;
-
-    for (const tax of merchant.taxes) {
-      if (tax.valueType === 'FIXED') totalFixed += tax.taxValue;
-      if (tax.valueType === 'PERCENTAGE') totalPercentage += tax.taxValue;
+  private resolveFeeLabel(merchant: MerchantDto): string {
+    if (merchant.taxes.length === 0) {
+      return 'Bebas biaya';
     }
 
-    if (totalPercentage > 0) {
-      return {
-        feeValue: totalPercentage,
-        feeType: 'PERCENTAGE',
-        feeLabel: `Biaya ${totalPercentage}%`,
-      };
-    }
-
-    if (totalFixed > 0) {
-      return {
-        feeValue: totalFixed,
-        feeType: 'FIXED',
-        feeLabel: `Biaya Rp ${new Intl.NumberFormat('id-ID').format(totalFixed)}`,
-      };
-    }
-
-    return { feeValue: 0, feeType: 'FIXED', feeLabel: 'Bebas biaya' };
+    return `${merchant.taxes.length} pajak aktif`;
   }
 }

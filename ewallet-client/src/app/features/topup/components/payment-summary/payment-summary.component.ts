@@ -19,6 +19,7 @@ export class PaymentSummaryComponent {
   @Input() feeLabel: string = 'Biaya Admin';
   @Input() variant: 'desktop' | 'mobile' = 'desktop';
   @Input() disabled: boolean = false;
+  @Input() previewReady: boolean = true;
   @Output() pay = new EventEmitter<void>();
 
   get total(): number {
@@ -27,6 +28,7 @@ export class PaymentSummaryComponent {
 
   get isValid(): boolean {
     return !this.disabled
+      && this.previewReady
       && this.amount >= MIN_TRANSACTION_AMOUNT
       && this.total <= MAX_PAYMENT_AMOUNT;
   }

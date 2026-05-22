@@ -5,9 +5,11 @@ import com.berijalan.ewallet.common.web.ApiResponseFactory;
 import com.berijalan.ewallet.config.IdempotencyGuarded;
 import com.berijalan.ewallet.config.OpenApiConfig;
 import com.berijalan.ewallet.dto.request.ReqPayDto;
+import com.berijalan.ewallet.dto.request.ReqPaymentQuoteDto;
 import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.BaseResponse;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
+import com.berijalan.ewallet.dto.response.ResPaymentQuoteDto;
 import com.berijalan.ewallet.dto.response.ResTransactionDetailDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
 import com.berijalan.ewallet.service.TransactionService;
@@ -68,6 +70,26 @@ public class TransactionController {
         ResPaymentDto data = transactionService.pay(request, userId);
 
         return ResponseEntity.ok(ApiResponseFactory.success("Payment successful", data));
+    }
+
+    @Operation(
+            summary = "Preview pembayaran merchant",
+            description = "Menghitung rincian pajak aktif terkini untuk preview. Pembayaran final tetap dihitung ulang saat pay."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Preview pembayaran berhasil"),
+            @ApiResponse(responseCode = "400", description = "Payload tidak valid atau amount final melewati batas"),
+            @ApiResponse(responseCode = "401", description = "Access token tidak valid atau tidak ada"),
+            @ApiResponse(responseCode = "403", description = "Role pengguna tidak diizinkan mengakses transaksi"),
+            @ApiResponse(responseCode = "404", description = "Merchant tidak ditemukan"),
+            @ApiResponse(responseCode = "500", description = "Kesalahan internal server")
+    })
+    @PostMapping("/pay/quote")
+    public ResponseEntity<BaseResponse<ResPaymentQuoteDto>> quotePayment(
+            @Valid @RequestBody ReqPaymentQuoteDto request) {
+        ResPaymentQuoteDto data = transactionService.quotePayment(request);
+
+        return ResponseEntity.ok(ApiResponseFactory.success("Payment quote calculated successfully", data));
     }
 
     @Operation(

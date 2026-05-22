@@ -123,6 +123,8 @@ public class AdminMerchantService {
             List<ReqAdminMerchantTaxDto> requestedTaxes
     ) {
         // WHY: Daftar request dianggap sebagai state final agar pajak yang dihapus admin tidak tetap aktif diam-diam.
+        releaseActiveTaxTypeSlots(existingTaxes);
+
         Map<Long, MerchantTax> existingById = existingTaxes.stream()
                 .filter(tax -> tax.getId() != null)
                 .collect(Collectors.toMap(MerchantTax::getId, Function.identity()));
@@ -155,6 +157,19 @@ public class AdminMerchantService {
         }
 
         merchantTaxRepository.saveAll(savedTaxes);
+    }
+
+    private void releaseActiveTaxTypeSlots(List<MerchantTax> existingTaxes) {
+        List<MerchantTax> activeTaxes = existingTaxes.stream()
+                .filter(tax -> Boolean.TRUE.equals(tax.getIsActive()))
+                .toList();
+        if (activeTaxes.isEmpty()) {
+            return;
+        }
+
+        // Hibernate flushes inserts before updates at commit, so release partial-unique slots first.
+        activeTaxes.forEach(tax -> tax.setIsActive(false));
+        merchantTaxRepository.saveAllAndFlush(activeTaxes);
     }
 
     private MerchantTax resolveTax(

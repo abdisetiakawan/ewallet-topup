@@ -1,8 +1,10 @@
 package com.berijalan.ewallet.service;
 
 import com.berijalan.ewallet.dto.request.ReqPayDto;
+import com.berijalan.ewallet.dto.request.ReqPaymentQuoteDto;
 import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
+import com.berijalan.ewallet.dto.response.ResPaymentQuoteDto;
 import com.berijalan.ewallet.dto.response.ResTransactionDetailDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
 import com.berijalan.ewallet.entity.Merchant;
@@ -79,6 +81,47 @@ class TransactionServiceTest {
 
     @InjectMocks
     private TransactionService transactionService;
+
+    @Test
+    void quotePayment_whenMerchantHasMultipleTaxes_shouldReturnServerCalculatedBreakdown() {
+        Merchant merchant = createMerchant(1L, "Gopay");
+        ReqPaymentQuoteDto request = new ReqPaymentQuoteDto("Gopay", 100_000L);
+        List<MerchantTax> taxes = List.of(
+                createTax(merchant, "Admin Fee", TaxType.ADMIN_FEE, TaxValueType.FIXED, "1000.0000"),
+                createTax(merchant, "Service Fee", TaxType.SERVICE_FEE, TaxValueType.PERCENTAGE, "1.5000")
+        );
+
+        when(merchantRepository.findByName("Gopay")).thenReturn(Optional.of(merchant));
+        when(merchantTaxRepository.findByMerchantIdAndIsActiveTrue(merchant.getId())).thenReturn(taxes);
+
+        ResPaymentQuoteDto response = transactionService.quotePayment(request);
+
+        assertThat(response.merchantName()).isEqualTo("Gopay");
+        assertThat(response.baseAmount()).isEqualTo(100_000L);
+        assertThat(response.taxAmount()).isEqualTo(2_500L);
+        assertThat(response.amount()).isEqualTo(102_500L);
+        assertThat(response.taxDetails()).hasSize(2);
+        assertThat(response.taxDetails().get(0).taxName()).isEqualTo("Admin Fee");
+        assertThat(response.taxDetails().get(0).calculatedAmount()).isEqualTo(1_000L);
+        assertThat(response.taxDetails().get(1).taxName()).isEqualTo("Service Fee");
+        assertThat(response.taxDetails().get(1).calculatedAmount()).isEqualTo(1_500L);
+        verify(transactionRepository, never()).saveAndFlush(any(Transaction.class));
+    }
+
+    @Test
+    void quotePayment_whenMerchantHasNoTax_shouldReturnBaseAmountAndEmptyBreakdown() {
+        Merchant merchant = createMerchant(1L, "Dana");
+        ReqPaymentQuoteDto request = new ReqPaymentQuoteDto("Dana", 50_000L);
+
+        when(merchantRepository.findByName("Dana")).thenReturn(Optional.of(merchant));
+        when(merchantTaxRepository.findByMerchantIdAndIsActiveTrue(merchant.getId())).thenReturn(List.of());
+
+        ResPaymentQuoteDto response = transactionService.quotePayment(request);
+
+        assertThat(response.taxAmount()).isZero();
+        assertThat(response.amount()).isEqualTo(50_000L);
+        assertThat(response.taxDetails()).isEmpty();
+    }
 
     @Test
     void pay_whenPaymentSucceeds_shouldDecreaseBalancePreciselyAndCreateTransaction() {
