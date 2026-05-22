@@ -2,8 +2,10 @@ package com.berijalan.ewallet.service;
 
 import com.berijalan.ewallet.common.TransactionAmountLimits;
 import com.berijalan.ewallet.dto.request.ReqPayDto;
+import com.berijalan.ewallet.dto.request.ReqPaymentQuoteDto;
 import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.ResPaymentDto;
+import com.berijalan.ewallet.dto.response.ResPaymentQuoteDto;
 import com.berijalan.ewallet.dto.response.ResTransactionDetailDto;
 import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
 import com.berijalan.ewallet.dto.response.TaxSnapshotDto;
@@ -73,21 +75,11 @@ public class TransactionService {
                 });
         User user = wallet.getUser();
 
-        Merchant merchant = merchantRepository.findByName(request.merchantName())
-                .orElseThrow(() -> {
-                    log.warn("Payment rejected because merchant was not found. merchantName={}, userId={}",
-                            request.merchantName(), userId);
-                    return new NotFoundException("Merchant not found");
-                });
-
-        List<MerchantTax> activeTaxes = merchantTaxRepository.findByMerchantIdAndIsActiveTrue(merchant.getId());
-        long baseAmount = request.amount();
-        TaxCalculator.TaxCalculationResult taxCalculation = taxCalculator.calculate(baseAmount, activeTaxes);
-        long totalTax = taxCalculation.totalTax();
-
-        // WHY: Batas maksimum diterapkan pada nominal final karena pajak ikut dipotong dari saldo customer.
-        long finalAmount = safeAddPaymentAmount(baseAmount, totalTax, userId, merchant.getName());
-        validateFinalPaymentAmount(finalAmount, userId, merchant.getName());
+        Merchant merchant = findMerchant(request.merchantName(), userId);
+        PaymentCalculation paymentCalculation = calculatePayment(merchant, request.amount(), userId);
+        long baseAmount = paymentCalculation.baseAmount();
+        long totalTax = paymentCalculation.totalTax();
+        long finalAmount = paymentCalculation.finalAmount();
 
         if (wallet.getBalance() < finalAmount) {
             log.warn("Payment rejected because balance is insufficient. userId={}, merchant={}, baseAmount={}, tax={}, finalAmount={}, balance={}",
@@ -108,7 +100,7 @@ public class TransactionService {
                 balanceBefore,
                 balanceAfter,
                 // WHY: Snapshot pajak mempertahankan audit transaksi saat konfigurasi pajak merchant berubah.
-                serializeTaxSnapshots(taxCalculation.snapshots())
+                serializeTaxSnapshots(paymentCalculation.taxSnapshots())
         );
 
         transaction = transactionRepository.saveAndFlush(transaction);
@@ -119,6 +111,28 @@ public class TransactionService {
                 userId, merchant.getName(), baseAmount, totalTax, finalAmount, balanceBefore, balanceAfter, transaction.getReferenceId());
 
         return transactionMapper.toPaymentDto(transaction);
+    }
+
+    /**
+     * Menghitung preview pembayaran berdasarkan pajak aktif merchant saat ini.
+     *
+     * @param request merchant dan nominal dasar yang akan dipreview.
+     * @return nominal final dan rincian pajak yang dihitung.
+     */
+    @Transactional(readOnly = true)
+    public ResPaymentQuoteDto quotePayment(ReqPaymentQuoteDto request) {
+        validatePaymentAmount(request.amount(), null, request.merchantName());
+
+        Merchant merchant = findMerchant(request.merchantName(), null);
+        PaymentCalculation paymentCalculation = calculatePayment(merchant, request.amount(), null);
+
+        return new ResPaymentQuoteDto(
+                merchant.getName(),
+                paymentCalculation.baseAmount(),
+                paymentCalculation.totalTax(),
+                paymentCalculation.finalAmount(),
+                toTaxSnapshotDtos(paymentCalculation.taxSnapshots())
+        );
     }
 
     private void validatePaymentAmount(Long amount, Long userId, String merchantName) {
@@ -148,6 +162,27 @@ public class TransactionService {
                     userId, merchantName, baseAmount, totalTax, ex);
             throw new BadRequestException("Payment amount limit exceeded");
         }
+    }
+
+    private Merchant findMerchant(String merchantName, Long userId) {
+        return merchantRepository.findByName(merchantName)
+                .orElseThrow(() -> {
+                    log.warn("Payment rejected because merchant was not found. merchantName={}, userId={}",
+                            merchantName, userId);
+                    return new NotFoundException("Merchant not found");
+                });
+    }
+
+    private PaymentCalculation calculatePayment(Merchant merchant, long baseAmount, Long userId) {
+        List<MerchantTax> activeTaxes = merchantTaxRepository.findByMerchantIdAndIsActiveTrue(merchant.getId());
+        TaxCalculator.TaxCalculationResult taxCalculation = taxCalculator.calculate(baseAmount, activeTaxes);
+        long totalTax = taxCalculation.totalTax();
+
+        // WHY: Batas maksimum diterapkan pada nominal final karena pajak ikut dipotong dari saldo customer.
+        long finalAmount = safeAddPaymentAmount(baseAmount, totalTax, userId, merchant.getName());
+        validateFinalPaymentAmount(finalAmount, userId, merchant.getName());
+
+        return new PaymentCalculation(baseAmount, totalTax, finalAmount, taxCalculation.snapshots());
     }
 
     private void validateFinalPaymentAmount(long finalAmount, Long userId, String merchantName) {
@@ -195,6 +230,18 @@ public class TransactionService {
             log.error("Failed to serialize payment tax snapshot", ex);
             throw new IllegalStateException("Failed to serialize tax snapshot", ex);
         }
+    }
+
+    private List<TaxSnapshotDto> toTaxSnapshotDtos(List<TaxCalculator.TaxSnapshot> taxSnapshots) {
+        return taxSnapshots.stream()
+                .map(taxSnapshot -> new TaxSnapshotDto(
+                        taxSnapshot.taxName(),
+                        taxSnapshot.taxType(),
+                        taxSnapshot.valueType(),
+                        taxSnapshot.taxValue(),
+                        taxSnapshot.calculatedTax()
+                ))
+                .toList();
     }
 
     /**
@@ -278,6 +325,14 @@ public class TransactionService {
         private TaxSnapshotDto toDto() {
             return new TaxSnapshotDto(taxName, taxType, valueType, taxValue, calculatedTax);
         }
+    }
+
+    private record PaymentCalculation(
+            long baseAmount,
+            long totalTax,
+            long finalAmount,
+            List<TaxCalculator.TaxSnapshot> taxSnapshots
+    ) {
     }
 
 }
