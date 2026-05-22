@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { BaseResponse } from '../models/api.model';
 import {
   PaymentRequest,
+  PaymentQuoteRequest,
+  PaymentQuoteResponse,
   PaymentResponse,
   TransactionDetail,
   TransactionHistoryQuery,
@@ -53,6 +55,13 @@ export class TransactionApiService {
           'Idempotency-Key': idempotencyKey,
         },
       }
+    );
+  }
+
+  quotePayment(payload: PaymentQuoteRequest): Observable<BaseResponse<PaymentQuoteResponse>> {
+    return this.http.post<BaseResponse<PaymentQuoteResponse>>(
+      `${this.apiUrl}/pay/quote`,
+      payload
     );
   }
 }

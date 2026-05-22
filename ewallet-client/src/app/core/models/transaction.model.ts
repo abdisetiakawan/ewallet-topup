@@ -21,6 +21,27 @@ export interface PaymentResponse {
   status: TransactionStatus;
 }
 
+export interface PaymentQuoteRequest {
+  merchantName: string;
+  amount: number;
+}
+
+export interface PaymentTaxDetail {
+  taxName: string;
+  taxCategory: string;
+  valueType: string;
+  taxValue: number;
+  calculatedAmount: number;
+}
+
+export interface PaymentQuoteResponse {
+  merchantName: string;
+  baseAmount: number;
+  taxAmount: number;
+  amount: number;
+  taxDetails: PaymentTaxDetail[];
+}
+
 export interface TransactionHistoryQuery {
   page?: number;
   size?: number;
@@ -54,13 +75,7 @@ export interface TransactionHistoryResponse {
   totalPages: number;
 }
 
-export interface TransactionTaxDetail {
-  taxName: string;
-  taxCategory: string;
-  valueType: string;
-  taxValue: number;
-  calculatedAmount: number;
-}
+export interface TransactionTaxDetail extends PaymentTaxDetail {}
 
 export interface TransactionDetail {
   transactionId: number;

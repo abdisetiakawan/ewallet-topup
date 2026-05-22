@@ -14,7 +14,7 @@
     </div>
     <div class="flex justify-between items-center mb-xl">
       <span class="font-semibold text-h3 text-on-surface">Total</span>
-      <span class="text-num-display text-primary">Rp {{ format(total) }}</span>
+      <span class="text-num-display text-primary">{{ previewReady ? 'Rp ' + format(total) : '--' }}</span>
     </div>
     <button
       class="w-full h-[48px] bg-primary text-on-primary text-label-md rounded-lg flex items-center justify-center hover:bg-primary-container transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -36,7 +36,7 @@
     <div class="px-margin-mobile py-md">
       <div class="flex justify-between items-center mb-md">
         <span class="text-body-md text-on-surface-variant">Total Pembayaran</span>
-        <span class="font-bold text-2xl text-on-background">Rp {{ format(total) }}</span>
+        <span class="font-bold text-2xl text-on-background">{{ previewReady ? 'Rp ' + format(total) : '--' }}</span>
       </div>
       <button
         class="w-full bg-primary text-on-primary font-semibold h-12 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
