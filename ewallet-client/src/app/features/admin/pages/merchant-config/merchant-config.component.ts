@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../../core/services/auth.service';
 import {
   AdminMerchantConfigPayload,
   AdminMerchantDto,
@@ -48,12 +49,21 @@ export class MerchantConfigComponent implements OnInit {
 
   taxes: EditableTax[] = [];
 
+  private authService = inject(AuthService);
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private adminMerchantApi: AdminMerchantApiService,
     private cdr: ChangeDetectorRef
   ) {}
+
+  logout(): void {
+    this.authService.logout().subscribe({
+      next: () => this.router.navigate(['/login']),
+      error: () => this.router.navigate(['/login']),
+    });
+  }
 
   ngOnInit(): void {
     const merchantIdParam = this.route.snapshot.paramMap.get('merchantId');

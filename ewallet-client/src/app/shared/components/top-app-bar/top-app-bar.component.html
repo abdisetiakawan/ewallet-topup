@@ -7,11 +7,22 @@
     <span class="text-[24px] leading-[32px] font-bold text-primary">WalletPay</span>
   </div>
 
-  <button
-    type="button"
-    aria-label="Notifikasi"
-    class="transition-opacity duration-200 hover:opacity-80 p-[8px]"
-  >
-    <span class="material-symbols-outlined text-on-surface-variant">notifications</span>
-  </button>
+  @if (showLogout) {
+    <button
+      type="button"
+      aria-label="Logout"
+      (click)="logout()"
+      class="transition-opacity duration-200 hover:opacity-80 p-[8px]"
+    >
+      <span class="material-symbols-outlined text-error">logout</span>
+    </button>
+  } @else {
+    <button
+      type="button"
+      aria-label="Notifikasi"
+      class="transition-opacity duration-200 hover:opacity-80 p-[8px]"
+    >
+      <span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+    </button>
+  }
 </header>
