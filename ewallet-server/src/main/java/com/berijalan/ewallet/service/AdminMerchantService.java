@@ -1,8 +1,8 @@
 package com.berijalan.ewallet.service;
 
-import com.berijalan.ewallet.dto.request.ReqAdminMerchantConfigDto;
-import com.berijalan.ewallet.dto.request.ReqAdminMerchantTaxDto;
-import com.berijalan.ewallet.dto.response.ResAdminMerchantDto;
+import com.berijalan.ewallet.contract.model.ReqAdminMerchantConfigDto;
+import com.berijalan.ewallet.contract.model.ReqAdminMerchantTaxDto;
+import com.berijalan.ewallet.contract.model.ResAdminMerchantDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.constant.TaxType;
@@ -77,8 +77,8 @@ public class AdminMerchantService {
         validateConfig(request);
 
         Merchant merchant = new Merchant();
-        merchant.setName(request.name());
-        merchant.setIsActive(request.isActive());
+        merchant.setName(request.getName());
+        merchant.setIsActive(request.getIsActive());
         merchantRepository.save(merchant);
 
         upsertTaxes(merchant, List.of(), normalizeTaxes(request));
@@ -103,8 +103,8 @@ public class AdminMerchantService {
         validateConfig(request);
 
         Merchant merchant = findMerchant(id);
-        merchant.setName(request.name());
-        merchant.setIsActive(request.isActive());
+        merchant.setName(request.getName());
+        merchant.setIsActive(request.getIsActive());
 
         List<MerchantTax> existingTaxes = merchantTaxRepository.findByMerchantId(id);
         upsertTaxes(merchant, existingTaxes, normalizeTaxes(request));
@@ -130,7 +130,7 @@ public class AdminMerchantService {
                 .collect(Collectors.toMap(MerchantTax::getId, Function.identity()));
 
         Set<Long> requestedIds = requestedTaxes.stream()
-                .map(ReqAdminMerchantTaxDto::id)
+                .map(ReqAdminMerchantTaxDto::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
@@ -140,15 +140,15 @@ public class AdminMerchantService {
 
         List<MerchantTax> savedTaxes = new ArrayList<>();
         for (ReqAdminMerchantTaxDto taxRequest : requestedTaxes) {
-            MerchantTax tax = resolveTax(merchant, existingById, taxRequest.id());
+            MerchantTax tax = resolveTax(merchant, existingById, taxRequest.getId());
             tax.setMerchant(merchant);
-            tax.setTaxName(taxRequest.taxName());
-            tax.setTaxType(taxRequest.taxType());
-            tax.setValueType(taxRequest.valueType());
-            tax.setTaxValue(taxRequest.taxValue());
-            tax.setIsActive(taxRequest.isActive());
-            tax.setEffectiveAt(taxRequest.effectiveAt());
-            tax.setExpiredAt(taxRequest.expiredAt());
+            tax.setTaxName(taxRequest.getTaxName());
+            tax.setTaxType(toEntityTaxType(taxRequest.getTaxType()));
+            tax.setValueType(toEntityTaxValueType(taxRequest.getValueType()));
+            tax.setTaxValue(taxRequest.getTaxValue());
+            tax.setIsActive(taxRequest.getIsActive());
+            tax.setEffectiveAt(taxRequest.getEffectiveAt());
+            tax.setExpiredAt(taxRequest.getExpiredAt());
             savedTaxes.add(tax);
         }
 
@@ -194,26 +194,37 @@ public class AdminMerchantService {
         EnumSet<TaxType> activeTypes = EnumSet.noneOf(TaxType.class);
 
         for (ReqAdminMerchantTaxDto tax : taxes) {
-            if (tax.expiredAt() != null && !tax.expiredAt().isAfter(tax.effectiveAt())) {
+            TaxType taxType = toEntityTaxType(tax.getTaxType());
+            TaxValueType valueType = toEntityTaxValueType(tax.getValueType());
+
+            if (tax.getExpiredAt() != null && !tax.getExpiredAt().isAfter(tax.getEffectiveAt())) {
                 log.warn("Admin merchant config rejected because tax expiry is not after effective date. taxType={}, valueType={}",
-                        tax.taxType(), tax.valueType());
+                        taxType, valueType);
                 throw new BadRequestException("Tax expiry date must be after effective date");
             }
 
-            if (tax.valueType() == TaxValueType.PERCENTAGE
-                    && tax.taxValue().compareTo(BigDecimal.valueOf(100)) > 0) {
+            if (valueType == TaxValueType.PERCENTAGE
+                    && tax.getTaxValue().compareTo(BigDecimal.valueOf(100)) > 0) {
                 throw new BadRequestException("Percentage tax value must not exceed 100");
             }
 
             // WHY: Satu tipe pajak aktif menjaga perhitungan pembayaran deterministik dan mudah diaudit.
-            if (tax.isActive() && !activeTypes.add(tax.taxType())) {
+            if (tax.getIsActive() && !activeTypes.add(taxType)) {
                 throw new BadRequestException("Only one active tax is allowed for each tax type");
             }
         }
     }
 
     private List<ReqAdminMerchantTaxDto> normalizeTaxes(ReqAdminMerchantConfigDto request) {
-        return request.taxes() == null ? List.of() : request.taxes();
+        return request.getTaxes() == null ? List.of() : request.getTaxes();
+    }
+
+    private TaxType toEntityTaxType(com.berijalan.ewallet.contract.model.TaxType taxType) {
+        return TaxType.valueOf(taxType.getValue());
+    }
+
+    private TaxValueType toEntityTaxValueType(com.berijalan.ewallet.contract.model.TaxValueType valueType) {
+        return TaxValueType.valueOf(valueType.getValue());
     }
 
 }

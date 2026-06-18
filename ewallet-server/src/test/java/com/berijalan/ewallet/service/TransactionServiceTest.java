@@ -1,12 +1,11 @@
 package com.berijalan.ewallet.service;
 
-import com.berijalan.ewallet.dto.request.ReqPayDto;
-import com.berijalan.ewallet.dto.request.ReqPaymentQuoteDto;
-import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
-import com.berijalan.ewallet.dto.response.ResPaymentDto;
-import com.berijalan.ewallet.dto.response.ResPaymentQuoteDto;
-import com.berijalan.ewallet.dto.response.ResTransactionDetailDto;
-import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
+import com.berijalan.ewallet.contract.model.ReqPayDto;
+import com.berijalan.ewallet.contract.model.ReqPaymentQuoteDto;
+import com.berijalan.ewallet.contract.model.ResPaymentDto;
+import com.berijalan.ewallet.contract.model.ResPaymentQuoteDto;
+import com.berijalan.ewallet.contract.model.ResTransactionDetailDto;
+import com.berijalan.ewallet.contract.model.ResTransactionHistoryDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.Transaction;
@@ -33,8 +32,8 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -96,15 +95,15 @@ class TransactionServiceTest {
 
         ResPaymentQuoteDto response = transactionService.quotePayment(request);
 
-        assertThat(response.merchantName()).isEqualTo("Gopay");
-        assertThat(response.baseAmount()).isEqualTo(100_000L);
-        assertThat(response.taxAmount()).isEqualTo(2_500L);
-        assertThat(response.amount()).isEqualTo(102_500L);
-        assertThat(response.taxDetails()).hasSize(2);
-        assertThat(response.taxDetails().get(0).taxName()).isEqualTo("Admin Fee");
-        assertThat(response.taxDetails().get(0).calculatedAmount()).isEqualTo(1_000L);
-        assertThat(response.taxDetails().get(1).taxName()).isEqualTo("Service Fee");
-        assertThat(response.taxDetails().get(1).calculatedAmount()).isEqualTo(1_500L);
+        assertThat(response.getMerchantName()).isEqualTo("Gopay");
+        assertThat(response.getBaseAmount()).isEqualTo(100_000L);
+        assertThat(response.getTaxAmount()).isEqualTo(2_500L);
+        assertThat(response.getAmount()).isEqualTo(102_500L);
+        assertThat(response.getTaxDetails()).hasSize(2);
+        assertThat(response.getTaxDetails().get(0).getTaxName()).isEqualTo("Admin Fee");
+        assertThat(response.getTaxDetails().get(0).getCalculatedAmount()).isEqualTo(1_000L);
+        assertThat(response.getTaxDetails().get(1).getTaxName()).isEqualTo("Service Fee");
+        assertThat(response.getTaxDetails().get(1).getCalculatedAmount()).isEqualTo(1_500L);
         verify(transactionRepository, never()).saveAndFlush(any(Transaction.class));
     }
 
@@ -118,9 +117,9 @@ class TransactionServiceTest {
 
         ResPaymentQuoteDto response = transactionService.quotePayment(request);
 
-        assertThat(response.taxAmount()).isZero();
-        assertThat(response.amount()).isEqualTo(50_000L);
-        assertThat(response.taxDetails()).isEmpty();
+        assertThat(response.getTaxAmount()).isZero();
+        assertThat(response.getAmount()).isEqualTo(50_000L);
+        assertThat(response.getTaxDetails()).isEmpty();
     }
 
     @Test
@@ -150,16 +149,16 @@ class TransactionServiceTest {
 
         assertThat(wallet.getBalance()).isEqualTo(97_500L);
 
-        assertThat(response.transactionId()).isEqualTo(20L);
-        assertThat(response.amount()).isEqualTo(102_500L);
-        assertThat(response.baseAmount()).isEqualTo(100_000L);
-        assertThat(response.taxAmount()).isEqualTo(2_500L);
-        assertThat(response.balanceBefore()).isEqualTo(200_000L);
-        assertThat(response.balanceAfter()).isEqualTo(97_500L);
-        assertThat(response.description()).isEqualTo("Top-up Gopay");
-        assertThat(response.merchantName()).isEqualTo("Gopay");
-        assertThat(response.type()).isEqualTo(TransactionType.PAYMENT.name());
-        assertThat(response.status()).isEqualTo(TransactionStatus.SUCCESS.name());
+        assertThat(response.getTransactionId()).isEqualTo(20L);
+        assertThat(response.getAmount()).isEqualTo(102_500L);
+        assertThat(response.getBaseAmount()).isEqualTo(100_000L);
+        assertThat(response.getTaxAmount()).isEqualTo(2_500L);
+        assertThat(response.getBalanceBefore()).isEqualTo(200_000L);
+        assertThat(response.getBalanceAfter()).isEqualTo(97_500L);
+        assertThat(response.getDescription()).isEqualTo("Top-up Gopay");
+        assertThat(response.getMerchantName()).isEqualTo("Gopay");
+        assertThat(response.getType()).isEqualTo(TransactionType.PAYMENT.name());
+        assertThat(response.getStatus()).isEqualTo(TransactionStatus.SUCCESS.name());
 
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepository).saveAndFlush(captor.capture());
@@ -240,13 +239,7 @@ class TransactionServiceTest {
         User user = createUser(userId);
         Merchant merchant = createMerchant(1L, "Gopay");
         Transaction transaction = createPaymentTransaction(user, merchant);
-        ReqTransactionHistoryDto request = new ReqTransactionHistoryDto(
-                0,
-                10,
-                TransactionStatus.SUCCESS,
-                TransactionType.PAYMENT
-        );
-        Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(0, 10);
 
         when(transactionRepository.findByUserIdAndStatusAndType(
                 eq(userId),
@@ -255,53 +248,53 @@ class TransactionServiceTest {
                 any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of(transaction), pageable, 1));
 
-        ResTransactionHistoryDto response = transactionService.getTransactions(userId, request);
+        ResTransactionHistoryDto response = transactionService.getTransactions(
+                userId,
+                0,
+                10,
+                com.berijalan.ewallet.contract.model.TransactionStatus.SUCCESS,
+                com.berijalan.ewallet.contract.model.TransactionType.PAYMENT
+        );
 
-        assertThat(response.content()).hasSize(1);
-        assertThat(response.page()).isZero();
-        assertThat(response.size()).isEqualTo(10);
-        assertThat(response.totalElements()).isEqualTo(1);
-        assertThat(response.totalPages()).isEqualTo(1);
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getPage()).isZero();
+        assertThat(response.getSize()).isEqualTo(10);
+        assertThat(response.getTotalElements()).isEqualTo(1);
+        assertThat(response.getTotalPages()).isEqualTo(1);
 
-        assertThat(response.content().get(0).transactionId()).isEqualTo(100L);
-        assertThat(response.content().get(0).userId()).isEqualTo(userId);
-        assertThat(response.content().get(0).userName()).isEqualTo("Test User");
-        assertThat(response.content().get(0).userEmail()).isEqualTo("test@example.com");
-        assertThat(response.content().get(0).referenceId()).isEqualTo("PAY-TEST");
-        assertThat(response.content().get(0).amount()).isEqualTo(102_500L);
-        assertThat(response.content().get(0).baseAmount()).isEqualTo(100_000L);
-        assertThat(response.content().get(0).taxAmount()).isEqualTo(2_500L);
-        assertThat(response.content().get(0).balanceBefore()).isEqualTo(200_000L);
-        assertThat(response.content().get(0).balanceAfter()).isEqualTo(97_500L);
-        assertThat(response.content().get(0).type()).isEqualTo(TransactionType.PAYMENT.name());
-        assertThat(response.content().get(0).status()).isEqualTo(TransactionStatus.SUCCESS.name());
-        assertThat(response.content().get(0).description()).isEqualTo("Top-up Gopay");
-        assertThat(response.content().get(0).merchantName()).isEqualTo("Gopay");
+        assertThat(response.getContent().get(0).getTransactionId()).isEqualTo(100L);
+        assertThat(response.getContent().get(0).getUserId()).isEqualTo(userId);
+        assertThat(response.getContent().get(0).getUserName()).isEqualTo("Test User");
+        assertThat(response.getContent().get(0).getUserEmail()).isEqualTo("test@example.com");
+        assertThat(response.getContent().get(0).getReferenceId()).isEqualTo("PAY-TEST");
+        assertThat(response.getContent().get(0).getAmount()).isEqualTo(102_500L);
+        assertThat(response.getContent().get(0).getBaseAmount()).isEqualTo(100_000L);
+        assertThat(response.getContent().get(0).getTaxAmount()).isEqualTo(2_500L);
+        assertThat(response.getContent().get(0).getBalanceBefore()).isEqualTo(200_000L);
+        assertThat(response.getContent().get(0).getBalanceAfter()).isEqualTo(97_500L);
+        assertThat(response.getContent().get(0).getType()).isEqualTo(TransactionType.PAYMENT.name());
+        assertThat(response.getContent().get(0).getStatus()).isEqualTo(TransactionStatus.SUCCESS.name());
+        assertThat(response.getContent().get(0).getDescription()).isEqualTo("Top-up Gopay");
+        assertThat(response.getContent().get(0).getMerchantName()).isEqualTo("Gopay");
     }
 
     @Test
     void getTransactions_whenNoTransactions_shouldReturnEmptyPage() {
         Long userId = 1L;
-        ReqTransactionHistoryDto request = new ReqTransactionHistoryDto(
-                0,
-                10,
-                null,
-                null
-        );
-        Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(0, 10);
 
         when(transactionRepository.findByUserId(
                 eq(userId),
                 any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        ResTransactionHistoryDto response = transactionService.getTransactions(userId, request);
+        ResTransactionHistoryDto response = transactionService.getTransactions(userId, 0, 10, null, null);
 
-        assertThat(response.content()).isEmpty();
-        assertThat(response.page()).isZero();
-        assertThat(response.size()).isEqualTo(10);
-        assertThat(response.totalElements()).isZero();
-        assertThat(response.totalPages()).isZero();
+        assertThat(response.getContent()).isEmpty();
+        assertThat(response.getPage()).isZero();
+        assertThat(response.getSize()).isEqualTo(10);
+        assertThat(response.getTotalElements()).isZero();
+        assertThat(response.getTotalPages()).isZero();
     }
 
     @Test
@@ -323,14 +316,14 @@ class TransactionServiceTest {
 
         ResTransactionDetailDto response = transactionService.getTransaction(userId, 100L);
 
-        assertThat(response.transactionId()).isEqualTo(100L);
-        assertThat(response.referenceId()).isEqualTo("PAY-TEST");
-        assertThat(response.merchantName()).isEqualTo("Gopay");
-        assertThat(response.taxDetails()).hasSize(1);
-        assertThat(response.taxDetails().get(0).taxName()).isEqualTo("Service Fee");
-        assertThat(response.taxDetails().get(0).taxCategory()).isEqualTo("SERVICE_FEE");
-        assertThat(response.taxDetails().get(0).valueType()).isEqualTo("PERCENTAGE");
-        assertThat(response.taxDetails().get(0).calculatedAmount()).isEqualTo(1_500L);
+        assertThat(response.getTransactionId()).isEqualTo(100L);
+        assertThat(response.getReferenceId()).isEqualTo("PAY-TEST");
+        assertThat(response.getMerchantName()).isEqualTo("Gopay");
+        assertThat(response.getTaxDetails()).hasSize(1);
+        assertThat(response.getTaxDetails().get(0).getTaxName()).isEqualTo("Service Fee");
+        assertThat(response.getTaxDetails().get(0).getTaxCategory()).isEqualTo("SERVICE_FEE");
+        assertThat(response.getTaxDetails().get(0).getValueType()).isEqualTo("PERCENTAGE");
+        assertThat(response.getTaxDetails().get(0).getCalculatedAmount()).isEqualTo(1_500L);
     }
 
     @Test
@@ -345,8 +338,8 @@ class TransactionServiceTest {
 
         ResTransactionDetailDto response = transactionService.getTransaction(userId, 100L);
 
-        assertThat(response.merchantName()).isNull();
-        assertThat(response.taxDetails()).isEmpty();
+        assertThat(response.getMerchantName()).isNull();
+        assertThat(response.getTaxDetails()).isEmpty();
     }
 
     @Test

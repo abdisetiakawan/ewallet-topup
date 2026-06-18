@@ -1,7 +1,7 @@
 package com.berijalan.ewallet.service;
 
-import com.berijalan.ewallet.dto.response.ResEmailChangeDto;
-import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
+import com.berijalan.ewallet.contract.model.ResEmailChangeDto;
+import com.berijalan.ewallet.contract.model.ResUserSummaryDto;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.ConflictException;
@@ -61,7 +61,9 @@ public class UserEmailChangeService {
         mailSenderService.sendEmailChangeToken(newEmail, token, ttlMinutes);
 
         log.info("Email change requested for userId={} to newEmail={}", userId, newEmail);
-        return new ResEmailChangeDto(newEmail, ttlMinutes);
+        return new ResEmailChangeDto()
+                .newEmail(newEmail)
+                .expiresInMinutes(ttlMinutes);
     }
 
     /**

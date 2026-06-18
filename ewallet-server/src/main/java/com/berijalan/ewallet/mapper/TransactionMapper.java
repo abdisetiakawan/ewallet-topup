@@ -1,10 +1,10 @@
 package com.berijalan.ewallet.mapper;
 
-import com.berijalan.ewallet.dto.response.ResPaymentDto;
-import com.berijalan.ewallet.dto.response.ResTransactionDetailDto;
-import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
-import com.berijalan.ewallet.dto.response.ResTransactionItemDto;
-import com.berijalan.ewallet.dto.response.TaxSnapshotDto;
+import com.berijalan.ewallet.contract.model.ResPaymentDto;
+import com.berijalan.ewallet.contract.model.ResTransactionDetailDto;
+import com.berijalan.ewallet.contract.model.ResTransactionHistoryDto;
+import com.berijalan.ewallet.contract.model.ResTransactionItemDto;
+import com.berijalan.ewallet.contract.model.TaxSnapshotDto;
 import com.berijalan.ewallet.entity.Transaction;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
@@ -20,19 +20,18 @@ public class TransactionMapper implements BaseMapper<Transaction, ResPaymentDto>
     }
 
     public ResPaymentDto toPaymentDto(Transaction transaction) {
-        return new ResPaymentDto(
-                transaction.getId().longValue(),
-                transaction.getReferenceId(),
-                transaction.getAmount(),
-                transaction.getBaseAmount(),
-                transaction.getTaxAmount(),
-                transaction.getBalanceBefore(),
-                transaction.getBalanceAfter(),
-                transaction.getDescription(),
-                transaction.getMerchant().getName(),
-                transaction.getType().name(),
-                transaction.getStatus().name()
-        );
+        return new ResPaymentDto()
+                .transactionId(transaction.getId().longValue())
+                .referenceId(transaction.getReferenceId())
+                .amount(transaction.getAmount())
+                .baseAmount(transaction.getBaseAmount())
+                .taxAmount(transaction.getTaxAmount())
+                .balanceBefore(transaction.getBalanceBefore())
+                .balanceAfter(transaction.getBalanceAfter())
+                .description(transaction.getDescription())
+                .merchantName(transaction.getMerchant().getName())
+                .type(transaction.getType().name())
+                .status(transaction.getStatus().name());
     }
 
     public ResTransactionHistoryDto toHistoryDto(Page<Transaction> transactionPage) {
@@ -40,50 +39,47 @@ public class TransactionMapper implements BaseMapper<Transaction, ResPaymentDto>
                 .map(this::toHistoryItemDto)
                 .toList();
 
-        return new ResTransactionHistoryDto(
-                items,
-                transactionPage.getNumber(),
-                transactionPage.getSize(),
-                transactionPage.getTotalElements(),
-                transactionPage.getTotalPages()
-        );
+        return new ResTransactionHistoryDto()
+                .content(items)
+                .page(transactionPage.getNumber())
+                .size(transactionPage.getSize())
+                .totalElements(transactionPage.getTotalElements())
+                .totalPages(transactionPage.getTotalPages());
     }
 
     public ResTransactionDetailDto toDetailDto(Transaction transaction, List<TaxSnapshotDto> taxDetails) {
-        return new ResTransactionDetailDto(
-                transaction.getId().longValue(),
-                transaction.getReferenceId(),
-                transaction.getAmount(),
-                transaction.getBaseAmount(),
-                transaction.getTaxAmount(),
-                transaction.getBalanceBefore(),
-                transaction.getBalanceAfter(),
-                transaction.getType().name(),
-                transaction.getStatus().name(),
-                transaction.getDescription(),
-                transaction.getMerchant() != null ? transaction.getMerchant().getName() : null,
-                taxDetails,
-                transaction.getCreatedAt()
-        );
+        return new ResTransactionDetailDto()
+                .transactionId(transaction.getId().longValue())
+                .referenceId(transaction.getReferenceId())
+                .amount(transaction.getAmount())
+                .baseAmount(transaction.getBaseAmount())
+                .taxAmount(transaction.getTaxAmount())
+                .balanceBefore(transaction.getBalanceBefore())
+                .balanceAfter(transaction.getBalanceAfter())
+                .type(transaction.getType().name())
+                .status(transaction.getStatus().name())
+                .description(transaction.getDescription())
+                .merchantName(transaction.getMerchant() != null ? transaction.getMerchant().getName() : null)
+                .taxDetails(taxDetails)
+                .createdAt(transaction.getCreatedAt());
     }
 
     private ResTransactionItemDto toHistoryItemDto(Transaction transaction) {
-        return new ResTransactionItemDto(
-                transaction.getId().longValue(),
-                transaction.getUser().getId().longValue(),
-                transaction.getUser().getName(),
-                transaction.getUser().getEmail(),
-                transaction.getReferenceId(),
-                transaction.getAmount(),
-                transaction.getBaseAmount(),
-                transaction.getTaxAmount(),
-                transaction.getBalanceBefore(),
-                transaction.getBalanceAfter(),
-                transaction.getType().name(),
-                transaction.getStatus().name(),
-                transaction.getDescription(),
-                transaction.getMerchant() != null ? transaction.getMerchant().getName() : null,
-                transaction.getCreatedAt()
-        );
+        return new ResTransactionItemDto()
+                .transactionId(transaction.getId().longValue())
+                .userId(transaction.getUser().getId().longValue())
+                .userName(transaction.getUser().getName())
+                .userEmail(transaction.getUser().getEmail())
+                .referenceId(transaction.getReferenceId())
+                .amount(transaction.getAmount())
+                .baseAmount(transaction.getBaseAmount())
+                .taxAmount(transaction.getTaxAmount())
+                .balanceBefore(transaction.getBalanceBefore())
+                .balanceAfter(transaction.getBalanceAfter())
+                .type(transaction.getType().name())
+                .status(transaction.getStatus().name())
+                .description(transaction.getDescription())
+                .merchantName(transaction.getMerchant() != null ? transaction.getMerchant().getName() : null)
+                .createdAt(transaction.getCreatedAt());
     }
 }

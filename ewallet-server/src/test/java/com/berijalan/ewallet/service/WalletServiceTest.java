@@ -1,8 +1,8 @@
 package com.berijalan.ewallet.service;
 
-import com.berijalan.ewallet.dto.request.ReqTopupDto;
-import com.berijalan.ewallet.dto.response.ResTopupDto;
-import com.berijalan.ewallet.dto.response.ResWalletBalanceDto;
+import com.berijalan.ewallet.contract.model.ReqTopupDto;
+import com.berijalan.ewallet.contract.model.ResTopupDto;
+import com.berijalan.ewallet.contract.model.ResWalletBalanceDto;
 import com.berijalan.ewallet.entity.Transaction;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
@@ -73,11 +73,11 @@ class WalletServiceTest {
         ResTopupDto response = walletService.topup(request, userId);
 
         assertThat(wallet.getBalance()).isEqualTo(150_000L);
-        assertThat(response.amount()).isEqualTo(50_000L);
-        assertThat(response.balanceBefore()).isEqualTo(100_000L);
-        assertThat(response.balanceAfter()).isEqualTo(150_000L);
-        assertThat(response.type()).isEqualTo(TransactionType.TOPUP.name());
-        assertThat(response.status()).isEqualTo(TransactionStatus.SUCCESS.name());
+        assertThat(response.getAmount()).isEqualTo(50_000L);
+        assertThat(response.getBalanceBefore()).isEqualTo(100_000L);
+        assertThat(response.getBalanceAfter()).isEqualTo(150_000L);
+        assertThat(response.getType()).isEqualTo(TransactionType.TOPUP.name());
+        assertThat(response.getStatus()).isEqualTo(TransactionStatus.SUCCESS.name());
 
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepository).saveAndFlush(captor.capture());
@@ -137,8 +137,8 @@ class WalletServiceTest {
 
         ResWalletBalanceDto response = walletService.getBalance(userId);
 
-        assertThat(response.balance()).isEqualTo(150_000L);
-        assertThat(response.updatedAt()).isEqualTo(updatedAt);
+        assertThat(response.getBalance()).isEqualTo(150_000L);
+        assertThat(response.getUpdatedAt()).isEqualTo(updatedAt);
         verify(walletRepository, never()).findByUserId(any(Long.class));
     }
 
@@ -154,8 +154,8 @@ class WalletServiceTest {
 
         ResWalletBalanceDto response = walletService.getBalance(userId);
 
-        assertThat(response.balance()).isEqualTo(100_000L);
-        assertThat(response.updatedAt()).isEqualTo(updatedAt);
+        assertThat(response.getBalance()).isEqualTo(100_000L);
+        assertThat(response.getUpdatedAt()).isEqualTo(updatedAt);
         verify(walletCacheService).put(userId, 100_000L, updatedAt);
     }
 

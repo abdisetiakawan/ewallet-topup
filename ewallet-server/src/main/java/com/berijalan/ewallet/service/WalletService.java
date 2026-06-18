@@ -1,9 +1,9 @@
 package com.berijalan.ewallet.service;
 
 import com.berijalan.ewallet.common.TransactionAmountLimits;
-import com.berijalan.ewallet.dto.request.ReqTopupDto;
-import com.berijalan.ewallet.dto.response.ResTopupDto;
-import com.berijalan.ewallet.dto.response.ResWalletBalanceDto;
+import com.berijalan.ewallet.contract.model.ReqTopupDto;
+import com.berijalan.ewallet.contract.model.ResTopupDto;
+import com.berijalan.ewallet.contract.model.ResWalletBalanceDto;
 import com.berijalan.ewallet.entity.Transaction;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
@@ -68,7 +68,7 @@ public class WalletService {
     @Transactional
     @LoggableAction(action = "wallet.topup", logSuccess = false)
     public ResTopupDto topup(ReqTopupDto request, Long userId) {
-        validateTopupAmount(request.amount(), userId);
+        validateTopupAmount(request.getAmount(), userId);
 
         // WHY: Saldo dikunci agar top-up dan pembayaran paralel tidak saling menimpa nilai balance.
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
@@ -81,14 +81,14 @@ public class WalletService {
         String referenceId = ReferenceIdGenerator.generate("TXN-");
 
         long balanceBefore = wallet.getBalance();
-        long balanceAfter = safeAddBalance(balanceBefore, request.amount(), userId);
+        long balanceAfter = safeAddBalance(balanceBefore, request.getAmount(), userId);
 
         wallet.setBalance(balanceAfter);
 
         Transaction transaction = new Transaction();
         transaction.setUser(user);
-        transaction.setAmount(request.amount());
-        transaction.setBaseAmount(request.amount());
+        transaction.setAmount(request.getAmount());
+        transaction.setBaseAmount(request.getAmount());
         transaction.setTaxAmount(0L);
         transaction.setBalanceBefore(balanceBefore);
         transaction.setBalanceAfter(balanceAfter);
@@ -101,7 +101,7 @@ public class WalletService {
         walletCacheService.putAfterCommit(userId, balanceAfter, wallet.getUpdatedAt());
 
         log.info("Top-up success. userId={}, amount={}, balanceBefore={}, balanceAfter={}, referenceId={}",
-                userId, request.amount(), balanceBefore, balanceAfter, transaction.getReferenceId());
+                userId, request.getAmount(), balanceBefore, balanceAfter, transaction.getReferenceId());
 
         return walletMapper.toTopupDto(transaction);
     }

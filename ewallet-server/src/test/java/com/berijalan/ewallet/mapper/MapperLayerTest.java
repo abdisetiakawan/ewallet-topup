@@ -1,13 +1,13 @@
 package com.berijalan.ewallet.mapper;
 
-import com.berijalan.ewallet.dto.response.ResAdminMerchantDto;
-import com.berijalan.ewallet.dto.response.ResLoginDto;
-import com.berijalan.ewallet.dto.response.ResMerchantDto;
-import com.berijalan.ewallet.dto.response.ResPaymentDto;
-import com.berijalan.ewallet.dto.response.ResTopupDto;
-import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
-import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
-import com.berijalan.ewallet.dto.response.ResWalletBalanceDto;
+import com.berijalan.ewallet.contract.model.ResAdminMerchantDto;
+import com.berijalan.ewallet.contract.model.ResLoginDto;
+import com.berijalan.ewallet.contract.model.ResMerchantDto;
+import com.berijalan.ewallet.contract.model.ResPaymentDto;
+import com.berijalan.ewallet.contract.model.ResTopupDto;
+import com.berijalan.ewallet.contract.model.ResTransactionHistoryDto;
+import com.berijalan.ewallet.contract.model.ResUserSummaryDto;
+import com.berijalan.ewallet.contract.model.ResWalletBalanceDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.Transaction;
@@ -49,10 +49,10 @@ class MapperLayerTest {
         ResWalletBalanceDto walletResponse = walletMapper.toBalanceDto(wallet);
         ResWalletBalanceDto cacheResponse = walletMapper.toBalanceDto(new WalletBalanceCache(150_000L, updatedAt));
 
-        assertThat(walletResponse.balance()).isEqualTo(125_000L);
-        assertThat(walletResponse.updatedAt()).isEqualTo(updatedAt);
-        assertThat(cacheResponse.balance()).isEqualTo(150_000L);
-        assertThat(cacheResponse.updatedAt()).isEqualTo(updatedAt);
+        assertThat(walletResponse.getBalance()).isEqualTo(125_000L);
+        assertThat(walletResponse.getUpdatedAt()).isEqualTo(updatedAt);
+        assertThat(cacheResponse.getBalance()).isEqualTo(150_000L);
+        assertThat(cacheResponse.getUpdatedAt()).isEqualTo(updatedAt);
     }
 
     @Test
@@ -69,13 +69,13 @@ class MapperLayerTest {
 
         ResTopupDto response = walletMapper.toTopupDto(transaction);
 
-        assertThat(response.transactionId()).isEqualTo(10L);
-        assertThat(response.amount()).isEqualTo(50_000L);
-        assertThat(response.balanceBefore()).isEqualTo(100_000L);
-        assertThat(response.balanceAfter()).isEqualTo(150_000L);
-        assertThat(response.type()).isEqualTo("TOPUP");
-        assertThat(response.status()).isEqualTo("SUCCESS");
-        assertThat(response.createdAt()).isEqualTo(createdAt);
+        assertThat(response.getTransactionId()).isEqualTo(10L);
+        assertThat(response.getAmount()).isEqualTo(50_000L);
+        assertThat(response.getBalanceBefore()).isEqualTo(100_000L);
+        assertThat(response.getBalanceAfter()).isEqualTo(150_000L);
+        assertThat(response.getType()).isEqualTo("TOPUP");
+        assertThat(response.getStatus()).isEqualTo("SUCCESS");
+        assertThat(response.getCreatedAt()).isEqualTo(createdAt);
     }
 
     @Test
@@ -89,21 +89,21 @@ class MapperLayerTest {
                 new PageImpl<>(List.of(transaction), PageRequest.of(0, 10), 1)
         );
 
-        assertThat(payment.transactionId()).isEqualTo(100L);
-        assertThat(payment.referenceId()).isEqualTo("PAY-TEST");
-        assertThat(payment.amount()).isEqualTo(102_500L);
-        assertThat(payment.baseAmount()).isEqualTo(100_000L);
-        assertThat(payment.taxAmount()).isEqualTo(2_500L);
-        assertThat(payment.balanceBefore()).isEqualTo(200_000L);
-        assertThat(payment.balanceAfter()).isEqualTo(97_500L);
-        assertThat(payment.merchantName()).isEqualTo("Gopay");
+        assertThat(payment.getTransactionId()).isEqualTo(100L);
+        assertThat(payment.getReferenceId()).isEqualTo("PAY-TEST");
+        assertThat(payment.getAmount()).isEqualTo(102_500L);
+        assertThat(payment.getBaseAmount()).isEqualTo(100_000L);
+        assertThat(payment.getTaxAmount()).isEqualTo(2_500L);
+        assertThat(payment.getBalanceBefore()).isEqualTo(200_000L);
+        assertThat(payment.getBalanceAfter()).isEqualTo(97_500L);
+        assertThat(payment.getMerchantName()).isEqualTo("Gopay");
 
-        assertThat(history.content()).hasSize(1);
-        assertThat(history.page()).isZero();
-        assertThat(history.size()).isEqualTo(10);
-        assertThat(history.totalElements()).isEqualTo(1);
-        assertThat(history.content().get(0).userId()).isEqualTo(1L);
-        assertThat(history.content().get(0).merchantName()).isEqualTo("Gopay");
+        assertThat(history.getContent()).hasSize(1);
+        assertThat(history.getPage()).isZero();
+        assertThat(history.getSize()).isEqualTo(10);
+        assertThat(history.getTotalElements()).isEqualTo(1);
+        assertThat(history.getContent().get(0).getUserId()).isEqualTo(1L);
+        assertThat(history.getContent().get(0).getMerchantName()).isEqualTo("Gopay");
     }
 
     @Test
@@ -114,11 +114,11 @@ class MapperLayerTest {
 
         ResMerchantDto response = merchantMapper.toDto(merchant);
 
-        assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.name()).isEqualTo("Gopay");
-        assertThat(response.isActive()).isTrue();
-        assertThat(response.taxes()).hasSize(1);
-        assertThat(response.taxes().get(0).taxName()).isEqualTo("Admin Fee");
+        assertThat(response.getId()).isEqualTo(1L);
+        assertThat(response.getName()).isEqualTo("Gopay");
+        assertThat(response.getIsActive()).isTrue();
+        assertThat(response.getTaxes()).hasSize(1);
+        assertThat(response.getTaxes().get(0).getTaxName()).isEqualTo("Admin Fee");
     }
 
     @Test
@@ -131,12 +131,12 @@ class MapperLayerTest {
 
         ResAdminMerchantDto response = adminMerchantMapper.toDto(merchant, taxes);
 
-        assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.name()).isEqualTo("Gopay");
-        assertThat(response.taxes()).hasSize(2);
-        assertThat(response.taxes().get(0).id()).isEqualTo(11L);
-        assertThat(response.taxes().get(0).taxType()).isEqualTo("ADMIN_FEE");
-        assertThat(response.taxes().get(0).valueType()).isEqualTo("FIXED");
+        assertThat(response.getId()).isEqualTo(1L);
+        assertThat(response.getName()).isEqualTo("Gopay");
+        assertThat(response.getTaxes()).hasSize(2);
+        assertThat(response.getTaxes().get(0).getId()).isEqualTo(11L);
+        assertThat(response.getTaxes().get(0).getTaxType()).isEqualTo("ADMIN_FEE");
+        assertThat(response.getTaxes().get(0).getValueType()).isEqualTo("FIXED");
     }
 
     @Test
@@ -152,14 +152,14 @@ class MapperLayerTest {
                 new UserDetailsImpl(1L, "Test User", "test@example.com", RoleName.CUSTOMER, createdAt, "password")
         );
 
-        assertThat(summary.userId()).isEqualTo(1L);
-        assertThat(summary.email()).isEqualTo("test@example.com");
-        assertThat(summary.createdAt()).isEqualTo(createdAt);
-        assertThat(summary.role()).isEqualTo("CUSTOMER");
-        assertThat(login.token()).isEqualTo("access-token");
-        assertThat(login.tokenType()).isEqualTo("Bearer");
-        assertThat(login.expiresIn()).isEqualTo(3_600L);
-        assertThat(login.user().userId()).isEqualTo(1L);
+        assertThat(summary.getUserId()).isEqualTo(1L);
+        assertThat(summary.getEmail()).isEqualTo("test@example.com");
+        assertThat(summary.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(summary.getRole()).isEqualTo("CUSTOMER");
+        assertThat(login.getToken()).isEqualTo("access-token");
+        assertThat(login.getTokenType()).isEqualTo("Bearer");
+        assertThat(login.getExpiresIn()).isEqualTo(3_600L);
+        assertThat(login.getUser().getUserId()).isEqualTo(1L);
     }
 
     private User createUser(Long id) {

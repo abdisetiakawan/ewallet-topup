@@ -2,7 +2,7 @@ package com.berijalan.ewallet.config;
 
 import com.berijalan.ewallet.common.security.CurrentUser;
 import com.berijalan.ewallet.common.web.ApiResponseFactory;
-import com.berijalan.ewallet.dto.response.BaseResponse;
+import com.berijalan.ewallet.contract.model.BaseResponseVoid;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.service.IdempotencyService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,16 +10,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.lang.annotation.Annotation;
 import java.nio.charset.StandardCharsets;
 
 @Aspect
@@ -40,10 +44,10 @@ public class IdempotencyAspect {
     @Around("@annotation(com.berijalan.ewallet.config.IdempotencyGuarded)")
     public Object guardFinancialRequest(ProceedingJoinPoint joinPoint) throws Throwable {
         HttpServletRequest httpRequest = currentHttpRequest();
-        Authentication authentication = findArgument(joinPoint.getArgs(), Authentication.class);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Long userId = CurrentUser.id(authentication);
 
-        Object requestBody = findRequestBody(joinPoint.getArgs());
+        Object requestBody = findRequestBody(joinPoint);
         // WHY: Hash body mencegah client memakai Idempotency-Key yang sama untuk mutasi finansial berbeda.
         String requestHash = DigestUtils.md5DigestAsHex(
                 objectMapper.writeValueAsString(requestBody).getBytes(StandardCharsets.UTF_8)
@@ -78,7 +82,7 @@ public class IdempotencyAspect {
             return response;
         } catch (BadRequestException ex) {
             // WHY: Error bisnis 400 direplay agar retry request invalid tidak terus menyentuh service finansial.
-            ResponseEntity<BaseResponse<Void>> response = ResponseEntity
+            ResponseEntity<BaseResponseVoid> response = ResponseEntity
                     .badRequest()
                     .body(ApiResponseFactory.error(ex.getMessage()));
 
@@ -101,21 +105,25 @@ public class IdempotencyAspect {
         return ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
     }
 
-    private <T> T findArgument(Object[] args, Class<T> type) {
-        for (Object arg : args) {
-            if (type.isInstance(arg)) {
-                return type.cast(arg);
+    private Object findRequestBody(ProceedingJoinPoint joinPoint) {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Annotation[][] parameterAnnotations = signature.getMethod().getParameterAnnotations();
+        Object[] args = joinPoint.getArgs();
+
+        for (int i = 0; i < parameterAnnotations.length; i++) {
+            for (Annotation annotation : parameterAnnotations[i]) {
+                if (annotation instanceof RequestBody) {
+                    return args[i];
+                }
             }
         }
-        throw new IllegalStateException("Required argument not found: " + type.getSimpleName());
-    }
 
-    private Object findRequestBody(Object[] args) {
         for (Object arg : args) {
-            if (!(arg instanceof Authentication)) {
+            if (arg != null && !(arg instanceof String) && !(arg instanceof Authentication)) {
                 return arg;
             }
         }
+
         throw new IllegalStateException("Request body not found");
     }
 }

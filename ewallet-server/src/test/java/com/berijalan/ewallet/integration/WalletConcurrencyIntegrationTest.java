@@ -1,7 +1,7 @@
 package com.berijalan.ewallet.integration;
 
-import com.berijalan.ewallet.dto.request.ReqTopupDto;
-import com.berijalan.ewallet.dto.request.ReqPayDto;
+import com.berijalan.ewallet.contract.model.ReqTopupDto;
+import com.berijalan.ewallet.contract.model.ReqPayDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;

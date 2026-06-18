@@ -1,6 +1,6 @@
 package com.berijalan.ewallet.service;
 
-import com.berijalan.ewallet.dto.response.ResMerchantDto;
+import com.berijalan.ewallet.contract.model.ResMerchantDto;
 import com.berijalan.ewallet.mapper.MerchantMapper;
 import com.berijalan.ewallet.repository.MerchantRepository;
 import lombok.RequiredArgsConstructor;

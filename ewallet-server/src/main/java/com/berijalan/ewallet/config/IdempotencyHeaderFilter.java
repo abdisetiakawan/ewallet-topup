@@ -1,7 +1,7 @@
 package com.berijalan.ewallet.config;
 
 import com.berijalan.ewallet.common.web.ApiResponseFactory;
-import com.berijalan.ewallet.dto.response.BaseResponse;
+import com.berijalan.ewallet.contract.model.BaseResponseVoid;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -44,7 +44,7 @@ public class IdempotencyHeaderFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         if (requiresIdempotencyKey(request) && isBlank(request.getHeader(IDEMPOTENCY_KEY_HEADER))) {
             // WHY: Validasi di filter memberi error konsisten sebelum aspect membuat state PROCESSING di Redis.
-            BaseResponse<Void> responseBody = ApiResponseFactory.error("Idempotency-Key header is required");
+            BaseResponseVoid responseBody = ApiResponseFactory.error("Idempotency-Key header is required");
 
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);

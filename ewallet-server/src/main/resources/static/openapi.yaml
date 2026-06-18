@@ -1,0 +1,1323 @@
+openapi: 3.0.3
+info:
+  title: AstraPay E-Wallet Topup API
+  version: v1
+  description: Dokumentasi API untuk autentikasi, wallet, transaksi, merchant, dan pengaturan admin.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+tags:
+  - name: Autentikasi
+    description: Registrasi, login, refresh token, dan logout pengguna.
+  - name: Wallet
+    description: Saldo dan mutasi top-up wallet customer.
+  - name: Transaksi
+    description: Pembayaran merchant dan riwayat transaksi customer.
+  - name: Merchant
+    description: Daftar merchant aktif yang tersedia untuk pembayaran.
+  - name: Pengguna
+    description: Profil, perubahan email, dan perubahan password customer.
+  - name: Admin Merchant
+    description: Manajemen merchant dan konfigurasi pajak oleh admin.
+paths:
+  /api/auth/register:
+    post:
+      tags: [Autentikasi]
+      operationId: register
+      summary: Registrasi pengguna
+      description: Membuat akun customer baru dan wallet awal dengan saldo nol.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqRegisterDto'
+      responses:
+        '200':
+          description: Registrasi berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResUserSummaryDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/auth/login:
+    post:
+      tags: [Autentikasi]
+      operationId: login
+      summary: Login pengguna
+      description: Menghasilkan access token JWT dan menyimpan refresh token di cookie HTTP-only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqLoginDto'
+      responses:
+        '200':
+          description: Login berhasil
+          headers:
+            Set-Cookie:
+              description: Cookie HTTP-only berisi refresh token.
+              schema:
+                type: string
+                example: refreshToken=abc; Path=/api/auth; HttpOnly; SameSite=Lax
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResLoginDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/auth/refresh:
+    post:
+      tags: [Autentikasi]
+      operationId: refresh
+      summary: Refresh access token
+      description: Menerbitkan access token baru dari refresh token yang masih aktif di cookie.
+      parameters:
+        - $ref: '#/components/parameters/RefreshTokenCookie'
+      responses:
+        '200':
+          description: Token berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResRefreshTokenDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/auth/logout:
+    post:
+      tags: [Autentikasi]
+      operationId: logout
+      summary: Logout pengguna
+      description: Mencabut refresh token aktif dan menghapus cookie refresh token dari browser.
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: '#/components/parameters/RefreshTokenCookie'
+      responses:
+        '200':
+          description: Logout berhasil
+          headers:
+            Set-Cookie:
+              description: Cookie refresh token yang dikosongkan.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseVoid'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/wallet/balance:
+    get:
+      tags: [Wallet]
+      operationId: getBalance
+      summary: Melihat saldo wallet
+      description: Mengambil saldo terakhir milik customer yang sedang login.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Saldo berhasil dikembalikan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResWalletBalanceDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/wallet/topup:
+    post:
+      tags: [Wallet]
+      operationId: topup
+      summary: Top-up wallet
+      description: Menambah saldo wallet customer dan mencatat transaksi top-up yang idempoten.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqTopupDto'
+      responses:
+        '200':
+          description: Top-up berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResTopupDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/transactions/pay:
+    post:
+      tags: [Transaksi]
+      operationId: pay
+      summary: Membayar merchant
+      description: Mengurangi saldo wallet customer, menghitung pajak aktif merchant, dan menyimpan snapshot transaksi.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqPayDto'
+      responses:
+        '200':
+          description: Pembayaran berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResPaymentDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/transactions/pay/quote:
+    post:
+      tags: [Transaksi]
+      operationId: quotePayment
+      summary: Preview pembayaran merchant
+      description: Menghitung rincian pajak aktif terkini untuk preview. Pembayaran final tetap dihitung ulang saat pay.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqPaymentQuoteDto'
+      responses:
+        '200':
+          description: Preview pembayaran berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResPaymentQuoteDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/transactions:
+    get:
+      tags: [Transaksi]
+      operationId: getTransactions
+      summary: Melihat riwayat transaksi
+      description: Mengambil riwayat transaksi customer dengan filter status, tipe, dan pagination.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TransactionStatus'
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TransactionType'
+      responses:
+        '200':
+          description: Riwayat transaksi berhasil dikembalikan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResTransactionHistoryDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/transactions/{transactionId}:
+    get:
+      tags: [Transaksi]
+      operationId: getTransaction
+      summary: Melihat detail transaksi
+      description: Mengambil detail transaksi customer beserta snapshot pajak pembayaran untuk transaksi miliknya.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Detail transaksi berhasil dikembalikan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResTransactionDetailDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/merchants:
+    get:
+      tags: [Merchant]
+      operationId: getAllActiveMerchants
+      summary: Melihat merchant aktif
+      description: Mengambil daftar merchant aktif beserta konfigurasi pajaknya untuk kebutuhan pembayaran customer.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar merchant aktif berhasil dikembalikan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResMerchantDtoList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/users/me:
+    get:
+      tags: [Pengguna]
+      operationId: getProfile
+      summary: Melihat profil
+      description: Mengambil ringkasan profil customer yang sedang login.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil berhasil dikembalikan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResUserSummaryDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Pengguna]
+      operationId: updateProfile
+      summary: Memperbarui profil
+      description: Memperbarui data profil dasar customer yang sedang login.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqUpdateProfileDto'
+      responses:
+        '200':
+          description: Profil berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResUserSummaryDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/users/me/email:
+    post:
+      tags: [Pengguna]
+      operationId: requestEmailChange
+      summary: Meminta perubahan email
+      description: Mengirim token verifikasi ke email baru dan mencabut request email sebelumnya.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqEmailChangeDto'
+      responses:
+        '200':
+          description: Token verifikasi email berhasil dikirim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResEmailChangeDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/users/me/email/confirm:
+    post:
+      tags: [Pengguna]
+      operationId: confirmEmailChange
+      summary: Konfirmasi perubahan email
+      description: Memvalidasi token email change dan mengganti email customer yang sedang login.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqEmailChangeConfirmDto'
+      responses:
+        '200':
+          description: Email berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResUserSummaryDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/users/me/password:
+    put:
+      tags: [Pengguna]
+      operationId: changePassword
+      summary: Mengubah password
+      description: Mengganti password customer setelah password lama berhasil diverifikasi.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqChangePasswordDto'
+      responses:
+        '200':
+          description: Password berhasil diubah
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseVoid'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/merchants:
+    get:
+      tags: [Admin Merchant]
+      operationId: getAllMerchants
+      summary: Melihat semua merchant
+      description: Mengambil seluruh merchant untuk kebutuhan administrasi, termasuk merchant yang tidak aktif.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar merchant admin berhasil dikembalikan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResAdminMerchantDtoList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Admin Merchant]
+      operationId: createMerchant
+      summary: Membuat merchant
+      description: Membuat merchant baru beserta daftar konfigurasi pajak awalnya.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqAdminMerchantConfigDto'
+      responses:
+        '200':
+          description: Merchant berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResAdminMerchantDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/merchants/{id}:
+    get:
+      tags: [Admin Merchant]
+      operationId: getMerchant
+      summary: Melihat detail merchant
+      description: Mengambil detail merchant dan pajaknya berdasarkan ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Detail merchant berhasil dikembalikan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResAdminMerchantDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Admin Merchant]
+      operationId: updateMerchant
+      summary: Memperbarui merchant
+      description: Memperbarui data merchant dan melakukan upsert daftar pajaknya dalam satu transaksi.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqAdminMerchantConfigDto'
+      responses:
+        '200':
+          description: Merchant berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponseResAdminMerchantDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Kunci unik per request finansial untuk mencegah transaksi ganda.
+      schema:
+        type: string
+        minLength: 1
+        example: 4e10dcb8-1c93-4f09-9f66-d27f33c2149e
+    RefreshTokenCookie:
+      name: refreshToken
+      in: cookie
+      required: false
+      description: Refresh token HTTP-only yang dikirim melalui cookie login.
+      schema:
+        type: string
+  responses:
+    ValidationError:
+      description: Payload, query parameter, atau header tidak valid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BaseResponseErrorMap'
+    Unauthorized:
+      description: Access token atau refresh token tidak valid/tidak ada.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BaseResponseVoid'
+    Forbidden:
+      description: Role pengguna tidak diizinkan mengakses resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BaseResponseVoid'
+    NotFound:
+      description: Resource tidak ditemukan.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BaseResponseVoid'
+    Conflict:
+      description: Resource atau request konflik, termasuk idempotency key yang sedang diproses.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BaseResponseVoid'
+    InternalServerError:
+      description: Kesalahan internal server.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BaseResponseVoid'
+  schemas:
+    BaseResponse:
+      type: object
+      required: [requestId, status, message]
+      properties:
+        requestId:
+          type: string
+          example: req-550e8400-e29b-41d4-a716-446655440000
+        status:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operation successful
+        data:
+          nullable: true
+    BaseResponseVoid:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              nullable: true
+              example: null
+    BaseResponseErrorMap:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              additionalProperties:
+                type: string
+              example:
+                amount: Minimum top-up amount is 10000
+    BaseResponseResUserSummaryDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResUserSummaryDto'
+    BaseResponseResLoginDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResLoginDto'
+    BaseResponseResRefreshTokenDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResRefreshTokenDto'
+    BaseResponseResWalletBalanceDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResWalletBalanceDto'
+    BaseResponseResTopupDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResTopupDto'
+    BaseResponseResPaymentDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResPaymentDto'
+    BaseResponseResPaymentQuoteDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResPaymentQuoteDto'
+    BaseResponseResTransactionHistoryDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResTransactionHistoryDto'
+    BaseResponseResTransactionDetailDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResTransactionDetailDto'
+    BaseResponseResMerchantDtoList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ResMerchantDto'
+    BaseResponseResEmailChangeDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResEmailChangeDto'
+    BaseResponseResAdminMerchantDto:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ResAdminMerchantDto'
+    BaseResponseResAdminMerchantDtoList:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ResAdminMerchantDto'
+    ReqRegisterDto:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          example: Budi Santoso
+        email:
+          type: string
+          format: email
+          example: budi@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+          pattern: ^(?=.*[0-9])(?=.*[A-Z]).*$
+          example: Password1
+    ReqLoginDto:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: budi@example.com
+        password:
+          type: string
+          format: password
+          example: Password1
+    ReqTopupDto:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: integer
+          format: int64
+          minimum: 10000
+          maximum: 10000000
+          example: 50000
+    ReqPayDto:
+      type: object
+      required: [merchantName, amount, description]
+      properties:
+        merchantName:
+          type: string
+          maxLength: 255
+          example: Gopay
+        amount:
+          type: integer
+          format: int64
+          minimum: 10000
+          maximum: 10000000
+          example: 100000
+        description:
+          type: string
+          maxLength: 255
+          example: Top-up Gopay
+    ReqPaymentQuoteDto:
+      type: object
+      required: [merchantName, amount]
+      properties:
+        merchantName:
+          type: string
+          maxLength: 255
+          example: Gopay
+        amount:
+          type: integer
+          format: int64
+          minimum: 10000
+          maximum: 10000000
+          example: 100000
+    ReqUpdateProfileDto:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          example: Budi Santoso
+    ReqEmailChangeDto:
+      type: object
+      required: [newEmail]
+      properties:
+        newEmail:
+          type: string
+          format: email
+          example: budi.baru@example.com
+    ReqEmailChangeConfirmDto:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+    ReqChangePasswordDto:
+      type: object
+      required: [oldPassword, newPassword]
+      properties:
+        oldPassword:
+          type: string
+          example: OldPassword1
+        newPassword:
+          type: string
+          minLength: 8
+          example: NewPassword1
+    ReqAdminMerchantConfigDto:
+      type: object
+      required: [name, isActive]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: Gopay
+        isActive:
+          type: boolean
+          example: true
+        taxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReqAdminMerchantTaxDto'
+    ReqAdminMerchantTaxDto:
+      type: object
+      required: [taxName, taxType, valueType, taxValue, isActive, effectiveAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1
+        taxName:
+          type: string
+          maxLength: 100
+          example: Service Fee
+        taxType:
+          $ref: '#/components/schemas/TaxType'
+        valueType:
+          $ref: '#/components/schemas/TaxValueType'
+        taxValue:
+          type: number
+          minimum: 0
+          maximum: 1000000000
+          example: 1.5
+        isActive:
+          type: boolean
+          example: true
+        effectiveAt:
+          type: string
+          format: date-time
+          example: '2026-05-18T09:00:00'
+        expiredAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-12-31T23:59:59'
+    ResUserSummaryDto:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: Budi Santoso
+        email:
+          type: string
+          format: email
+          example: budi@example.com
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-05-18T09:00:00'
+        role:
+          type: string
+          example: CUSTOMER
+    ResLoginDto:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiJ9...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          format: int64
+          example: 900
+        user:
+          $ref: '#/components/schemas/ResUserSummaryDto'
+    ResRefreshTokenDto:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiJ9...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          format: int64
+          example: 900
+    ResWalletBalanceDto:
+      type: object
+      properties:
+        balance:
+          type: integer
+          format: int64
+          example: 150000
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-05-18T09:00:00'
+    ResTopupDto:
+      type: object
+      properties:
+        transactionId:
+          type: integer
+          format: int64
+          example: 10
+        amount:
+          type: integer
+          format: int64
+          example: 50000
+        balanceBefore:
+          type: integer
+          format: int64
+          example: 100000
+        balanceAfter:
+          type: integer
+          format: int64
+          example: 150000
+        type:
+          type: string
+          example: TOPUP
+        status:
+          type: string
+          example: SUCCESS
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-05-18T09:00:00'
+    ResPaymentDto:
+      type: object
+      properties:
+        transactionId:
+          type: integer
+          format: int64
+          example: 20
+        referenceId:
+          type: string
+          example: PAY-9A1B2C3D4E
+        amount:
+          type: integer
+          format: int64
+          example: 102500
+        baseAmount:
+          type: integer
+          format: int64
+          example: 100000
+        taxAmount:
+          type: integer
+          format: int64
+          example: 2500
+        balanceBefore:
+          type: integer
+          format: int64
+          example: 200000
+        balanceAfter:
+          type: integer
+          format: int64
+          example: 97500
+        description:
+          type: string
+          example: Top-up Gopay
+        merchantName:
+          type: string
+          example: Gopay
+        type:
+          type: string
+          example: PAYMENT
+        status:
+          type: string
+          example: SUCCESS
+    ResPaymentQuoteDto:
+      type: object
+      properties:
+        merchantName:
+          type: string
+          example: Gopay
+        baseAmount:
+          type: integer
+          format: int64
+          example: 100000
+        taxAmount:
+          type: integer
+          format: int64
+          example: 2500
+        amount:
+          type: integer
+          format: int64
+          example: 102500
+        taxDetails:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxSnapshotDto'
+    ResTransactionHistoryDto:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResTransactionItemDto'
+        page:
+          type: integer
+          format: int32
+          example: 0
+        size:
+          type: integer
+          format: int32
+          example: 10
+        totalElements:
+          type: integer
+          format: int64
+          example: 25
+        totalPages:
+          type: integer
+          format: int32
+          example: 3
+    ResTransactionItemDto:
+      type: object
+      properties:
+        transactionId:
+          type: integer
+          format: int64
+          example: 100
+        userId:
+          type: integer
+          format: int64
+          example: 1
+        userName:
+          type: string
+          example: Budi Santoso
+        userEmail:
+          type: string
+          format: email
+          example: budi@example.com
+        referenceId:
+          type: string
+          example: PAY-TEST
+        amount:
+          type: integer
+          format: int64
+          example: 102500
+        baseAmount:
+          type: integer
+          format: int64
+          example: 100000
+        taxAmount:
+          type: integer
+          format: int64
+          example: 2500
+        balanceBefore:
+          type: integer
+          format: int64
+          example: 200000
+        balanceAfter:
+          type: integer
+          format: int64
+          example: 97500
+        type:
+          type: string
+          example: PAYMENT
+        status:
+          type: string
+          example: SUCCESS
+        description:
+          type: string
+          nullable: true
+          example: Top-up Gopay
+        merchantName:
+          type: string
+          nullable: true
+          example: Gopay
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-05-18T09:00:00'
+    ResTransactionDetailDto:
+      allOf:
+        - $ref: '#/components/schemas/ResTransactionItemDto'
+        - type: object
+          properties:
+            taxDetails:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaxSnapshotDto'
+    ResMerchantDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: Gopay
+        isActive:
+          type: boolean
+          example: true
+        taxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResMerchantTaxDto'
+    ResMerchantTaxDto:
+      type: object
+      properties:
+        taxName:
+          type: string
+          example: Service Fee
+        taxType:
+          type: string
+          example: SERVICE_FEE
+        valueType:
+          type: string
+          example: PERCENTAGE
+        taxValue:
+          type: number
+          example: 1.5
+    ResEmailChangeDto:
+      type: object
+      properties:
+        newEmail:
+          type: string
+          format: email
+          example: budi.baru@example.com
+        expiresInMinutes:
+          type: integer
+          format: int32
+          example: 15
+    ResAdminMerchantDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: Gopay
+        isActive:
+          type: boolean
+          example: true
+        taxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResAdminMerchantTaxDto'
+    ResAdminMerchantTaxDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        taxName:
+          type: string
+          example: Service Fee
+        taxType:
+          type: string
+          example: SERVICE_FEE
+        valueType:
+          type: string
+          example: PERCENTAGE
+        taxValue:
+          type: number
+          example: 1.5
+        isActive:
+          type: boolean
+          example: true
+        effectiveAt:
+          type: string
+          format: date-time
+          example: '2026-05-18T09:00:00'
+        expiredAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-12-31T23:59:59'
+    TaxSnapshotDto:
+      type: object
+      properties:
+        taxName:
+          type: string
+          example: Service Fee
+        taxCategory:
+          type: string
+          example: SERVICE_FEE
+        valueType:
+          type: string
+          example: PERCENTAGE
+        taxValue:
+          type: number
+          example: 1.5
+        calculatedAmount:
+          type: integer
+          format: int64
+          example: 1500
+    TaxType:
+      type: string
+      enum: [PPN, SERVICE_FEE, PLATFORM_FEE, ADMIN_FEE, TRANSFER_FEE, PROCESSING_FEE]
+    TaxValueType:
+      type: string
+      enum: [PERCENTAGE, FIXED]
+    TransactionStatus:
+      type: string
+      enum: [PENDING, SUCCESS, FAILED]
+    TransactionType:
+      type: string
+      enum: [TOPUP, PAYMENT, TRANSFER]

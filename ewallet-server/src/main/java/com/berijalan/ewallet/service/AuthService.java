@@ -1,9 +1,9 @@
 package com.berijalan.ewallet.service;
 
-import com.berijalan.ewallet.dto.request.ReqLoginDto;
-import com.berijalan.ewallet.dto.request.ReqRegisterDto;
-import com.berijalan.ewallet.dto.response.ResLoginDto;
-import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
+import com.berijalan.ewallet.contract.model.ReqLoginDto;
+import com.berijalan.ewallet.contract.model.ReqRegisterDto;
+import com.berijalan.ewallet.contract.model.ResLoginDto;
+import com.berijalan.ewallet.contract.model.ResUserSummaryDto;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.entity.Wallet;
 import com.berijalan.ewallet.exception.BadRequestException;
@@ -48,15 +48,15 @@ public class AuthService {
     @Transactional
     @LoggableAction(action = "auth.register")
     public ResUserSummaryDto register(ReqRegisterDto request) {
-        if (userRepository.findByEmail(request.email()).isPresent()) {
-            log.warn("Registration rejected because email already exists. email={}", request.email());
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            log.warn("Registration rejected because email already exists. email={}", request.getEmail());
             throw new BadRequestException("Email already exists");
         }
 
         User user = new User();
-        user.setName(request.name());
-        user.setEmail(request.email());
-        user.setPassword(passwordEncoder.encode(request.password()));
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         userRepository.save(user);
 
@@ -83,10 +83,10 @@ public class AuthService {
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
         } catch (AuthenticationException ex) {
-            log.error("Login failed during authentication. email={}", request.email(), ex);
+            log.error("Login failed during authentication. email={}", request.getEmail(), ex);
             throw ex;
         }
 

@@ -1,8 +1,8 @@
 package com.berijalan.ewallet.integration;
 
-import com.berijalan.ewallet.dto.request.ReqAdminMerchantConfigDto;
-import com.berijalan.ewallet.dto.request.ReqAdminMerchantTaxDto;
-import com.berijalan.ewallet.dto.response.ResAdminMerchantDto;
+import com.berijalan.ewallet.contract.model.ReqAdminMerchantConfigDto;
+import com.berijalan.ewallet.contract.model.ReqAdminMerchantTaxDto;
+import com.berijalan.ewallet.contract.model.ResAdminMerchantDto;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.constant.TaxType;
 import com.berijalan.ewallet.entity.constant.TaxValueType;
@@ -34,6 +34,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(properties = {
         "spring.data.redis.repositories.enabled=false",
         "spring.flyway.ignore-migration-patterns=*:missing",
+        "spring.flyway.validate-on-migrate=false",
         "spring.jpa.hibernate.ddl-auto=validate",
         "spring.jpa.show-sql=false",
         "logging.level.org.hibernate.SQL=OFF"
@@ -62,19 +63,19 @@ class AdminMerchantTaxUpdateIntegrationTest {
     @Test
     void updateMerchant_whenExistingTaxIsRetagged_shouldAllowNewTaxForPreviousType() {
         ResAdminMerchantDto merchant = createMerchantWithProcessingFee();
-        Long existingTaxId = merchant.taxes().get(0).id();
+        Long existingTaxId = merchant.getTaxes().get(0).getId();
 
         ResAdminMerchantDto updated = adminMerchantService.updateMerchant(
-                merchant.id(),
+                merchant.getId(),
                 config(
-                        merchant.name(),
+                        merchant.getName(),
                         tax(existingTaxId, "Service Fee", TaxType.SERVICE_FEE, TaxValueType.PERCENTAGE, "1.5000"),
                         tax(null, "Replacement Processing Fee", TaxType.PROCESSING_FEE, TaxValueType.FIXED, "1500.0000")
                 )
         );
 
-        assertThat(updated.taxes()).hasSize(2);
-        assertThat(activeTypes(updated.id())).containsExactlyInAnyOrder(
+        assertThat(updated.getTaxes()).hasSize(2);
+        assertThat(activeTypes(updated.getId())).containsExactlyInAnyOrder(
                 TaxType.SERVICE_FEE,
                 TaxType.PROCESSING_FEE
         );
@@ -85,27 +86,27 @@ class AdminMerchantTaxUpdateIntegrationTest {
         ResAdminMerchantDto merchant = createMerchantWithProcessingFee();
 
         ResAdminMerchantDto updated = adminMerchantService.updateMerchant(
-                merchant.id(),
+                merchant.getId(),
                 config(
-                        merchant.name(),
+                        merchant.getName(),
                         tax(null, "Replacement Processing Fee", TaxType.PROCESSING_FEE, TaxValueType.FIXED, "2000.0000")
                 )
         );
 
-        assertThat(updated.taxes()).hasSize(1);
-        assertThat(updated.taxes().get(0).id()).isNotEqualTo(merchant.taxes().get(0).id());
-        assertThat(activeTypes(updated.id())).containsExactly(TaxType.PROCESSING_FEE);
+        assertThat(updated.getTaxes()).hasSize(1);
+        assertThat(updated.getTaxes().get(0).getId()).isNotEqualTo(merchant.getTaxes().get(0).getId());
+        assertThat(activeTypes(updated.getId())).containsExactly(TaxType.PROCESSING_FEE);
     }
 
     @Test
     void updateMerchant_whenFinalPayloadHasDuplicateActiveTypes_shouldRejectDomainRequest() {
         ResAdminMerchantDto merchant = createMerchantWithProcessingFee();
-        Long existingTaxId = merchant.taxes().get(0).id();
+        Long existingTaxId = merchant.getTaxes().get(0).getId();
 
         assertThatThrownBy(() -> adminMerchantService.updateMerchant(
-                merchant.id(),
+                merchant.getId(),
                 config(
-                        merchant.name(),
+                        merchant.getName(),
                         tax(existingTaxId, "Processing Fee", TaxType.PROCESSING_FEE, TaxValueType.FIXED, "1000.0000"),
                         tax(null, "Duplicate Processing Fee", TaxType.PROCESSING_FEE, TaxValueType.FIXED, "1500.0000")
                 )
@@ -122,7 +123,8 @@ class AdminMerchantTaxUpdateIntegrationTest {
     }
 
     private ReqAdminMerchantConfigDto config(String merchantName, ReqAdminMerchantTaxDto... taxes) {
-        return new ReqAdminMerchantConfigDto(merchantName, true, List.of(taxes));
+        return new ReqAdminMerchantConfigDto(merchantName, true)
+                .taxes(List.of(taxes));
     }
 
     private ReqAdminMerchantTaxDto tax(
@@ -133,15 +135,14 @@ class AdminMerchantTaxUpdateIntegrationTest {
             String value
     ) {
         return new ReqAdminMerchantTaxDto(
-                id,
                 name,
-                taxType,
-                valueType,
+                com.berijalan.ewallet.contract.model.TaxType.fromValue(taxType.name()),
+                com.berijalan.ewallet.contract.model.TaxValueType.fromValue(valueType.name()),
                 new BigDecimal(value),
                 true,
-                LocalDateTime.of(2026, 5, 22, 0, 0),
-                null
-        );
+                LocalDateTime.of(2026, 5, 22, 0, 0)
+        )
+                .id(id);
     }
 
     private Set<TaxType> activeTypes(Long merchantId) {

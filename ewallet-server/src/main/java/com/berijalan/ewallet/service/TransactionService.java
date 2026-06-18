@@ -1,14 +1,13 @@
 package com.berijalan.ewallet.service;
 
 import com.berijalan.ewallet.common.TransactionAmountLimits;
-import com.berijalan.ewallet.dto.request.ReqPayDto;
-import com.berijalan.ewallet.dto.request.ReqPaymentQuoteDto;
-import com.berijalan.ewallet.dto.request.ReqTransactionHistoryDto;
-import com.berijalan.ewallet.dto.response.ResPaymentDto;
-import com.berijalan.ewallet.dto.response.ResPaymentQuoteDto;
-import com.berijalan.ewallet.dto.response.ResTransactionDetailDto;
-import com.berijalan.ewallet.dto.response.ResTransactionHistoryDto;
-import com.berijalan.ewallet.dto.response.TaxSnapshotDto;
+import com.berijalan.ewallet.contract.model.ReqPayDto;
+import com.berijalan.ewallet.contract.model.ReqPaymentQuoteDto;
+import com.berijalan.ewallet.contract.model.ResPaymentDto;
+import com.berijalan.ewallet.contract.model.ResPaymentQuoteDto;
+import com.berijalan.ewallet.contract.model.ResTransactionDetailDto;
+import com.berijalan.ewallet.contract.model.ResTransactionHistoryDto;
+import com.berijalan.ewallet.contract.model.TaxSnapshotDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.entity.MerchantTax;
 import com.berijalan.ewallet.entity.Transaction;
@@ -31,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -65,7 +65,7 @@ public class TransactionService {
     @Transactional
     @LoggableAction(action = "transaction.pay", logSuccess = false)
     public ResPaymentDto pay(ReqPayDto request, Long userId) {
-        validatePaymentAmount(request.amount(), userId, request.merchantName());
+        validatePaymentAmount(request.getAmount(), userId, request.getMerchantName());
 
         // WHY: Pembayaran harus serial per wallet agar dua request paralel tidak menghasilkan saldo negatif.
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
@@ -75,8 +75,8 @@ public class TransactionService {
                 });
         User user = wallet.getUser();
 
-        Merchant merchant = findMerchant(request.merchantName(), userId);
-        PaymentCalculation paymentCalculation = calculatePayment(merchant, request.amount(), userId);
+        Merchant merchant = findMerchant(request.getMerchantName(), userId);
+        PaymentCalculation paymentCalculation = calculatePayment(merchant, request.getAmount(), userId);
         long baseAmount = paymentCalculation.baseAmount();
         long totalTax = paymentCalculation.totalTax();
         long finalAmount = paymentCalculation.finalAmount();
@@ -121,18 +121,17 @@ public class TransactionService {
      */
     @Transactional(readOnly = true)
     public ResPaymentQuoteDto quotePayment(ReqPaymentQuoteDto request) {
-        validatePaymentAmount(request.amount(), null, request.merchantName());
+        validatePaymentAmount(request.getAmount(), null, request.getMerchantName());
 
-        Merchant merchant = findMerchant(request.merchantName(), null);
-        PaymentCalculation paymentCalculation = calculatePayment(merchant, request.amount(), null);
+        Merchant merchant = findMerchant(request.getMerchantName(), null);
+        PaymentCalculation paymentCalculation = calculatePayment(merchant, request.getAmount(), null);
 
-        return new ResPaymentQuoteDto(
-                merchant.getName(),
-                paymentCalculation.baseAmount(),
-                paymentCalculation.totalTax(),
-                paymentCalculation.finalAmount(),
-                toTaxSnapshotDtos(paymentCalculation.taxSnapshots())
-        );
+        return new ResPaymentQuoteDto()
+                .merchantName(merchant.getName())
+                .baseAmount(paymentCalculation.baseAmount())
+                .taxAmount(paymentCalculation.totalTax())
+                .amount(paymentCalculation.finalAmount())
+                .taxDetails(toTaxSnapshotDtos(paymentCalculation.taxSnapshots()));
     }
 
     private void validatePaymentAmount(Long amount, Long userId, String merchantName) {
@@ -206,12 +205,12 @@ public class TransactionService {
         Transaction transaction = new Transaction();
         transaction.setReferenceId(ReferenceIdGenerator.generate("PAY-"));
         transaction.setAmount(finalAmount);
-        transaction.setBaseAmount(request.amount());
+        transaction.setBaseAmount(request.getAmount());
         transaction.setTaxAmount(totalTax);
         transaction.setTaxSnapshot(taxSnapshotJson);
         transaction.setBalanceBefore(balanceBefore);
         transaction.setBalanceAfter(balanceAfter);
-        transaction.setDescription(request.description());
+        transaction.setDescription(request.getDescription());
         transaction.setType(TransactionType.PAYMENT);
         transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setMerchant(merchant);
@@ -234,13 +233,12 @@ public class TransactionService {
 
     private List<TaxSnapshotDto> toTaxSnapshotDtos(List<TaxCalculator.TaxSnapshot> taxSnapshots) {
         return taxSnapshots.stream()
-                .map(taxSnapshot -> new TaxSnapshotDto(
-                        taxSnapshot.taxName(),
-                        taxSnapshot.taxType(),
-                        taxSnapshot.valueType(),
-                        taxSnapshot.taxValue(),
-                        taxSnapshot.calculatedTax()
-                ))
+                .map(taxSnapshot -> new TaxSnapshotDto()
+                        .taxName(taxSnapshot.taxName())
+                        .taxCategory(taxSnapshot.taxType())
+                        .valueType(taxSnapshot.valueType())
+                        .taxValue(taxSnapshot.taxValue())
+                        .calculatedAmount(taxSnapshot.calculatedTax()))
                 .toList();
     }
 
@@ -252,9 +250,24 @@ public class TransactionService {
      * @return halaman riwayat transaksi yang sudah dipetakan untuk API.
      */
     @Transactional(readOnly = true)
-    public ResTransactionHistoryDto getTransactions(Long userId, ReqTransactionHistoryDto request) {
-        Pageable pageable = request.toPageable(Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Transaction> transactionPage = findTransactionPage(userId, request, pageable);
+    public ResTransactionHistoryDto getTransactions(
+            Long userId,
+            Integer page,
+            Integer size,
+            com.berijalan.ewallet.contract.model.TransactionStatus status,
+            com.berijalan.ewallet.contract.model.TransactionType type
+    ) {
+        Pageable pageable = PageRequest.of(
+                page == null ? 0 : page,
+                size == null ? 10 : size,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+        Page<Transaction> transactionPage = findTransactionPage(
+                userId,
+                toEntityTransactionStatus(status),
+                toEntityTransactionType(type),
+                pageable
+        );
 
         return transactionMapper.toHistoryDto(transactionPage);
     }
@@ -275,10 +288,12 @@ public class TransactionService {
         return transactionMapper.toDetailDto(transaction, deserializeTaxSnapshots(transaction.getTaxSnapshot()));
     }
 
-    private Page<Transaction> findTransactionPage(Long userId, ReqTransactionHistoryDto request, Pageable pageable) {
-        TransactionStatus status = request.status();
-        TransactionType type = request.type();
-
+    private Page<Transaction> findTransactionPage(
+            Long userId,
+            TransactionStatus status,
+            TransactionType type,
+            Pageable pageable
+    ) {
         if (status != null && type != null) {
             return transactionRepository.findByUserIdAndStatusAndType(userId, status, type, pageable);
         }
@@ -323,8 +338,25 @@ public class TransactionService {
             Long calculatedTax
     ) {
         private TaxSnapshotDto toDto() {
-            return new TaxSnapshotDto(taxName, taxType, valueType, taxValue, calculatedTax);
+            return new TaxSnapshotDto()
+                    .taxName(taxName)
+                    .taxCategory(taxType)
+                    .valueType(valueType)
+                    .taxValue(taxValue)
+                    .calculatedAmount(calculatedTax);
         }
+    }
+
+    private TransactionStatus toEntityTransactionStatus(
+            com.berijalan.ewallet.contract.model.TransactionStatus status
+    ) {
+        return status == null ? null : TransactionStatus.valueOf(status.getValue());
+    }
+
+    private TransactionType toEntityTransactionType(
+            com.berijalan.ewallet.contract.model.TransactionType type
+    ) {
+        return type == null ? null : TransactionType.valueOf(type.getValue());
     }
 
     private record PaymentCalculation(

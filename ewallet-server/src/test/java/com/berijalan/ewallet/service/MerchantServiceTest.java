@@ -1,6 +1,6 @@
 package com.berijalan.ewallet.service;
 
-import com.berijalan.ewallet.dto.response.ResMerchantDto;
+import com.berijalan.ewallet.contract.model.ResMerchantDto;
 import com.berijalan.ewallet.entity.Merchant;
 import com.berijalan.ewallet.mapper.MerchantMapper;
 import com.berijalan.ewallet.repository.MerchantRepository;
@@ -41,8 +41,8 @@ class MerchantServiceTest {
         List<ResMerchantDto> result = merchantService.getAllActiveMerchants();
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).name()).isEqualTo("Gopay");
-        assertThat(result.get(0).isActive()).isTrue();
+        assertThat(result.get(0).getName()).isEqualTo("Gopay");
+        assertThat(result.get(0).getIsActive()).isTrue();
         verify(merchantRepository).findByIsActiveTrue();
     }
 }

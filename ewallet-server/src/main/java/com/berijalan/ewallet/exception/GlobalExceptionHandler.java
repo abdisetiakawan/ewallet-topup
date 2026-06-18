@@ -1,7 +1,8 @@
 package com.berijalan.ewallet.exception;
 
 import com.berijalan.ewallet.common.web.ApiResponseFactory;
-import com.berijalan.ewallet.dto.response.BaseResponse;
+import com.berijalan.ewallet.contract.model.BaseResponseErrorMap;
+import com.berijalan.ewallet.contract.model.BaseResponseVoid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,16 +24,16 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<BaseResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<BaseResponseErrorMap> handleValidationExceptions(MethodArgumentNotValidException ex) {
         return buildValidationResponse(ex.getBindingResult().getFieldErrors());
     }
 
     @ExceptionHandler(BindException.class)
-    public ResponseEntity<BaseResponse<Map<String, String>>> handleBindExceptions(BindException ex) {
+    public ResponseEntity<BaseResponseErrorMap> handleBindExceptions(BindException ex) {
         return buildValidationResponse(ex.getBindingResult().getFieldErrors());
     }
 
-    private ResponseEntity<BaseResponse<Map<String, String>>> buildValidationResponse(Iterable<FieldError> fieldErrors) {
+    private ResponseEntity<BaseResponseErrorMap> buildValidationResponse(Iterable<FieldError> fieldErrors) {
         Map<String, String> errors = new HashMap<>();
         fieldErrors.forEach((error) -> {
             String fieldName = error.getField();
@@ -41,11 +42,11 @@ public class GlobalExceptionHandler {
         });
 
         // WHY: Validation error memakai map field-message agar client bisa menampilkan error per input.
-        return error(HttpStatus.BAD_REQUEST, "Validation Error", errors);
+        return validationError(HttpStatus.BAD_REQUEST, "Validation Error", errors);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<BaseResponse<Map<String, String>>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+    public ResponseEntity<BaseResponseErrorMap> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         Class<?> requiredType = ex.getRequiredType();
         String message = requiredType != null && requiredType.isEnum()
                 ? "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'. Allowed: " + Arrays.toString(requiredType.getEnumConstants())
@@ -54,45 +55,51 @@ public class GlobalExceptionHandler {
         Map<String, String> errors = new HashMap<>();
         errors.put(ex.getName(), message);
 
-        return error(HttpStatus.BAD_REQUEST, "Validation Error", errors);
+        return validationError(HttpStatus.BAD_REQUEST, "Validation Error", errors);
     }
 
     @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<BaseResponse<Void>> handleBadRequestException(BadRequestException ex) {
-        return error(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    public ResponseEntity<BaseResponseVoid> handleBadRequestException(BadRequestException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler({UnauthorizedException.class, AuthenticationException.class})
-    public ResponseEntity<BaseResponse<Void>> handleUnauthorizedException(Exception ex) {
+    public ResponseEntity<BaseResponseVoid> handleUnauthorizedException(Exception ex) {
         String message = ex.getMessage() != null && !ex.getMessage().isEmpty() ? ex.getMessage() : "Unauthorized";
-        return error(HttpStatus.UNAUTHORIZED, message, null);
+        return error(HttpStatus.UNAUTHORIZED, message);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<BaseResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
-        return error(HttpStatus.FORBIDDEN, "Access Denied", null);
+    public ResponseEntity<BaseResponseVoid> handleAccessDeniedException(AccessDeniedException ex) {
+        return error(HttpStatus.FORBIDDEN, "Access Denied");
     }
 
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<BaseResponse<Void>> handleNotFoundException(NotFoundException ex) {
-        return error(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+    public ResponseEntity<BaseResponseVoid> handleNotFoundException(NotFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<BaseResponse<Void>> handleConflictException(ConflictException ex) {
-        return error(HttpStatus.CONFLICT, ex.getMessage(), null);
+    public ResponseEntity<BaseResponseVoid> handleConflictException(ConflictException ex) {
+        return error(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<BaseResponse<Void>> handleGlobalException(Exception ex) {
+    public ResponseEntity<BaseResponseVoid> handleGlobalException(Exception ex) {
         // WHY: Detail exception tidak dikirim ke client agar informasi internal tidak bocor.
         log.error("Internal Server Error", ex);
-        return error(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error");
     }
 
-    private <T> ResponseEntity<BaseResponse<T>> error(HttpStatus status, String message, T data) {
+    private ResponseEntity<BaseResponseVoid> error(HttpStatus status, String message) {
         return ResponseEntity
                 .status(status)
-                .body(ApiResponseFactory.error(message, data));
+                .body(ApiResponseFactory.error(message));
+    }
+
+    private ResponseEntity<BaseResponseErrorMap> validationError(HttpStatus status, String message, Map<String, String> data) {
+        return ResponseEntity
+                .status(status)
+                .body(ApiResponseFactory.validationError(message, data));
     }
 }

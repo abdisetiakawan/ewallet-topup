@@ -1,8 +1,8 @@
 package com.berijalan.ewallet.service;
 
-import com.berijalan.ewallet.dto.request.ReqChangePasswordDto;
-import com.berijalan.ewallet.dto.request.ReqUpdateProfileDto;
-import com.berijalan.ewallet.dto.response.ResUserSummaryDto;
+import com.berijalan.ewallet.contract.model.ReqChangePasswordDto;
+import com.berijalan.ewallet.contract.model.ReqUpdateProfileDto;
+import com.berijalan.ewallet.contract.model.ResUserSummaryDto;
 import com.berijalan.ewallet.entity.User;
 import com.berijalan.ewallet.exception.BadRequestException;
 import com.berijalan.ewallet.exception.NotFoundException;
@@ -58,7 +58,7 @@ public class UserService {
                     return new NotFoundException("User not found");
                 });
 
-        user.setName(request.name());
+        user.setName(request.getName());
         userRepository.save(user);
 
         log.info("Profile update success. userId={}", userId);
@@ -82,18 +82,18 @@ public class UserService {
                     return new NotFoundException("User not found");
                 });
 
-        if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             log.warn("Password change rejected because old password does not match. userId={}", userId);
             throw new BadRequestException("Old password does not match");
         }
 
-        if (request.oldPassword().equals(request.newPassword())) {
+        if (request.getOldPassword().equals(request.getNewPassword())) {
             log.warn("Password change rejected because new password matches old password. userId={}", userId);
             throw new BadRequestException("New password cannot be the same as old password");
         }
 
         // WHY: Password hanya dibandingkan dalam bentuk plaintext request, lalu disimpan ulang dalam bentuk hash.
-        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
         log.info("Password changed successfully for userId={}", userId);
